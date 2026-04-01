@@ -140,7 +140,7 @@ export interface FilterState {
 }
 
 // Aktiver Tab in der Navigation
-export type ActiveTab = 'planung' | 'kapazitaet' | 'dashboard' | 'settings';
+export type ActiveTab = 'planung' | 'kapazitaet' | 'dashboard' | 'pidashboard' | 'settings';
 
 // Settings-Unterseite
 export type SettingsView =

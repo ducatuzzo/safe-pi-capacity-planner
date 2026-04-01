@@ -9,6 +9,7 @@ const TABS: { id: ActiveTab; label: string }[] = [
   { id: 'planung', label: 'Planung' },
   { id: 'kapazitaet', label: 'Kapazität' },
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'pidashboard', label: 'PI Dashboard' },
   { id: 'settings', label: 'Einstellungen' },
 ];
 

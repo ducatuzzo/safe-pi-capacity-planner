@@ -7,6 +7,7 @@ import SettingsPage from './components/settings/SettingsPage';
 import CalendarGrid from './components/calendar/CalendarGrid';
 import KapazitaetView from './components/capacity/KapazitaetView';
 import DashboardView from './components/dashboard/DashboardView';
+import PIDashboardView from './components/pidashboard/PIDashboardView';
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER } from './data/seed';
 import { DEFAULT_FARB_CONFIG } from './constants';
 import { useSocket } from './hooks/useSocket';
@@ -222,7 +223,7 @@ export default function App() {
   }, [emitUnlock]);
 
   const appData: AppData = { feiertage, schulferien, pis, blocker, teamZielwerte };
-  const showFilterBar = activeTab === 'planung' || activeTab === 'kapazitaet' || activeTab === 'dashboard';
+  const showFilterBar = activeTab === 'planung' || activeTab === 'kapazitaet' || activeTab === 'dashboard' || activeTab === 'pidashboard';
 
   return (
     <div className="min-h-screen flex flex-col bg-bund-bg">
@@ -263,6 +264,14 @@ export default function App() {
         )}
         {activeTab === 'dashboard' && (
           <DashboardView
+            employees={employees}
+            pis={pis}
+            appData={appData}
+            filterState={filterState}
+          />
+        )}
+        {activeTab === 'pidashboard' && (
+          <PIDashboardView
             employees={employees}
             pis={pis}
             appData={appData}
