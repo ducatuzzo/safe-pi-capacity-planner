@@ -129,8 +129,8 @@ useEffect(() => {
 
 ## Status
 - [ ] Design: abgeschlossen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Implementierung: abgeschlossen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL (komplex — eigene Session, Rate-Limit beachten)
 ## Geschätzte Dauer: 45–60 Minuten im Code-Tab

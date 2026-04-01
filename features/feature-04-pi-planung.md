@@ -54,8 +54,8 @@ PI26-4: 2026-11-19 – 2027-02-10
 ```
 
 ## Status
-- [ ] Design: offen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Design: abgeschlossen
+- [x] Implementierung: abgeschlossen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

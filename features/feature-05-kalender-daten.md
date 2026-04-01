@@ -51,8 +51,8 @@ Settings-Tab: Drei separate Konfigurationsbereiche für Feiertage, Schulferien u
 - Feature 02 (types.ts): DateRangeDefinition Interface
 
 ## Status
-- [ ] Design: offen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Design: abgeschlossen
+- [x] Implementierung: abgeschlossen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

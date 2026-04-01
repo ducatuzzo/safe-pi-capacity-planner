@@ -44,8 +44,8 @@ Anna;Beispiel;Team B;eMA;0.8;80;15;5;1
 - Employee Interface aus types.ts
 
 ## Status
-- [ ] Design: offen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Design: abgeschlossen
+- [x] Implementierung: abgeschlossen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

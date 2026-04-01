@@ -1,4 +1,4 @@
-# STATUS.md – Stand: 28.03.2026
+# STATUS.md – Stand: 01.04.2026
 
 ## Projektstatus
 ✅ Alle Features abgeschlossen. App produktionsbereit.
@@ -20,6 +20,7 @@
 - Feature 14: Team-Zielwerte konfigurierbar (Settings, CSV Import/Export) ✅
 - Feature 15: Multiuser (Socket.io State-Sync, Row-Locking, Verbindungsindikator) ✅
 - Feature 16: Farbeinstellungen (Buchungstypen + Kalender, Color-Picker, CSV, Reset) ✅
+- Feature PI-Dashboard-Tab: PI Dashboard Tab (Jira-SP vs. App-SP, Farbcodierung, localStorage) ✅
 
 ## Behobene Bugs & Fixes
 - BUG-01: Drag-Interpolation ✅
@@ -31,11 +32,11 @@
 - FIX-04: Logo ersetzt durch Logo_RGB_farbig_negativ.svg ✅
 - FIX-05: Header vergrössert (Logo h-14, Titel text-xl, Padding py-4) ✅
 
-## Dokumentation (v1.0 — muss bei Änderungen nachgeführt werden)
-- Installationshandbuch: docs/installationshandbuch_v1.0.docx ✅
-- Benutzerdokumentation: docs/benutzerdokumentation_v1.1.docx ✅ (Feature 16 Farbeinstellungen ergänzt)
-- Generierungs-Scripts: docs/install_handbuch.js, docs/benutzer_doku.js, docs/deployment_handbuch.js
-- Deployment-Handbuch: docs/deployment_handbuch_v1.0.docx ✅ (Option A Lokal + Option B Server im LAN)
+## Dokumentation (muss bei Änderungen nachgeführt werden)
+- Installationshandbuch: docs/installationshandbuch_v1.0.md ✅
+- Benutzerdokumentation: docs/benutzerdokumentation_v1.2.md ✅ (PI Dashboard Tab ergänzt)
+- Deployment-Handbuch: docs/deployment_handbuch_v1.0.md ✅
+- CLAUDE.md: Technischer Kompass für Claude Sessions ✅ (neu 01.04.2026)
 
 ## Offene Punkte (optional / zukünftig)
 - Persistenter Server-State via JSON-File (statt in-memory)

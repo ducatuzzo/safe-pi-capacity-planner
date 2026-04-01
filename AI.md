@@ -132,9 +132,25 @@ Bei jeder Änderung die folgende Bereiche betrifft, müssen die DOCX-Dokumente n
 **Format:** `installationshandbuch_vX.Y.docx`, `benutzerdokumentation_vX.Y.docx`
 **Generierung:** Node.js Scripts in `C:\Users\Davide\Documents\AI\safe-pi-planner\docs\`
 
+## Navigations-Tabs (Stand 01.04.2026)
+| Tab | Key | Beschreibung |
+|-----|-----|-------------|
+| Planung | `planung` | Kalender-Grid mit Drag-Buchung |
+| Kapazität | `kapazitaet` | SP-Berechnung pro Mitarbeiter/Team |
+| Dashboard | `dashboard` | KPI-Karten, BarChart, Absenz-Tabelle, Lücken |
+| PI Dashboard | `pidashboard` | SP-Vergleich Jira vs. App pro PI/Team/Iteration (neu 01.04.2026) |
+| Einstellungen | `settings` | Mitarbeiter, PI-Planung, Feiertage, Zielwerte, Farben |
+
+## PI Dashboard Tab
+- **Komponenten:** `src/components/pidashboard/` (PIDashboardView, PIDashboardTable, PIDashboardRow)
+- **Hook:** `src/hooks/usePIDashboard.ts`
+- **SP in Jira:** Manuell editierbar, localStorage Key `pi-dashboard-sp-jira-v1`
+- **Farbcodierung:** grün <85%, orange 85–100%, rot >100% Auslastung
+- Siehe `features/feature-pi-dashboard-tab.md` für vollständige Spezifikation
+
 ## Verbote
 - Keine direkten DB-Abfragen (kein SQL, kein ORM) – alles JSON-basiert
 - Keine externen Fonts via CDN (Datenschutz Bund)
 - Keine print()-Statements in Produktionscode
-- Kein localStorage für kritische Daten (nur für UI-Preferences)
+- Kein localStorage für kritische Daten (nur für UI-Preferences erlaubt, z.B. SP-Jira-Werte im PI Dashboard)
 - Keine Bibliotheken ohne explizite Freigabe im package.json

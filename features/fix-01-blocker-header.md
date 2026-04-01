@@ -27,7 +27,7 @@ Schneeflocke ❄️ wird im Kalender-Header (Datumszeile) angezeigt, nicht in de
 - Nur visueller Hinweis im Header dass an diesem Tag ein Freeze aktiv ist
 
 ## Status
-- [ ] Implementierung: offen
+- [x] Implementierung: abgeschlossen
 - [ ] Visuell verifiziert: offen
 
 ## Session-Typ: IMPL (klein, max 15 Minuten)

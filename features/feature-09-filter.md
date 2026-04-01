@@ -41,8 +41,8 @@ interface FilterState {
 - Feature 08: KapazitaetView muss filtered employees + dateRange akzeptieren
 
 ## Status
-- [ ] Design: offen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Design: abgeschlossen
+- [x] Implementierung: abgeschlossen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

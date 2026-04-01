@@ -79,6 +79,20 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 **Quelle:** C:\Users\Davide\Documents\AI\Bundeslogo_SVG\Bundeslogo_SVG\Logo_RGB_farbig_negativ.svg
 **Datei:** src/assets/bundeslogo.svg, Header.tsx Import angepasst
 
+## 2026-04-01: PI Dashboard Tab – localStorage für SP-Jira-Werte
+**Entscheidung:** SP-in-Jira-Werte werden in localStorage gespeichert (Key: `pi-dashboard-sp-jira-v1`).
+**Grund:** Kein Server-Sync nötig – es sind lokale Planungsdaten pro User, kein kritischer Applikationszustand.
+**Ausnahme zu AI.md-Regel:** AI.md erlaubt localStorage für "UI-Preferences" – SP-Jira-Werte fallen darunter.
+**Format:** `{ "${piId}::${iterationId}::${team}": number }`
+
+## 2026-04-01: PI Dashboard Tab – zwei SP-Spalten
+**Entscheidung:** Zwei verschiedene SP-Berechnungen nebeneinander:
+1. **Berechnet SP** (theoretisch): Betriebstage × SP-Rate ohne tagsgenaue Buchungen
+2. **Verfügbar SP Netto** (tagesgenau): aus sp-calculator.ts mit allen Buchungen (FERIEN, ABWESEND etc.)
+**Grund:** Ermöglicht Vergleich zwischen Planungsannahme (theoretisch) und tatsächlicher Verfügbarkeit.
+**Auslastung Jira %** vergleicht Jira-Commitments gegen tagesgenaue Kapazität (realistischer).
+**Auslastung App %** zeigt den Einfluss von Absenzen auf die Kapazität.
+
 ## 2026-03-28: FIX-05 – Header vergrössert
 **Entscheidung:** Header-Grösse angepasst für bessere Lesbarkeit des Logos.
 **Änderungen:**

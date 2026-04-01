@@ -46,6 +46,6 @@ safe-pi-capacity-planner/
 ## Status
 - [x] Design: abgeschlossen
 - [x] Implementierung: abgeschlossen (27.03.2026)
-- [ ] Tests: offen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

@@ -91,8 +91,8 @@ interface IterationSPResult {
 - Feature 06/07: allocations im Employee-State gefüllt
 
 ## Status
-- [ ] Design: offen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Design: abgeschlossen
+- [x] Implementierung: abgeschlossen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

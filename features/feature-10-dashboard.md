@@ -53,8 +53,20 @@
 - Feature 07: allocations[] der Mitarbeiter
 
 ## Status
-- [ ] Design: offen
-- [ ] Implementierung: offen
-- [ ] Tests: offen
+- [x] Design: abgeschlossen
+- [x] Implementierung: abgeschlossen (01.04.2026)
+- [ ] Tests: offen (nicht automatisiert)
+
+## Implementierte Komponenten
+| Datei | Zeilen |
+|-------|--------|
+| `src/components/dashboard/DashboardView.tsx` | 313 |
+| `src/components/dashboard/KPICards.tsx` | 66 |
+| `src/components/dashboard/SPBarChart.tsx` | 103 |
+| `src/components/dashboard/AbsenzTabelle.tsx` | 116 |
+| `src/components/dashboard/LueckenListe.tsx` | 124 |
+
+## Hinweis: PI Dashboard Tab (separates Feature)
+Für den Vergleich Jira-SP vs. App-SP pro Iteration → siehe `features/feature-pi-dashboard-tab.md`
 
 ## Session-Typ: IMPL

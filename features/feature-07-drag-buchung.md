@@ -58,6 +58,6 @@ Klick auf gebuchte Zelle (gleicher Typ wie selectedType):
 ## Status
 - [x] Design: abgeschlossen
 - [x] Implementierung: abgeschlossen (27.03.2026)
-- [ ] Tests: offen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL

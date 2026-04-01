@@ -63,7 +63,7 @@ Hauptansicht "Planung": Horizontaler Kalender mit Mitarbeitern als Zeilen und Ta
 ## Status
 - [x] Design: abgeschlossen (27.03.2026)
 - [x] Implementierung: abgeschlossen (27.03.2026)
-- [ ] Tests: offen
+- [ ] Tests: offen (nicht automatisiert)
 
 ## Session-Typ: IMPL
 ## Hinweis: Komplexestes Feature – eigene Session, nicht mit Feature 07 kombinieren
