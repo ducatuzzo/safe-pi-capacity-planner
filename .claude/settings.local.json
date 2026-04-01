@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir safe-pi-capacity-planner:*)",
+      "Bash(mkdir -p src/components/layout src/components/calendar src/components/settings src/components/dashboard src/utils)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:58304)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:59995)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:59995/)",
+      "Bash(find C:UsersDavideDocumentsAIsafe-pi-planner/safe-pi-capacity-planner/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(npm run:*)",
+      "Bash(find C:UsersDavideDocumentsAIsafe-pi-plannersafe-pi-capacity-planner -not -path */node_modules/* -not -path */dist/* -type f)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(git add:*)"
+    ]
+  }
+}
