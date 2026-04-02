@@ -43,8 +43,10 @@ export function useSocket({
   });
 
   useEffect(() => {
-    // Vite proxied /socket.io → localhost:3001, daher relative URL (kein hardcoded Port)
-    const socket = io(window.location.origin, {
+    // Lokal: Vite proxied /socket.io → localhost:3001 → window.location.origin
+    // Produktion: VITE_BACKEND_URL zeigt auf Railway-Backend
+    const backendUrl = import.meta.env.VITE_BACKEND_URL ?? window.location.origin;
+    const socket = io(backendUrl, {
       path: '/socket.io',
       reconnectionDelay: 1000,
     });

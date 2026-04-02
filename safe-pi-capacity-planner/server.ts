@@ -9,7 +9,7 @@ import {
 } from './server/state-manager';
 import type { AllocationType, SavedProjectState } from './src/types';
 
-const PORT = 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 
 // Lock-State: employeeId → { userName, timer }
 const locks = new Map<string, { userName: string; timer: ReturnType<typeof setTimeout> }>();
@@ -18,10 +18,16 @@ const LOCK_TIMEOUT_MS = 30_000;
 const app = express();
 const httpServer = createServer(app);
 
+const CORS_ORIGINS: (string | RegExp)[] = [
+  // Alle lokalen Entwicklungs-Ports (Vite AutoPort-Schutz)
+  /^http:\/\/localhost:\d+$/,
+  // Vercel Production Frontend
+  'https://safe-pi-capacity-planner.vercel.app',
+];
+
 const io = new SocketIOServer(httpServer, {
   cors: {
-    // Erlaubt alle localhost-Ports (Vite AutoPort-Schutz)
-    origin: /^http:\/\/localhost:\d+$/,
+    origin: CORS_ORIGINS,
     methods: ['GET', 'POST'],
   },
 });
@@ -113,5 +119,5 @@ io.on('connection', (socket) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`[Server] Läuft auf http://localhost:${PORT}`);
+  console.log(`[Server] Läuft auf Port ${PORT}`);
 });
