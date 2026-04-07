@@ -8,7 +8,11 @@ import type { SavedProjectState, Employee, AllocationType, AppData } from '../sr
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER } from '../src/data/seed';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, '..', 'data');
+// Auf Railway: Volume ist unter /app/data gemountet
+// Lokal: data/ relativ zum Projektverzeichnis
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH
+  ? process.env.RAILWAY_VOLUME_MOUNT_PATH
+  : join(__dirname, '..', 'data');
 const STATE_FILE = join(DATA_DIR, 'state.json');
 
 const INITIAL_TEAM_ZIELWERTE: AppData['teamZielwerte'] = [
