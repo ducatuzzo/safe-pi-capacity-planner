@@ -80,6 +80,27 @@ export interface TeamZielwerte {
   standardstundenProJahr: number; // Standard: 1600
 }
 
+// Feature 17: Globale SP-Parameter
+export interface GlobalCapacityConfig {
+  spPerDay: number;      // Standard: 1
+  hoursPerYear: number;  // Standard: 1600
+}
+
+// Feature 17: Team-spezifische Mindestbesetzung
+export interface TeamConfig {
+  teamName: string;
+  minPikett: number;  // Mindestanzahl PIKETT täglich (inkl. WE + Feiertage)
+  minBetrieb: number; // Mindestanzahl BETRIEB pro Arbeitstag (exkl. WE + Feiertage)
+}
+
+// Feature 17: SP-Jira-Zielwert pro PI / Iteration / Team
+export interface PITeamTarget {
+  piId: string;
+  iterationId: string;
+  teamName: string;
+  spJira: number;
+}
+
 // Gesamte Applikationsdaten
 export interface AppData {
   feiertage: Feiertag[];
@@ -87,6 +108,9 @@ export interface AppData {
   pis: PiDefinition[];
   blocker: Blocker[];
   teamZielwerte: TeamZielwerte[];
+  globalConfig: GlobalCapacityConfig;
+  teamConfigs: TeamConfig[];
+  piTeamTargets: PITeamTarget[];
 }
 
 // Vollständiger gespeicherter Projektzustand (Backup/Restore)
@@ -150,8 +174,10 @@ export type SettingsView =
   | 'schulferien'
   | 'blocker'
   | 'zielwerte'
-  | 'backup'
-  | 'farben';
+  | 'team-konfiguration'
+  | 'globale-parameter'
+  | 'farben'
+  | 'backup';
 
 // Farbe (Hintergrund + Schrift) für einen Buchungstyp oder Kalenderbereich
 export interface BuchungsFarbe {
@@ -180,6 +206,9 @@ export interface FullAppState {
   blocker: Blocker[];
   teamZielwerte: TeamZielwerte[];
   farbConfig?: FarbConfig;
+  globalConfig?: GlobalCapacityConfig;
+  teamConfigs?: TeamConfig[];
+  piTeamTargets?: PITeamTarget[];
 }
 
 // Backup-Datei-Format (JSON-Export)

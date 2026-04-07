@@ -49,6 +49,7 @@ export default function PIDashboardTable({ piId, teamData, onSpJiraChange }: PID
               </th>
               <th className="px-4 py-2.5 text-right font-semibold">Berechnet SP</th>
               <th className="px-4 py-2.5 text-right font-semibold">Verfügbar SP Netto</th>
+              <th className="px-4 py-2.5 text-right font-semibold">Delta</th>
               <th className="px-4 py-2.5 text-right font-semibold">Auslastung Jira %</th>
               <th className="px-4 py-2.5 text-right font-semibold">Auslastung App %</th>
             </tr>
@@ -69,6 +70,7 @@ export default function PIDashboardTable({ piId, teamData, onSpJiraChange }: PID
               totalSpJira={teamData.totalSpJira}
               totalBerechnetSP={teamData.totalBerechnetSP}
               totalVerfuegbarSP={teamData.totalVerfuegbarSP}
+              totalDelta={teamData.totalDelta}
               auslastungJiraTotal={teamData.auslastungJiraTotal}
               auslastungAppTotal={teamData.auslastungAppTotal}
             />

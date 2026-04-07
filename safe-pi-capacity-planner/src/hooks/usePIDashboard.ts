@@ -1,8 +1,8 @@
 // Hook: PI Dashboard – Daten pro PI / Team / Iteration
-// SP in Jira wird in localStorage persistiert, alle anderen Werte berechnet.
+// SP in Jira wird in AppData (piTeamTargets) persistiert, alle anderen Werte berechnet.
 
-import { useState, useMemo, useCallback } from 'react';
-import type { Employee, AppData, PIPlanning, FilterState } from '../types';
+import { useMemo } from 'react';
+import type { Employee, AppData, PIPlanning, FilterState, PITeamTarget } from '../types';
 import { calculateSPForTeam } from '../utils/sp-calculator';
 import { getWorkingDays } from '../utils/calendar-helpers';
 
@@ -14,9 +14,10 @@ export interface PIDashboardIterationRow {
   startStr: string;
   endStr: string;
   betriebstage: number;
-  spJira: number;           // manuell (localStorage)
+  spJira: number;           // manuell (piTeamTargets in AppData)
   berechnetSP: number;      // theoretisch: Arbeitstage × SP-Rate (ohne tagsgenaue Buchungen)
   verfuegbarSP: number;     // netto: aus sp-calculator (mit Buchungen, FTE, Betrieb%, Pauschale%)
+  delta: number;            // verfuegbarSP – spJira (positiv = Puffer, negativ = Überlastet)
   auslastungJira: number;   // spJira / verfuegbarSP × 100
   auslastungApp: number;    // berechnetSP / verfuegbarSP × 100
 }
@@ -28,6 +29,7 @@ export interface PIDashboardTeamData {
   totalSpJira: number;
   totalBerechnetSP: number;
   totalVerfuegbarSP: number;
+  totalDelta: number;
   auslastungJiraTotal: number;
   auslastungAppTotal: number;
 }
@@ -37,29 +39,17 @@ export interface PIDashboardPIData {
   teams: PIDashboardTeamData[];
 }
 
-// ─── localStorage ─────────────────────────────────────────────────────────────
+// ─── Hilfsfunktion: piTeamTargets-Lookup ─────────────────────────────────────
 
-const LS_KEY = 'pi-dashboard-sp-jira-v1';
-
-type SpJiraMap = Record<string, number>;
-
-function loadSpJira(): SpJiraMap {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as SpJiraMap) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveSpJira(map: SpJiraMap): void {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(map));
-  } catch { /* quota exceeded – ignorieren */ }
-}
-
-function spJiraKey(piId: string, iterationId: string, team: string): string {
-  return `${piId}::${iterationId}::${team}`;
+function findSpJira(
+  targets: PITeamTarget[],
+  piId: string,
+  iterationId: string,
+  team: string,
+): number {
+  return targets.find(
+    t => t.piId === piId && t.iterationId === iterationId && t.teamName === team,
+  )?.spJira ?? 0;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -69,19 +59,12 @@ export function usePIDashboard(
   pis: PIPlanning[],
   appData: AppData,
   filterState: FilterState,
+  onSetSpJira: (piId: string, iterationId: string, team: string, value: number) => void,
 ): {
   data: PIDashboardPIData[];
   setSpJira: (piId: string, iterationId: string, team: string, value: number) => void;
 } {
-  const [spJiraMap, setSpJiraMap] = useState<SpJiraMap>(loadSpJira);
-
-  const setSpJira = useCallback((piId: string, iterationId: string, team: string, value: number) => {
-    setSpJiraMap(prev => {
-      const next = { ...prev, [spJiraKey(piId, iterationId, team)]: value };
-      saveSpJira(next);
-      return next;
-    });
-  }, []);
+  const piTeamTargets = appData.piTeamTargets;
 
   // Mitarbeiter nach Team-Filter einschränken
   const filteredEmployees = useMemo(
@@ -140,7 +123,8 @@ export function usePIDashboard(
           );
           const verfuegbarSP = teamResult.totalAvailableSP;
 
-          const spJira = spJiraMap[spJiraKey(pi.id, iter.id, team)] ?? 0;
+          const spJira = findSpJira(piTeamTargets, pi.id, iter.id, team);
+          const delta = Math.round((verfuegbarSP - spJira) * 10) / 10;
 
           const auslastungJira = verfuegbarSP > 0
             ? Math.round((spJira / verfuegbarSP) * 1000) / 10
@@ -158,6 +142,7 @@ export function usePIDashboard(
             spJira,
             berechnetSP,
             verfuegbarSP,
+            delta,
             auslastungJira,
             auslastungApp,
           };
@@ -167,6 +152,7 @@ export function usePIDashboard(
         const totalSpJira = rows.reduce((s, r) => s + r.spJira, 0);
         const totalBerechnetSP = Math.round(rows.reduce((s, r) => s + r.berechnetSP, 0) * 10) / 10;
         const totalVerfuegbarSP = Math.round(rows.reduce((s, r) => s + r.verfuegbarSP, 0) * 10) / 10;
+        const totalDelta = Math.round((totalVerfuegbarSP - totalSpJira) * 10) / 10;
 
         return {
           team,
@@ -175,6 +161,7 @@ export function usePIDashboard(
           totalSpJira,
           totalBerechnetSP,
           totalVerfuegbarSP,
+          totalDelta,
           auslastungJiraTotal: totalVerfuegbarSP > 0
             ? Math.round((totalSpJira / totalVerfuegbarSP) * 1000) / 10 : 0,
           auslastungAppTotal: totalVerfuegbarSP > 0
@@ -184,7 +171,7 @@ export function usePIDashboard(
 
       return { pi, teams: teamDataList };
     }),
-  [filteredPIs, teams, filteredEmployees, appData, spJiraMap]);
+  [filteredPIs, teams, filteredEmployees, appData, piTeamTargets]);
 
-  return { data, setSpJira };
+  return { data, setSpJira: onSetSpJira };
 }

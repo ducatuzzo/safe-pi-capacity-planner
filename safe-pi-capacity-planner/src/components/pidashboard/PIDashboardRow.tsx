@@ -17,6 +17,33 @@ function auslastungBadge(pct: number): string {
   return 'bg-green-100 text-green-700 border border-green-200';
 }
 
+// ─── Delta-Anzeige ────────────────────────────────────────────────────────────
+
+function DeltaCell({ delta, spJira }: { delta: number; spJira: number }) {
+  // Nur anzeigen wenn spJira erfasst wurde
+  if (spJira === 0) return <span className="text-gray-300 text-xs">–</span>;
+
+  if (delta > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs tabular-nums text-green-700 font-semibold">
+        ✅ +{delta.toFixed(1)}
+      </span>
+    );
+  }
+  if (delta === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs tabular-nums text-blue-700 font-semibold">
+        ℹ️ 0.0
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs tabular-nums text-orange-600 font-semibold">
+      ⚠️ {delta.toFixed(1)}
+    </span>
+  );
+}
+
 // ─── Inline-Edit für SP Jira ──────────────────────────────────────────────────
 
 interface SpJiraEditProps {
@@ -95,6 +122,9 @@ export function PIDashboardIterRow({ row, isEven, onSpJiraChange }: PIDashboardR
         {row.verfuegbarSP.toFixed(1)}
       </td>
       <td className="px-4 py-2 text-right">
+        <DeltaCell delta={row.delta} spJira={row.spJira} />
+      </td>
+      <td className="px-4 py-2 text-right">
         <span className={`inline-block px-2 py-0.5 rounded text-xs tabular-nums ${auslastungBadge(row.auslastungJira)}`}>
           {row.auslastungJira.toFixed(1)} %
         </span>
@@ -115,6 +145,7 @@ interface PIDashboardTotalRowProps {
   totalSpJira: number;
   totalBerechnetSP: number;
   totalVerfuegbarSP: number;
+  totalDelta: number;
   auslastungJiraTotal: number;
   auslastungAppTotal: number;
 }
@@ -124,6 +155,7 @@ export function PIDashboardTotalRow({
   totalSpJira,
   totalBerechnetSP,
   totalVerfuegbarSP,
+  totalDelta,
   auslastungJiraTotal,
   auslastungAppTotal,
 }: PIDashboardTotalRowProps) {
@@ -141,6 +173,15 @@ export function PIDashboardTotalRow({
       </td>
       <td className="px-4 py-2.5 text-right tabular-nums text-sm font-bold text-bund-blau">
         {totalVerfuegbarSP.toFixed(1)}
+      </td>
+      <td className="px-4 py-2.5 text-right tabular-nums text-sm font-bold text-bund-blau">
+        {totalSpJira > 0 ? (
+          totalDelta > 0
+            ? <span className="text-green-700">✅ +{totalDelta.toFixed(1)}</span>
+            : totalDelta === 0
+              ? <span className="text-blue-700">ℹ️ 0.0</span>
+              : <span className="text-orange-600">⚠️ {totalDelta.toFixed(1)}</span>
+        ) : '–'}
       </td>
       <td className="px-4 py-2.5 text-right">
         <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold tabular-nums ${auslastungBadge(auslastungJiraTotal)}`}>

@@ -199,5 +199,13 @@ function validiereDatei(parsed: unknown): string | null {
     return 'Das Backup enthält kein gültiges Team-Zielwerte-Array.';
   }
 
+  // Feature 17: optionale Felder – keine Pflicht (Rückwärtskompatibilität)
+  if (data.teamConfigs !== undefined && !Array.isArray(data.teamConfigs)) {
+    return 'Das Backup enthält ein ungültiges teamConfigs-Feld.';
+  }
+  if (data.piTeamTargets !== undefined && !Array.isArray(data.piTeamTargets)) {
+    return 'Das Backup enthält ein ungültiges piTeamTargets-Feld.';
+  }
+
   return null;
 }

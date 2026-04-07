@@ -1,6 +1,6 @@
 // PI Dashboard – Hauptansicht: pro PI eine Sektion mit Team-Tabellen
 
-import type { Employee, AppData, PIPlanning, FilterState } from '../../types';
+import type { Employee, AppData, PIPlanning, FilterState, PITeamTarget } from '../../types';
 import { usePIDashboard } from '../../hooks/usePIDashboard';
 import PIDashboardTable from './PIDashboardTable';
 
@@ -9,6 +9,7 @@ interface PIDashboardViewProps {
   pis: PIPlanning[];
   appData: AppData;
   filterState: FilterState;
+  onPiTeamTargetsChange: (targets: PITeamTarget[]) => void;
 }
 
 export default function PIDashboardView({
@@ -16,8 +17,24 @@ export default function PIDashboardView({
   pis,
   appData,
   filterState,
+  onPiTeamTargetsChange,
 }: PIDashboardViewProps) {
-  const { data, setSpJira } = usePIDashboard(employees, pis, appData, filterState);
+  // SP Jira setzen: bestehenden Eintrag updaten oder neuen anlegen
+  function handleSetSpJira(piId: string, iterationId: string, team: string, value: number) {
+    const existing = appData.piTeamTargets;
+    const idx = existing.findIndex(
+      t => t.piId === piId && t.iterationId === iterationId && t.teamName === team,
+    );
+    let updated: PITeamTarget[];
+    if (idx >= 0) {
+      updated = existing.map((t, i) => i === idx ? { ...t, spJira: value } : t);
+    } else {
+      updated = [...existing, { piId, iterationId, teamName: team, spJira: value }];
+    }
+    onPiTeamTargetsChange(updated);
+  }
+
+  const { data, setSpJira } = usePIDashboard(employees, pis, appData, filterState, handleSetSpJira);
 
   if (pis.length === 0) {
     return (
@@ -60,8 +77,13 @@ export default function PIDashboardView({
           <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
           {'> 100 % – Überlastet'}
         </span>
+        <span className="flex items-center gap-3 ml-2 pl-2 border-l border-gray-200">
+          <span>✅ Delta &gt; 0 – Puffer</span>
+          <span>ℹ️ Delta = 0 – Exakt</span>
+          <span>⚠️ Delta &lt; 0 – Überbucht</span>
+        </span>
         <span className="ml-auto italic text-gray-400">
-          «SP in Jira» – Klicken zum Bearbeiten, Wert wird lokal gespeichert.
+          «SP in Jira» – Klicken zum Bearbeiten, Wert wird synchronisiert.
         </span>
       </div>
 

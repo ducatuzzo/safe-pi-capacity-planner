@@ -11,7 +11,10 @@ export type SettingsChangeType =
   | 'feiertage'
   | 'schulferien'
   | 'blocker'
-  | 'teamZielwerte';
+  | 'teamZielwerte'
+  | 'globalConfig'
+  | 'teamConfigs'
+  | 'piTeamTargets';
 
 interface UseSocketOptions {
   onAllocationChange: (employeeId: string, dateStr: string, type: AllocationType) => void;

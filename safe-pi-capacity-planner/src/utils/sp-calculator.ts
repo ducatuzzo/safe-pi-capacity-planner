@@ -10,6 +10,7 @@ import type {
   EmployeeSPResult,
   TeamSPResult,
   IterationSPResult,
+  TeamConfig,
 } from '../types';
 import { getDaysInRange, toDateStr } from './calendar-helpers';
 
@@ -89,6 +90,23 @@ export function calculateSPForEmployee(
   };
 }
 
+/** Ermittelt Pikett/Betrieb-Mindestwerte für ein Team aus teamConfigs (neu) oder teamZielwerte (Legacy) */
+function getTeamMinimums(
+  teamName: string,
+  teamConfigs: TeamConfig[],
+  appData: AppData,
+): { pikettMin: number; betriebMin: number } {
+  const config = teamConfigs.find(t => t.teamName === teamName);
+  if (config) {
+    return { pikettMin: config.minPikett, betriebMin: config.minBetrieb };
+  }
+  const legacy = appData.teamZielwerte.find(t => t.team === teamName);
+  return {
+    pikettMin: legacy?.minPersonenPikett ?? 0,
+    betriebMin: legacy?.minPersonenBetrieb ?? 0,
+  };
+}
+
 /** SP-Berechnung für ein Team in einem Zeitraum, inkl. Pikett/Betrieb-Lücken */
 export function calculateSPForTeam(
   employees: Employee[],
@@ -105,9 +123,11 @@ export function calculateSPForTeam(
   const totalAvailableSP =
     Math.round(employeeResults.reduce((sum, r) => sum + r.availableSP, 0) * 10) / 10;
 
-  const targets = appData.teamZielwerte.find(t => t.team === teamName);
-  const pikettMin = targets?.minPersonenPikett ?? 0;
-  const betriebMin = targets?.minPersonenBetrieb ?? 0;
+  const { pikettMin, betriebMin } = getTeamMinimums(
+    teamName,
+    appData.teamConfigs ?? [],
+    appData,
+  );
 
   const pikettGaps: string[] = [];
   const betriebGaps: string[] = [];
@@ -115,8 +135,9 @@ export function calculateSPForTeam(
   const days = getDaysInRange(startStr, endStr);
   for (const day of days) {
     const ds = toDateStr(day);
-    if (isWeekend(ds) || isHoliday(ds, appData)) continue;
+    const isWorkday = !isWeekend(ds) && !isHoliday(ds, appData);
 
+    // Pikett: IMMER prüfen, auch an Wochenenden und Feiertagen
     if (pikettMin > 0) {
       const pikettCount = teamEmployees.filter(emp =>
         PIKETT_TYPES.has(emp.allocations[ds] ?? 'NONE')
@@ -124,7 +145,8 @@ export function calculateSPForTeam(
       if (pikettCount < pikettMin) pikettGaps.push(ds);
     }
 
-    if (betriebMin > 0) {
+    // Betrieb: NUR an Arbeitstagen prüfen
+    if (isWorkday && betriebMin > 0) {
       const betriebCount = teamEmployees.filter(emp =>
         BETRIEB_TYPES.has(emp.allocations[ds] ?? 'NONE')
       ).length;

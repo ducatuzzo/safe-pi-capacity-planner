@@ -109,6 +109,9 @@ export default function CalendarGrid({
     pis,
     blocker,
     teamZielwerte: [],
+    globalConfig: { spPerDay: 1, hoursPerYear: 1600 },
+    teamConfigs: [],
+    piTeamTargets: [],
   }), [feiertage, schulferien, pis, blocker]);
 
   const visibleDays = useMemo((): Date[] => {
