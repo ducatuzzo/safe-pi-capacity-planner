@@ -8,12 +8,14 @@ import type { SavedProjectState, Employee, AllocationType, AppData } from '../sr
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER } from '../src/data/seed';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// Auf Railway: Volume ist unter /app/data gemountet
-// Lokal: data/ relativ zum Projektverzeichnis
-const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH
-  ? process.env.RAILWAY_VOLUME_MOUNT_PATH
+// Auf Railway: Volume ist unter /app/data gemountet (Mount Path in Railway Settings)
+// Lokal: data/ relativ zum Projektverzeichnis (safe-pi-capacity-planner/data/)
+const IS_RAILWAY = !!process.env.RAILWAY_ENVIRONMENT;
+const DATA_DIR = IS_RAILWAY
+  ? '/app/data'
   : join(__dirname, '..', 'data');
 const STATE_FILE = join(DATA_DIR, 'state.json');
+console.log(`[StateManager] DATA_DIR: ${DATA_DIR} (Railway: ${IS_RAILWAY})`);
 
 const INITIAL_TEAM_ZIELWERTE: AppData['teamZielwerte'] = [
   { team: 'NET', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
