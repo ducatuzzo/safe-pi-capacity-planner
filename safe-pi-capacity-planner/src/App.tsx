@@ -206,7 +206,8 @@ export default function App() {
         teamZielwerte: (state.teamZielwerte as TeamZielwerte[]) ?? INITIAL_TEAM_ZIELWERTE,
       },
     };
-    fetch('/api/state', {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
+    fetch(`${backendUrl}/api/state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullState),
