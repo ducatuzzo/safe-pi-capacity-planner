@@ -24,6 +24,11 @@ const INITIAL_TEAM_ZIELWERTE: AppData['teamZielwerte'] = [
   { team: 'PAF', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
 ];
 
+const INITIAL_GLOBAL_CONFIG: AppData['globalConfig'] = {
+  spPerDay: 1,
+  hoursPerYear: 1600,
+};
+
 function buildInitialState(): SavedProjectState {
   return {
     version: '1.0',
@@ -36,6 +41,9 @@ function buildInitialState(): SavedProjectState {
       pis: SEED_PIS,
       blocker: SEED_BLOCKER,
       teamZielwerte: INITIAL_TEAM_ZIELWERTE,
+      globalConfig: INITIAL_GLOBAL_CONFIG,
+      teamConfigs: [],
+      piTeamTargets: [],
     },
   };
 }
@@ -44,7 +52,12 @@ function loadPersistedState(): SavedProjectState | null {
   try {
     if (!existsSync(STATE_FILE)) return null;
     const raw = readFileSync(STATE_FILE, 'utf-8');
-    return JSON.parse(raw) as SavedProjectState;
+    const parsed = JSON.parse(raw) as SavedProjectState;
+    // Migrationsschutz: fehlende Felder mit Defaults ergänzen
+    parsed.appData.globalConfig ??= INITIAL_GLOBAL_CONFIG;
+    parsed.appData.teamConfigs ??= [];
+    parsed.appData.piTeamTargets ??= [];
+    return parsed;
   } catch (err) {
     console.warn('[StateManager] state.json konnte nicht geladen werden:', err);
     return null;
@@ -126,6 +139,18 @@ export function applySettingsChange(changeType: string, data: unknown): void {
     case 'teamZielwerte':
       appData.teamZielwerte = data as AppData['teamZielwerte'];
       break;
+    case 'globalConfig':
+      appData.globalConfig = data as AppData['globalConfig'];
+      break;
+    case 'teamConfigs':
+      appData.teamConfigs = data as AppData['teamConfigs'];
+      break;
+    case 'piTeamTargets':
+      appData.piTeamTargets = data as AppData['piTeamTargets'];
+      break;
+    default:
+      console.warn(`[StateManager] Unbekannter changeType: ${changeType}`);
+      return; // Nicht persistieren bei unbekanntem Typ
   }
   currentState = { ...currentState, appData };
   persistState();
