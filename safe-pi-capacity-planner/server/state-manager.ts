@@ -8,21 +8,12 @@ import type { SavedProjectState, Employee, AllocationType, AppData } from '../sr
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER } from '../src/data/seed';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// Auf Railway: Volume ist unter /app/data gemountet (Mount Path in Railway Settings)
-// Lokal: data/ relativ zum Projektverzeichnis (safe-pi-capacity-planner/data/)
 const IS_RAILWAY = !!process.env.RAILWAY_ENVIRONMENT;
 const DATA_DIR = IS_RAILWAY
   ? '/app/data'
   : join(__dirname, '..', 'data');
 const STATE_FILE = join(DATA_DIR, 'state.json');
 console.log(`[StateManager] DATA_DIR: ${DATA_DIR} (Railway: ${IS_RAILWAY})`);
-
-const INITIAL_TEAM_ZIELWERTE: AppData['teamZielwerte'] = [
-  { team: 'NET', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-  { team: 'ACM', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-  { team: 'CON', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-  { team: 'PAF', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-];
 
 const INITIAL_GLOBAL_CONFIG: AppData['globalConfig'] = {
   spPerDay: 1,
@@ -40,7 +31,7 @@ function buildInitialState(): SavedProjectState {
       schulferien: SEED_SCHULFERIEN,
       pis: SEED_PIS,
       blocker: SEED_BLOCKER,
-      teamZielwerte: INITIAL_TEAM_ZIELWERTE,
+      teamZielwerte: [],
       globalConfig: INITIAL_GLOBAL_CONFIG,
       teamConfigs: [],
       piTeamTargets: [],
@@ -53,10 +44,33 @@ function loadPersistedState(): SavedProjectState | null {
     if (!existsSync(STATE_FILE)) return null;
     const raw = readFileSync(STATE_FILE, 'utf-8');
     const parsed = JSON.parse(raw) as SavedProjectState;
-    // Migrationsschutz: fehlende Felder mit Defaults ergänzen
+
+    // Fehlende Felder mit Defaults auffüllen (Migrationsschutz)
     parsed.appData.globalConfig ??= INITIAL_GLOBAL_CONFIG;
     parsed.appData.teamConfigs ??= [];
     parsed.appData.piTeamTargets ??= [];
+    parsed.appData.teamZielwerte ??= [];
+
+    // Migration: alte teamZielwerte → teamConfigs (einmalig)
+    if (parsed.appData.teamConfigs.length === 0 && parsed.appData.teamZielwerte.length > 0) {
+      console.log('[StateManager] Migriere teamZielwerte → teamConfigs');
+      parsed.appData.teamConfigs = parsed.appData.teamZielwerte.map(z => ({
+        teamName: z.team,
+        minPikett: z.minPersonenPikett,
+        minBetrieb: z.minPersonenBetrieb,
+        storyPointsPerDay: z.storyPointsPerDay,
+        hoursPerYear: z.standardstundenProJahr,
+      }));
+      parsed.appData.teamZielwerte = []; // deprecated, leeren
+    }
+
+    // teamConfigs: fehlende neue Felder auffüllen (für ältere teamConfigs ohne SP/Stunden)
+    parsed.appData.teamConfigs = parsed.appData.teamConfigs.map(c => ({
+      ...c,
+      storyPointsPerDay: c.storyPointsPerDay ?? 1,
+      hoursPerYear: c.hoursPerYear ?? 1600,
+    }));
+
     return parsed;
   } catch (err) {
     console.warn('[StateManager] state.json konnte nicht geladen werden:', err);
@@ -81,10 +95,7 @@ if (loaded) {
 }
 let currentState: SavedProjectState = loaded ?? buildInitialState();
 
-// Beim ersten Start ohne state.json: SEED-State sofort persistieren
-if (!loaded) {
-  persistState();
-}
+if (!loaded) persistState();
 
 export function getState(): SavedProjectState {
   return currentState;
@@ -136,9 +147,6 @@ export function applySettingsChange(changeType: string, data: unknown): void {
     case 'blocker':
       appData.blocker = data as AppData['blocker'];
       break;
-    case 'teamZielwerte':
-      appData.teamZielwerte = data as AppData['teamZielwerte'];
-      break;
     case 'globalConfig':
       appData.globalConfig = data as AppData['globalConfig'];
       break;
@@ -148,9 +156,13 @@ export function applySettingsChange(changeType: string, data: unknown): void {
     case 'piTeamTargets':
       appData.piTeamTargets = data as AppData['piTeamTargets'];
       break;
+    case 'teamZielwerte':
+      // deprecated – wird ignoriert, keine Persistierung
+      console.warn('[StateManager] teamZielwerte-Event empfangen – wird ignoriert (deprecated).');
+      return;
     default:
       console.warn(`[StateManager] Unbekannter changeType: ${changeType}`);
-      return; // Nicht persistieren bei unbekanntem Typ
+      return;
   }
   currentState = { ...currentState, appData };
   persistState();

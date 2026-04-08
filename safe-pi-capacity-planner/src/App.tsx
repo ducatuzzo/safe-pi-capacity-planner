@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import type { ActiveTab, AllocationType, AppData, Employee, FarbConfig, FilterState, PIPlanning, Feiertag, Schulferien, Blocker, TeamZielwerte, FullAppState, SavedProjectState, GlobalCapacityConfig, TeamConfig, PITeamTarget } from './types';
+import type { ActiveTab, AllocationType, AppData, Employee, FarbConfig, FilterState, PIPlanning, Feiertag, Schulferien, Blocker, FullAppState, SavedProjectState, GlobalCapacityConfig, TeamConfig, PITeamTarget } from './types';
 import Header from './components/layout/Header';
 import TabNav from './components/layout/TabNav';
 import FilterBar from './components/layout/FilterBar';
@@ -22,14 +22,6 @@ const INITIAL_FILTER: FilterState = {
   dateTo: null,
 };
 
-const INITIAL_TEAM_ZIELWERTE: TeamZielwerte[] = [
-  { team: 'NET', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-  { team: 'ACM', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-  { team: 'CON', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-  { team: 'PAF', minPersonenPikett: 2, minPersonenBetrieb: 2, storyPointsPerDay: 1, standardstundenProJahr: 1600 },
-];
-
-// Benutzername für Row-Locking: einmalig pro Session generiert
 function getSessionUserName(): string {
   const key = 'pi-planner-username';
   const stored = sessionStorage.getItem(key);
@@ -64,7 +56,6 @@ export default function App() {
   const [feiertage, setFeiertage] = useState<Feiertag[]>(SEED_FEIERTAGE);
   const [schulferien, setSchulferien] = useState<Schulferien[]>(SEED_SCHULFERIEN);
   const [blocker, setBlocker] = useState<Blocker[]>(SEED_BLOCKER);
-  const [teamZielwerte, setTeamZielwerte] = useState<TeamZielwerte[]>(INITIAL_TEAM_ZIELWERTE);
   const [globalConfig, setGlobalConfig] = useState<GlobalCapacityConfig>(SEED_GLOBAL_CONFIG);
   const [teamConfigs, setTeamConfigs] = useState<TeamConfig[]>(SEED_TEAM_CONFIGS);
   const [piTeamTargets, setPiTeamTargets] = useState<PITeamTarget[]>([]);
@@ -74,20 +65,17 @@ export default function App() {
 
   const userName = useRef(getSessionUserName());
 
-  // Server-State vollständig anwenden (bei state:full Event)
   const applyServerState = useCallback((state: SavedProjectState) => {
     setEmployees(state.employees);
     setPis(state.appData.pis as PIPlanning[]);
     setFeiertage(state.appData.feiertage);
     setSchulferien(state.appData.schulferien);
     setBlocker(state.appData.blocker);
-    setTeamZielwerte(state.appData.teamZielwerte);
     setGlobalConfig(state.appData.globalConfig ?? SEED_GLOBAL_CONFIG);
     setTeamConfigs(state.appData.teamConfigs ?? SEED_TEAM_CONFIGS);
     setPiTeamTargets(state.appData.piTeamTargets ?? []);
   }, []);
 
-  // Remote-Buchungsänderung: nur State setzen, kein Emit (Loop-Verhinderung)
   const handleRemoteAllocationChange = useCallback(
     (employeeId: string, dateStr: string, type: AllocationType) => {
       setEmployees(prev => applyAllocationToList(prev, employeeId, dateStr, type));
@@ -95,19 +83,17 @@ export default function App() {
     [],
   );
 
-  // Remote-Settings-Änderung: nur State setzen, kein Emit
   const handleRemoteSettingsChange = useCallback(
     (type: SettingsChangeType, data: unknown) => {
       switch (type) {
-        case 'employees':      setEmployees(data as Employee[]); break;
-        case 'pis':            setPis(data as PIPlanning[]); break;
-        case 'feiertage':      setFeiertage(data as Feiertag[]); break;
-        case 'schulferien':    setSchulferien(data as Schulferien[]); break;
-        case 'blocker':        setBlocker(data as Blocker[]); break;
-        case 'teamZielwerte':  setTeamZielwerte(data as TeamZielwerte[]); break;
-        case 'globalConfig':   setGlobalConfig(data as GlobalCapacityConfig); break;
-        case 'teamConfigs':    setTeamConfigs(data as TeamConfig[]); break;
-        case 'piTeamTargets':  setPiTeamTargets(data as PITeamTarget[]); break;
+        case 'employees':     setEmployees(data as Employee[]); break;
+        case 'pis':           setPis(data as PIPlanning[]); break;
+        case 'feiertage':     setFeiertage(data as Feiertag[]); break;
+        case 'schulferien':   setSchulferien(data as Schulferien[]); break;
+        case 'blocker':       setBlocker(data as Blocker[]); break;
+        case 'globalConfig':  setGlobalConfig(data as GlobalCapacityConfig); break;
+        case 'teamConfigs':   setTeamConfigs(data as TeamConfig[]); break;
+        case 'piTeamTargets': setPiTeamTargets(data as PITeamTarget[]); break;
       }
     },
     [],
@@ -136,7 +122,6 @@ export default function App() {
       onStateLoad: applyServerState,
     });
 
-  // Lokale Buchungsänderung: State aktualisieren + an Server senden
   const handleAllocationChange = useCallback(
     (employeeId: string, dateStr: string, type: AllocationType) => {
       setEmployees(prev => applyAllocationToList(prev, employeeId, dateStr, type));
@@ -145,7 +130,6 @@ export default function App() {
     [emitAllocationChange],
   );
 
-  // Buchungen löschen + broadcast
   const handleClearAllocations = useCallback((employeeId?: string) => {
     setEmployees(prev => {
       const updated = prev.map(emp => {
@@ -157,17 +141,24 @@ export default function App() {
     });
   }, [emitSettingsChange]);
 
-  // Settings-Wrapper: State setzen + broadcasten
   const handleEmployeesChange = useCallback((data: Employee[]) => {
     setEmployees(data);
     emitSettingsChange('employees', data);
-    // Auto-Sync: Neue Teams im Mitarbeiterstamm → TeamConfig mit Default-Werten anlegen
     setTeamConfigs(prev => {
       const newTeams = [...new Set(data.map(e => e.team))].filter(
         t => t && !prev.some(c => c.teamName === t),
       );
       if (newTeams.length === 0) return prev;
-      const updated = [...prev, ...newTeams.map(t => ({ teamName: t, minPikett: 0, minBetrieb: 1 }))];
+      const updated = [
+        ...prev,
+        ...newTeams.map(t => ({
+          teamName: t,
+          minPikett: 0,
+          minBetrieb: 1,
+          storyPointsPerDay: 1,
+          hoursPerYear: 1600,
+        })),
+      ];
       emitSettingsChange('teamConfigs', updated);
       return updated;
     });
@@ -193,11 +184,6 @@ export default function App() {
     emitSettingsChange('blocker', data);
   }, [emitSettingsChange]);
 
-  const handleTeamZielwerteChange = useCallback((data: TeamZielwerte[]) => {
-    setTeamZielwerte(data);
-    emitSettingsChange('teamZielwerte', data);
-  }, [emitSettingsChange]);
-
   const handleGlobalConfigChange = useCallback((data: GlobalCapacityConfig) => {
     setGlobalConfig(data);
     emitSettingsChange('globalConfig', data);
@@ -217,22 +203,32 @@ export default function App() {
     setFarbConfig(data);
   }, []);
 
-  // Backup-Restore: lokal setzen + Server via POST /api/state informieren
   const handleRestore = useCallback((state: FullAppState) => {
     setEmployees(state.employees);
     setPis(state.pis as PIPlanning[]);
     setFeiertage(state.feiertage);
     setSchulferien(state.schulferien);
     setBlocker(state.blocker);
-    if (state.teamZielwerte) setTeamZielwerte(state.teamZielwerte as TeamZielwerte[]);
     if (state.farbConfig) setFarbConfig(state.farbConfig);
-    setGlobalConfig(state.globalConfig ?? SEED_GLOBAL_CONFIG);
-    setTeamConfigs(state.teamConfigs ?? SEED_TEAM_CONFIGS);
-    setPiTeamTargets(state.piTeamTargets ?? []);
 
     const restoredGlobalConfig = state.globalConfig ?? SEED_GLOBAL_CONFIG;
-    const restoredTeamConfigs = state.teamConfigs ?? SEED_TEAM_CONFIGS;
     const restoredPiTeamTargets = state.piTeamTargets ?? [];
+
+    // Migration: alte teamZielwerte → neue teamConfigs falls nötig
+    let restoredTeamConfigs = state.teamConfigs ?? [];
+    if (restoredTeamConfigs.length === 0 && state.teamZielwerte && state.teamZielwerte.length > 0) {
+      restoredTeamConfigs = state.teamZielwerte.map(z => ({
+        teamName: z.team,
+        minPikett: z.minPersonenPikett,
+        minBetrieb: z.minPersonenBetrieb,
+        storyPointsPerDay: z.storyPointsPerDay,
+        hoursPerYear: z.standardstundenProJahr,
+      }));
+    }
+
+    setGlobalConfig(restoredGlobalConfig);
+    setTeamConfigs(restoredTeamConfigs);
+    setPiTeamTargets(restoredPiTeamTargets);
 
     const fullState: SavedProjectState = {
       version: '1.0',
@@ -244,7 +240,7 @@ export default function App() {
         schulferien: state.schulferien,
         pis: state.pis,
         blocker: state.blocker,
-        teamZielwerte: (state.teamZielwerte as TeamZielwerte[]) ?? INITIAL_TEAM_ZIELWERTE,
+        teamZielwerte: [],
         globalConfig: restoredGlobalConfig,
         teamConfigs: restoredTeamConfigs,
         piTeamTargets: restoredPiTeamTargets,
@@ -258,7 +254,6 @@ export default function App() {
     }).catch(err => console.error('[Restore] POST /api/state fehlgeschlagen:', err));
   }, []);
 
-  // Row-Locking: beim Drag-Start sperren, beim Drag-Ende freigeben
   const handleRowLock = useCallback((employeeId: string) => {
     emitLock(employeeId, userName.current);
   }, [emitLock]);
@@ -267,8 +262,22 @@ export default function App() {
     emitUnlock(employeeId);
   }, [emitUnlock]);
 
-  const appData: AppData = { feiertage, schulferien, pis, blocker, teamZielwerte, globalConfig, teamConfigs, piTeamTargets };
-  const showFilterBar = activeTab === 'planung' || activeTab === 'kapazitaet' || activeTab === 'dashboard' || activeTab === 'pidashboard';
+  const appData: AppData = {
+    feiertage,
+    schulferien,
+    pis,
+    blocker,
+    teamZielwerte: [],   // deprecated – leer, nicht mehr aktiv genutzt
+    globalConfig,
+    teamConfigs,
+    piTeamTargets,
+  };
+
+  const showFilterBar =
+    activeTab === 'planung' ||
+    activeTab === 'kapazitaet' ||
+    activeTab === 'dashboard' ||
+    activeTab === 'pidashboard';
 
   return (
     <div className="min-h-screen flex flex-col bg-bund-bg">
@@ -336,8 +345,6 @@ export default function App() {
             onSchulferienChange={handleSchulferienChange}
             blocker={blocker}
             onBlockerChange={handleBlockerChange}
-            teamZielwerte={teamZielwerte}
-            onTeamZielwerteChange={handleTeamZielwerteChange}
             globalConfig={globalConfig}
             onGlobalConfigChange={handleGlobalConfigChange}
             teamConfigs={teamConfigs}

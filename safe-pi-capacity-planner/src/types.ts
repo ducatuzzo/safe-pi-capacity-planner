@@ -39,11 +39,9 @@ export interface DateRangeDefinition {
 }
 
 // Iteration innerhalb eines PI
-export interface Iteration extends DateRangeDefinition {
-  // erbt id, name, startStr, endStr
-}
+export interface Iteration extends DateRangeDefinition {}
 
-// PI-Planung mit Iterationen (kanonisch, für Feature 02)
+// PI-Planung mit Iterationen (kanonisch)
 export interface PIPlanning extends DateRangeDefinition {
   iterationen: Iteration[];
 }
@@ -62,22 +60,14 @@ export interface Schulferien extends DateRangeDefinition {}
 // Blocker / Spezielle Periode (z.B. Change Freeze)
 export interface Blocker extends DateRangeDefinition {}
 
-// Zielwerte pro Team (kanonisch, für Feature 02)
-export interface TeamTargets {
-  teamName: string;
-  pikettMin: number;
-  betriebMin: number;
-  spPerDay: number;
-  stdHoursPerYear: number;
-}
-
-// Zielwerte pro Team (Legacy-Alias mit deutschen Feldnamen)
+// @deprecated – wird nur noch für Backup-Kompatibilität gehalten.
+// Aktiv wird ausschliesslich TeamConfig verwendet.
 export interface TeamZielwerte {
   team: string;
   minPersonenPikett: number;
   minPersonenBetrieb: number;
-  storyPointsPerDay: number;      // Standard: 1
-  standardstundenProJahr: number; // Standard: 1600
+  storyPointsPerDay: number;
+  standardstundenProJahr: number;
 }
 
 // Feature 17: Globale SP-Parameter
@@ -86,14 +76,17 @@ export interface GlobalCapacityConfig {
   hoursPerYear: number;  // Standard: 1600
 }
 
-// Feature 17: Team-spezifische Mindestbesetzung
+// Team-Konfiguration: Mindestbesetzung + Kapazitätsparameter pro Team
+// Einzige aktive Quelle der Wahrheit (ersetzt TeamZielwerte)
 export interface TeamConfig {
   teamName: string;
-  minPikett: number;  // Mindestanzahl PIKETT täglich (inkl. WE + Feiertage)
-  minBetrieb: number; // Mindestanzahl BETRIEB pro Arbeitstag (exkl. WE + Feiertage)
+  minPikett: number;         // Mindestanzahl PIKETT täglich (inkl. WE + Feiertage)
+  minBetrieb: number;        // Mindestanzahl BETRIEB pro Arbeitstag (exkl. WE + Feiertage)
+  storyPointsPerDay: number; // SP pro Tag für dieses Team (Standard: 1)
+  hoursPerYear: number;      // Arbeitsstunden pro Jahr für dieses Team (Standard: 1600)
 }
 
-// Feature 17: SP-Jira-Zielwert pro PI / Iteration / Team
+// SP-Jira-Zielwert pro PI / Iteration / Team
 export interface PITeamTarget {
   piId: string;
   iterationId: string;
@@ -107,7 +100,7 @@ export interface AppData {
   schulferien: Schulferien[];
   pis: PiDefinition[];
   blocker: Blocker[];
-  teamZielwerte: TeamZielwerte[];
+  teamZielwerte: TeamZielwerte[]; // @deprecated – nur noch für Backup-Migration
   globalConfig: GlobalCapacityConfig;
   teamConfigs: TeamConfig[];
   piTeamTargets: PITeamTarget[];
@@ -128,11 +121,11 @@ export interface EmployeeSPResult {
   employeeName: string;
   team: string;
   availableSP: number;
-  workDays: number;       // Arbeitstage ohne Wochenenden/Feiertage
-  absenceDays: number;    // Tage mit FERIEN/ABWESEND/MILITAER/IPA
-  betriebDays: number;    // Tage mit BETRIEB/BETRIEB_PIKETT
-  pikettDays: number;     // Tage mit PIKETT/BETRIEB_PIKETT
-  teilzeitDays: number;   // Tage mit TEILZEIT
+  workDays: number;
+  absenceDays: number;
+  betriebDays: number;
+  pikettDays: number;
+  teilzeitDays: number;
 }
 
 // Ergebnis der SP-Berechnung pro Team
@@ -140,8 +133,8 @@ export interface TeamSPResult {
   team: string;
   totalAvailableSP: number;
   employees: EmployeeSPResult[];
-  pikettGaps: string[];   // Datums-Strings wo < pikettMin Personen
-  betriebGaps: string[];  // Datums-Strings wo < betriebMin Personen
+  pikettGaps: string[];
+  betriebGaps: string[];
 }
 
 // Ergebnis der SP-Berechnung pro Iteration
@@ -153,14 +146,14 @@ export interface IterationSPResult {
   totalSP: number;
 }
 
-// Globaler Filter-State (gilt für alle Tabs gleichzeitig)
+// Globaler Filter-State
 export interface FilterState {
-  teams: string[];           // leer = alle Teams
-  piId: string | null;       // null = alle PIs
+  teams: string[];
+  piId: string | null;
   iterationId: string | null;
   year: number | null;
-  dateFrom: string | null;   // YYYY-MM-DD
-  dateTo: string | null;     // YYYY-MM-DD
+  dateFrom: string | null;
+  dateTo: string | null;
 }
 
 // Aktiver Tab in der Navigation
@@ -173,7 +166,6 @@ export type SettingsView =
   | 'feiertage'
   | 'schulferien'
   | 'blocker'
-  | 'zielwerte'
   | 'team-konfiguration'
   | 'globale-parameter'
   | 'farben'
@@ -181,8 +173,8 @@ export type SettingsView =
 
 // Farbe (Hintergrund + Schrift) für einen Buchungstyp oder Kalenderbereich
 export interface BuchungsFarbe {
-  bg: string;   // Hex-Wert, z.B. '#FB923C'
-  text: string; // Hex-Wert, z.B. '#FFFFFF'
+  bg: string;
+  text: string;
 }
 
 // Farbkonfiguration für alle buchbaren Typen und Kalenderzustände
@@ -204,7 +196,7 @@ export interface FullAppState {
   schulferien: Schulferien[];
   pis: PiDefinition[];
   blocker: Blocker[];
-  teamZielwerte: TeamZielwerte[];
+  teamZielwerte?: TeamZielwerte[]; // @deprecated – wird bei Import zu teamConfigs migriert
   farbConfig?: FarbConfig;
   globalConfig?: GlobalCapacityConfig;
   teamConfigs?: TeamConfig[];
@@ -213,8 +205,8 @@ export interface FullAppState {
 
 // Backup-Datei-Format (JSON-Export)
 export interface BackupFile {
-  version: string;        // z.B. "1.0"
-  exportedAt: string;     // ISO 8601
-  appVersion: string;     // z.B. "1.0.0"
+  version: string;
+  exportedAt: string;
+  appVersion: string;
   data: FullAppState;
 }

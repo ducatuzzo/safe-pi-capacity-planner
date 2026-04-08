@@ -1,5 +1,4 @@
 // Socket.io-Hook für Multiuser-Synchronisation
-// Verbindet zum Backend, empfängt und sendet State-Änderungen
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
@@ -11,7 +10,6 @@ export type SettingsChangeType =
   | 'feiertage'
   | 'schulferien'
   | 'blocker'
-  | 'teamZielwerte'
   | 'globalConfig'
   | 'teamConfigs'
   | 'piTeamTargets';
@@ -32,7 +30,6 @@ export function useSocket({
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Callbacks in Refs halten, damit die Socket-Handler immer die aktuellste Version sehen
   const onAllocationChangeRef = useRef(onAllocationChange);
   const onSettingsChangeRef = useRef(onSettingsChange);
   const onLockChangeRef = useRef(onLockChange);
@@ -46,8 +43,6 @@ export function useSocket({
   });
 
   useEffect(() => {
-    // Lokal: Vite proxied /socket.io → localhost:3001 → window.location.origin
-    // Produktion: VITE_BACKEND_URL zeigt auf Railway-Backend
     const backendUrl = import.meta.env.VITE_BACKEND_URL ?? window.location.origin;
     const socket = io(backendUrl, {
       path: '/socket.io',
@@ -85,7 +80,7 @@ export function useSocket({
     return () => {
       socket.disconnect();
     };
-  }, []); // Nur einmal beim Mount — Callbacks laufen via Refs
+  }, []);
 
   const emitAllocationChange = useCallback(
     (employeeId: string, dateStr: string, allocationType: AllocationType) => {

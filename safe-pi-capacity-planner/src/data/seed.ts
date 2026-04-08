@@ -15,8 +15,8 @@ export const SEED_GLOBAL_CONFIG: GlobalCapacityConfig = {
 };
 
 export const SEED_TEAM_CONFIGS: TeamConfig[] = [
-  { teamName: 'PAF', minPikett: 1, minBetrieb: 2 },
-  { teamName: 'ACM', minPikett: 1, minBetrieb: 2 },
-  { teamName: 'NET', minPikett: 0, minBetrieb: 1 },
-  { teamName: 'CON', minPikett: 0, minBetrieb: 1 },
+  { teamName: 'PAF', minPikett: 1, minBetrieb: 2, storyPointsPerDay: 1, hoursPerYear: 1600 },
+  { teamName: 'ACM', minPikett: 1, minBetrieb: 2, storyPointsPerDay: 1, hoursPerYear: 1600 },
+  { teamName: 'NET', minPikett: 0, minBetrieb: 1, storyPointsPerDay: 1, hoursPerYear: 1600 },
+  { teamName: 'CON', minPikett: 0, minBetrieb: 1, storyPointsPerDay: 1, hoursPerYear: 1600 },
 ];
