@@ -1,0 +1,12 @@
+// Settings-Unterseite
+export type SettingsView =
+  | 'mitarbeiter'
+  | 'pi-planung'
+  | 'feiertage'
+  | 'schulferien'
+  | 'blocker'
+  | 'team-konfiguration'
+  | 'globale-parameter'
+  | 'farben'
+  | 'backup'
+  | 'dokumentation';

@@ -169,7 +169,8 @@ export type SettingsView =
   | 'team-konfiguration'
   | 'globale-parameter'
   | 'farben'
-  | 'backup';
+  | 'backup'
+  | 'dokumentation';
 
 // Farbe (Hintergrund + Schrift) für einen Buchungstyp oder Kalenderbereich
 export interface BuchungsFarbe {

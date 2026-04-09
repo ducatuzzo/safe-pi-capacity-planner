@@ -29,7 +29,6 @@ export default function BackupRestoreSettings({ appState, onRestore }: Props) {
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
-    // Dateiname: safe-pi-backup_YYYY-MM-DD_HH-MM.json
     const pad = (n: number) => String(n).padStart(2, '0');
     const dateiname = `safe-pi-backup_${jetzt.getFullYear()}-${pad(jetzt.getMonth() + 1)}-${pad(jetzt.getDate())}_${pad(jetzt.getHours())}-${pad(jetzt.getMinutes())}.json`;
 
@@ -40,7 +39,6 @@ export default function BackupRestoreSettings({ appState, onRestore }: Props) {
     URL.revokeObjectURL(url);
   };
 
-  // Import: JSON-Datei einlesen und validieren
   const handleImportClick = () => {
     setFehler(null);
     setErfolgsmeldung(null);
@@ -50,8 +48,6 @@ export default function BackupRestoreSettings({ appState, onRestore }: Props) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const datei = event.target.files?.[0];
     if (!datei) return;
-
-    // Input zurücksetzen damit dieselbe Datei nochmals gewählt werden kann
     event.target.value = '';
 
     const reader = new FileReader();
@@ -136,14 +132,11 @@ export default function BackupRestoreSettings({ appState, onRestore }: Props) {
           />
         </div>
 
-        {/* Fehlermeldung */}
         {fehler && (
           <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
             {fehler}
           </div>
         )}
-
-        {/* Erfolgsmeldung */}
         {erfolgsmeldung && (
           <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-700">
             {erfolgsmeldung}
@@ -165,15 +158,12 @@ function validiereDatei(parsed: unknown): string | null {
   if (!obj.version || typeof obj.version !== 'string') {
     return 'Das Backup enthält kein gültiges Versionsfeld.';
   }
-
   if (obj.version !== BACKUP_FORMAT_VERSION) {
     return `Nicht unterstützte Backup-Version "${obj.version}". Erwartet: "${BACKUP_FORMAT_VERSION}".`;
   }
-
   if (!obj.exportedAt || typeof obj.exportedAt !== 'string') {
     return 'Das Backup enthält kein gültiges Exportdatum.';
   }
-
   if (typeof obj.data !== 'object' || obj.data === null) {
     return 'Das Backup enthält keine Nutzdaten (data-Feld fehlt).';
   }
@@ -195,11 +185,12 @@ function validiereDatei(parsed: unknown): string | null {
   if (!Array.isArray(data.blocker)) {
     return 'Das Backup enthält kein gültiges Blocker-Array.';
   }
-  if (!Array.isArray(data.teamZielwerte)) {
-    return 'Das Backup enthält kein gültiges Team-Zielwerte-Array.';
-  }
 
-  // Feature 17: optionale Felder – keine Pflicht (Rückwärtskompatibilität)
+  // teamZielwerte: deprecated – optional, wird bei Restore zu teamConfigs migriert
+  if (data.teamZielwerte !== undefined && !Array.isArray(data.teamZielwerte)) {
+    return 'Das Backup enthält ein ungültiges teamZielwerte-Feld.';
+  }
+  // teamConfigs: optional (ältere Backups ohne dieses Feld sind gültig)
   if (data.teamConfigs !== undefined && !Array.isArray(data.teamConfigs)) {
     return 'Das Backup enthält ein ungültiges teamConfigs-Feld.';
   }

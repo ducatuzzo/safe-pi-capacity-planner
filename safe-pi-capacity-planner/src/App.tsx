@@ -349,6 +349,7 @@ export default function App() {
             onGlobalConfigChange={handleGlobalConfigChange}
             teamConfigs={teamConfigs}
             onTeamConfigsChange={handleTeamConfigsChange}
+            piTeamTargets={piTeamTargets}
             farbConfig={farbConfig}
             onFarbConfigChange={handleFarbConfigChange}
             onRestore={handleRestore}

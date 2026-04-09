@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Users, Calendar, Sun, GraduationCap, ShieldAlert, Download, Palette, Settings, SlidersHorizontal } from 'lucide-react';
-import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, FarbConfig, SettingsView, FullAppState, GlobalCapacityConfig, TeamConfig } from '../../types';
+import { Users, Calendar, Sun, GraduationCap, ShieldAlert, Download, Palette, Settings, SlidersHorizontal, BookOpen } from 'lucide-react';
+import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, FarbConfig, SettingsView, FullAppState, GlobalCapacityConfig, TeamConfig, PITeamTarget } from '../../types';
 import MitarbeiterSettings from './MitarbeiterSettings';
 import PISettings from './PISettings';
 import KalenderDatenSettings from './KalenderDatenSettings';
@@ -8,6 +8,7 @@ import BackupRestoreSettings from './BackupRestoreSettings';
 import FarbeinstellungenSettings from './FarbeinstellungenSettings';
 import TeamConfigSettings from './TeamConfigSettings';
 import GlobalConfigSettings from './GlobalConfigSettings';
+import DokumentationSettings from './DokumentationSettings';
 
 interface Props {
   employees: Employee[];
@@ -24,21 +25,23 @@ interface Props {
   onGlobalConfigChange: (config: GlobalCapacityConfig) => void;
   teamConfigs: TeamConfig[];
   onTeamConfigsChange: (configs: TeamConfig[]) => void;
+  piTeamTargets: PITeamTarget[];
   farbConfig: FarbConfig;
   onFarbConfigChange: (config: FarbConfig) => void;
   onRestore: (state: FullAppState) => void;
 }
 
 const NAV_EINTRAEGE: { view: SettingsView; label: string; icon: React.ReactNode }[] = [
-  { view: 'mitarbeiter',       label: 'Mitarbeiter',       icon: <Users size={16} /> },
-  { view: 'pi-planung',        label: 'PI-Planung',         icon: <Calendar size={16} /> },
-  { view: 'feiertage',         label: 'Feiertage',          icon: <Sun size={16} /> },
-  { view: 'schulferien',       label: 'Schulferien',        icon: <GraduationCap size={16} /> },
-  { view: 'blocker',           label: 'Blocker / Freeze',   icon: <ShieldAlert size={16} /> },
-  { view: 'team-konfiguration',label: 'Team-Konfiguration', icon: <Settings size={16} /> },
-  { view: 'globale-parameter', label: 'Globale Parameter',  icon: <SlidersHorizontal size={16} /> },
-  { view: 'farben',            label: 'Farbeinstellungen',  icon: <Palette size={16} /> },
-  { view: 'backup',            label: 'Backup / Restore',   icon: <Download size={16} /> },
+  { view: 'mitarbeiter',        label: 'Mitarbeiter',        icon: <Users size={16} /> },
+  { view: 'pi-planung',         label: 'PI-Planung',          icon: <Calendar size={16} /> },
+  { view: 'feiertage',          label: 'Feiertage',           icon: <Sun size={16} /> },
+  { view: 'schulferien',        label: 'Schulferien',         icon: <GraduationCap size={16} /> },
+  { view: 'blocker',            label: 'Blocker / Freeze',    icon: <ShieldAlert size={16} /> },
+  { view: 'team-konfiguration', label: 'Team-Konfiguration',  icon: <Settings size={16} /> },
+  { view: 'globale-parameter',  label: 'Globale Parameter',   icon: <SlidersHorizontal size={16} /> },
+  { view: 'farben',             label: 'Farbeinstellungen',   icon: <Palette size={16} /> },
+  { view: 'backup',             label: 'Backup / Restore',    icon: <Download size={16} /> },
+  { view: 'dokumentation',      label: 'Dokumentation',       icon: <BookOpen size={16} /> },
 ];
 
 export default function SettingsPage({
@@ -56,6 +59,7 @@ export default function SettingsPage({
   onGlobalConfigChange,
   teamConfigs,
   onTeamConfigsChange,
+  piTeamTargets,
   farbConfig,
   onFarbConfigChange,
   onRestore,
@@ -65,9 +69,17 @@ export default function SettingsPage({
   const isKalenderView =
     aktiveView === 'feiertage' || aktiveView === 'schulferien' || aktiveView === 'blocker';
 
+  // Vollständiger App-State für Backup-Export – alle Felder müssen enthalten sein
   const appState: FullAppState = {
-    employees, pis, feiertage, schulferien, blocker,
-    farbConfig, globalConfig, teamConfigs,
+    employees,
+    pis,
+    feiertage,
+    schulferien,
+    blocker,
+    farbConfig,
+    globalConfig,
+    teamConfigs,
+    piTeamTargets,
   };
 
   return (
@@ -127,6 +139,9 @@ export default function SettingsPage({
         )}
         {aktiveView === 'backup' && (
           <BackupRestoreSettings appState={appState} onRestore={onRestore} />
+        )}
+        {aktiveView === 'dokumentation' && (
+          <DokumentationSettings />
         )}
       </div>
     </div>
