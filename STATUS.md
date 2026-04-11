@@ -63,7 +63,7 @@
 - FIX-08: Backup-Validierung blockierte Backups ohne teamZielwerte-Feld ✅
 - FIX-09: piTeamTargets fehlte im Backup-Export (SettingsPage appState unvollständig) ✅
 - FIX-10: Echte Namen aus AI.md entfernt → MA-ACM-01 etc. ✅
-- BUG-05: path-to-regexp Wildcard-Route — OPTIONS-Route auf `{*path}` (Express 5 / path-to-regexp v8) ✅
+- BUG-05: app.options Wildcard-Route entfernt — CORS wird durch manuelle res.setHeader-Middleware abgedeckt, separater OPTIONS-Handler war redundant und inkompatibel mit path-to-regexp v8 ✅
 
 ## Dokumentation (muss bei Änderungen nachgeführt werden)
 - Installationshandbuch: docs/installationshandbuch_v1.0.md ✅
