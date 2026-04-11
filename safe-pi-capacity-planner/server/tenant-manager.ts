@@ -16,6 +16,9 @@ const DATA_DIR = IS_RAILWAY
 
 console.log(`[TenantManager] DATA_DIR: ${DATA_DIR} (Railway: ${IS_RAILWAY})`);
 
+// Initial-Passwort für Demo-Train (konfigurierbar via Env-Var DEFAULT_ADMIN_CODE)
+const DEFAULT_TENANT_ADMIN_CODE = process.env.DEFAULT_ADMIN_CODE ?? '000815';
+
 // Tenant-ID-Validierung
 const TENANT_ID_REGEX = /^[a-z0-9-]{2,20}$/;
 
@@ -162,11 +165,12 @@ function runMigrationIfNeeded(): void {
     // Default-Tenant anlegen
     const defaultTenant: TenantMeta = {
       id: 'default',
-      name: 'Standard-Train',
-      adminCodeHash: bcrypt.hashSync('admin1', 10),
+      name: 'Demo-Train',
+      adminCodeHash: bcrypt.hashSync(DEFAULT_TENANT_ADMIN_CODE, 10),
       createdAt: new Date().toISOString(),
     };
     saveTenants([defaultTenant]);
+    console.log(`[TenantManager] Demo-Train initialer Admin-Code: ${DEFAULT_TENANT_ADMIN_CODE}`);
 
     // state.json → state_default.json kopieren (nicht löschen)
     const targetFile = getTenantStateFile('default');
@@ -189,11 +193,12 @@ function ensureDefaultTenant(): void {
     console.log('[TenantManager] Keine Tenants gefunden – Default-Tenant anlegen');
     const defaultTenant: TenantMeta = {
       id: 'default',
-      name: 'Standard-Train',
-      adminCodeHash: bcrypt.hashSync('admin1', 10),
+      name: 'Demo-Train',
+      adminCodeHash: bcrypt.hashSync(DEFAULT_TENANT_ADMIN_CODE, 10),
       createdAt: new Date().toISOString(),
     };
     saveTenants([defaultTenant]);
+    console.log(`[TenantManager] Demo-Train initialer Admin-Code: ${DEFAULT_TENANT_ADMIN_CODE}`);
   }
 }
 

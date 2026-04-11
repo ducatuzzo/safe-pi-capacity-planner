@@ -9,6 +9,22 @@
 - **Ziel:** Kapazitätsplanung für SAFe PI Planning in der Bundesverwaltung (BIT)
 - **App-Pfad:** `safe-pi-capacity-planner/`
 - **Context-Pfad:** Wurzel dieses Repos (AI.md, PRD.md, STATUS.md, features/, docs/)
+- **Frontend-Deployment:** https://safe-pi-capacity-planner.vercel.app (Vercel, Auto-Deploy via GitHub master)
+- **Backend-Deployment:** Railway → URL nach Setup in AI.md und Vercel-Env-Var eintragen
+- **Vercel Root Directory:** `safe-pi-capacity-planner` (Unterordner! nicht `./` — kritisch für Build)
+- **Vercel Build Command:** `npx vite build` (nicht `vite build`, vite liegt in devDependencies)
+
+## Environment Variables
+| Variable | Wo setzen | Wert |
+|----------|-----------|------|
+| `VITE_BACKEND_URL` | Vercel → Environment Variables | Railway-Backend-URL (z.B. `https://xxx.railway.app`) |
+| `VITE_BACKEND_URL` | lokal `.env` | leer lassen (Vite-Proxy übernimmt) |
+| `PORT` | Railway → automatisch | wird von Railway gesetzt, kein manueller Eintrag nötig |
+
+- **Demo-Train Initial-Passwort:** `000815` (konfigurierbar via Env-Var `DEFAULT_ADMIN_CODE`) — muss nach erstem Login geändert werden
+- Lokal: `VITE_BACKEND_URL` nicht setzen → `window.location.origin` → Vite-Proxy → `localhost:3001`
+- Produktion: `VITE_BACKEND_URL=https://xxx.railway.app` in Vercel setzen → direkter Socket.io-Connect
+- Template: `safe-pi-capacity-planner/.env.example`
 
 ## Techstack (Kurzfassung)
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS, Recharts, Lucide React
