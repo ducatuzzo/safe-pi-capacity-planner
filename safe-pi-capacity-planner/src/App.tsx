@@ -8,10 +8,13 @@ import CalendarGrid from './components/calendar/CalendarGrid';
 import KapazitaetView from './components/capacity/KapazitaetView';
 import DashboardView from './components/dashboard/DashboardView';
 import PIDashboardView from './components/pidashboard/PIDashboardView';
+import AdminView from './components/admin/AdminView';
+import TenantGate from './components/tenant/TenantGate';
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER, SEED_GLOBAL_CONFIG, SEED_TEAM_CONFIGS } from './data/seed';
 import { DEFAULT_FARB_CONFIG } from './constants';
 import { useSocket } from './hooks/useSocket';
 import type { SettingsChangeType } from './hooks/useSocket';
+import { useTenant } from './hooks/useTenant';
 
 const INITIAL_FILTER: FilterState = {
   teams: [],
@@ -50,6 +53,21 @@ function applyAllocationToList(
 }
 
 export default function App() {
+  const { tenantId, tenantName, clearTenant } = useTenant();
+
+  // Tenant-Gate: Falls kein Tenant ausgewählt, Auswahl-Screen zeigen
+  if (!tenantId) return <TenantGate />;
+
+  return <AppInner tenantId={tenantId} tenantName={tenantName} clearTenant={clearTenant} />;
+}
+
+interface AppInnerProps {
+  tenantId: string;
+  tenantName: string;
+  clearTenant: () => void;
+}
+
+function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('planung');
   const [employees, setEmployees] = useState<Employee[]>(SEED_EMPLOYEES);
   const [pis, setPis] = useState<PIPlanning[]>(SEED_PIS);
@@ -116,6 +134,7 @@ export default function App() {
 
   const { emitAllocationChange, emitSettingsChange, emitLock, emitUnlock, isConnected } =
     useSocket({
+      tenantId,
       onAllocationChange: handleRemoteAllocationChange,
       onSettingsChange: handleRemoteSettingsChange,
       onLockChange: handleLockChange,
@@ -247,11 +266,11 @@ export default function App() {
       },
     };
     const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
-    fetch(`${backendUrl}/api/state`, {
+    fetch(`${backendUrl}/api/tenants/${tenantId}/state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullState),
-    }).catch(err => console.error('[Restore] POST /api/state fehlgeschlagen:', err));
+    }).catch(err => console.error('[Restore] POST /api/tenants state fehlgeschlagen:', err));
   }, []);
 
   const handleRowLock = useCallback((employeeId: string) => {
@@ -281,7 +300,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-bund-bg">
-      <Header isConnected={isConnected} />
+      <Header isConnected={isConnected} tenantName={tenantName} onSwitchTenant={clearTenant} />
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
       {showFilterBar && (
         <FilterBar
@@ -332,6 +351,9 @@ export default function App() {
             filterState={filterState}
             onPiTeamTargetsChange={handlePiTeamTargetsChange}
           />
+        )}
+        {activeTab === 'admin' && (
+          <AdminView tenantId={tenantId} tenantName={tenantName} />
         )}
         {activeTab === 'settings' && (
           <SettingsPage

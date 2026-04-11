@@ -12,17 +12,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "express": "^5.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
     "lucide-react": "^0.469.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.13.0",
     "socket.io": "^4.8.0",
-    "socket.io-client": "^4.8.0",
-    "jspdf": "^2.5.2",
-    "html2canvas": "^1.4.1"
+    "socket.io-client": "^4.8.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",

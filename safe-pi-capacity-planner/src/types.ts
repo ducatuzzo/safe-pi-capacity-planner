@@ -157,7 +157,14 @@ export interface FilterState {
 }
 
 // Aktiver Tab in der Navigation
-export type ActiveTab = 'planung' | 'kapazitaet' | 'dashboard' | 'pidashboard' | 'settings';
+export type ActiveTab = 'planung' | 'kapazitaet' | 'dashboard' | 'pidashboard' | 'settings' | 'admin';
+
+// Tenant-Informationen (Feature 18 – Mandatenfähigkeit)
+export interface TenantInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+}
 
 // Settings-Unterseite
 export type SettingsView =

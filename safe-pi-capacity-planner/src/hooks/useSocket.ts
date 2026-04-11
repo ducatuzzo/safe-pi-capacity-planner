@@ -15,6 +15,7 @@ export type SettingsChangeType =
   | 'piTeamTargets';
 
 interface UseSocketOptions {
+  tenantId: string;
   onAllocationChange: (employeeId: string, dateStr: string, type: AllocationType) => void;
   onSettingsChange: (type: SettingsChangeType, data: unknown) => void;
   onLockChange: (employeeId: string, locked: boolean, userName?: string) => void;
@@ -22,6 +23,7 @@ interface UseSocketOptions {
 }
 
 export function useSocket({
+  tenantId,
   onAllocationChange,
   onSettingsChange,
   onLockChange,
@@ -50,7 +52,19 @@ export function useSocket({
     });
     socketRef.current = socket;
 
-    socket.on('connect', () => setIsConnected(true));
+    const joinTenant = () => {
+      socket.emit('tenant:join', { tenantId });
+    };
+
+    socket.on('connect', () => {
+      setIsConnected(true);
+      joinTenant();
+    });
+
+    socket.on('reconnect', () => {
+      joinTenant();
+    });
+
     socket.on('disconnect', () => setIsConnected(false));
 
     socket.on('state:full', (state: SavedProjectState) => {
@@ -80,7 +94,7 @@ export function useSocket({
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [tenantId]);
 
   const emitAllocationChange = useCallback(
     (employeeId: string, dateStr: string, allocationType: AllocationType) => {
