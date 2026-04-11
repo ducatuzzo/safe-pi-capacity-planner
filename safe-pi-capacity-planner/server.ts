@@ -70,7 +70,7 @@ app.use((_req, res, next) => {
 });
 
 // OPTIONS Pre-flight
-app.options('(.*)', (_req, res) => {
+app.options('{*path}', (_req, res) => {
   res.sendStatus(200);
 });
 
