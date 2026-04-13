@@ -46,24 +46,15 @@
 SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 
 ## 2026-03-27: Datenfehler in mitarbeiterstamm.csv – Behandlung
-**Entscheidung:** Ungültige Zeilen (betrieb% + pauschale% > kapazität%) werden beim Import NICHT stillschweigend korrigiert.
-**Verhalten:** Import zeigt Warnung pro fehlerhafter Zeile, betroffene Mitarbeiter werden trotzdem importiert mit den Originalwerten, aber in der UI rot markiert.
-**Grund:** Davide muss die korrekten Werte selbst entscheiden – automatisches Korrigieren würde falsche Daten erzeugen.
+**Entscheidung:** Ungültige Zeilen werden beim Import NICHT stillschweigend korrigiert.
+**Verhalten:** Import zeigt Warnung pro fehlerhafter Zeile, betroffene Mitarbeiter werden trotzdem importiert mit Originalwerten, aber in der UI rot markiert.
 **Betroffene Zeilen:**
 - Jonathan Cattaneo: betrieb=1% + pauschale=100% = 101%
 - André Tellenbach: betrieb=1% + pauschale=100% = 101%
 
 ## 2026-03-28: Regel – Dokumentation immer nachführen
-**Entscheidung:** Installationshandbuch und Benutzerdokumentation müssen bei jeder Änderung die den Benutzer oder die Installation betrifft nachgeführt werden.
-**Was auslöst eine Aktualisierung:**
-- Neue Features die der Benutzer bedienen muss → Benutzerdokumentation
-- Änderungen an Infrastruktur, Ports, Abhängigkeiten, Startbefehlen → Installationshandbuch
-- Neue Buchungstypen oder Farbcodes → beide Dokumente
-- Änderungen an Einstellungen oder CSV-Formaten → Benutzerdokumentation
-- Änderungen an Backup/Restore-Verhalten → beide Dokumente
-**Wie:** Neue DOCX-Dokumente generieren und als neue Version ablegen.
+**Entscheidung:** Installationshandbuch und Benutzerdokumentation müssen bei jeder relevanten Änderung nachgeführt werden.
 **Ablageort:** C:\Users\Davide\Documents\AI\safe-pi-planner\docs\
-**Dateinamen:** installationshandbuch_vX.Y.docx, benutzerdokumentation_vX.Y.docx
 
 ## 2026-03-28: Feature 15 – Multiuser abgeschlossen
 **Entscheidung:** Socket.io State-Sync vollständig implementiert.
@@ -71,34 +62,39 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 - REST GET /api/state für initialen Load
 - Socket.io Events: allocation:change, settings:change, lock:row, unlock:row
 - Verbindungsindikator im Header (grün/rot)
-- Verifiziert: Header zeigte "Verbunden" bei laufendem Backend auf Port 3001
 
 ## 2026-03-28: FIX-04 – Logo ersetzt durch SVG
 **Entscheidung:** bundeslogo.png ersetzt durch Logo_RGB_farbig_negativ.svg
-**Grund:** SVG (weisser Text auf transparent) ist auf blauem Header deutlich besser lesbar als PNG.
+**Grund:** SVG (weisser Text auf transparent) ist auf blauem Header deutlich besser lesbar.
 **Quelle:** C:\Users\Davide\Documents\AI\Bundeslogo_SVG\Bundeslogo_SVG\Logo_RGB_farbig_negativ.svg
-**Datei:** src/assets/bundeslogo.svg, Header.tsx Import angepasst
 
 ## 2026-04-01: PI Dashboard Tab – localStorage für SP-Jira-Werte
 **Entscheidung:** SP-in-Jira-Werte werden in localStorage gespeichert (Key: `pi-dashboard-sp-jira-v1`).
-**Grund:** Kein Server-Sync nötig – es sind lokale Planungsdaten pro User, kein kritischer Applikationszustand.
-**Ausnahme zu AI.md-Regel:** AI.md erlaubt localStorage für "UI-Preferences" – SP-Jira-Werte fallen darunter.
+**Grund:** Kein Server-Sync nötig – lokale Planungsdaten pro User.
 **Format:** `{ "${piId}::${iterationId}::${team}": number }`
 
 ## 2026-04-01: PI Dashboard Tab – zwei SP-Spalten
 **Entscheidung:** Zwei verschiedene SP-Berechnungen nebeneinander:
 1. **Berechnet SP** (theoretisch): Betriebstage × SP-Rate ohne tagsgenaue Buchungen
-2. **Verfügbar SP Netto** (tagesgenau): aus sp-calculator.ts mit allen Buchungen (FERIEN, ABWESEND etc.)
-**Grund:** Ermöglicht Vergleich zwischen Planungsannahme (theoretisch) und tatsächlicher Verfügbarkeit.
+2. **Verfügbar SP Netto** (tagesgenau): aus sp-calculator.ts mit allen Buchungen
 **Auslastung Jira %** vergleicht Jira-Commitments gegen tagesgenaue Kapazität (realistischer).
-**Auslastung App %** zeigt den Einfluss von Absenzen auf die Kapazität.
 
 ## 2026-03-28: FIX-05 – Header vergrössert
-**Entscheidung:** Header-Grösse angepasst für bessere Lesbarkeit des Logos.
-**Änderungen:**
-- Logo: h-10 → h-14
-- Trennlinie: h-8 → h-10
-- Titel: text-lg → text-xl
-- Untertitel: text-xs → text-sm
-- Padding: py-3 → py-4
+**Änderungen:** Logo h-10→h-14, Titel text-lg→text-xl, Padding py-3→py-4
 **Datei:** src/components/layout/Header.tsx
+
+## 2026-04-07: Feature 17 – SP/Tag global statt pro Team
+**Entscheidung:** SP/Tag und Std/Jahr sind globale Parameter (GlobalCapacityConfig), nicht pro Team konfigurierbar.
+**Grund:** Organisationsweiter Standard ist einheitlich; individuelle Abweichungen werden über FTE-Faktor und Employee.storyPointsPerDay abgebildet.
+**Ausnahme:** Employee.storyPointsPerDay bleibt als optionaler Override pro Mitarbeiter erhalten (bestehend).
+
+## 2026-04-07: Feature 17 – Betrieb-Lücke ignoriert WE + gesetzliche Feiertage
+**Entscheidung:** Betrieb-Lücken-Erkennung prüft nur Arbeitstage (kein Wochenende, kein gesetzlicher Feiertag).
+**Grund:** Betriebsaufgaben fallen am Wochenende und an Feiertagen nicht an. Bei einem Feiertag am Montag übernimmt PIKETT im Störungsfall.
+**Pikett:** gilt 7 Tage/Woche, auch Feiertage – immer prüfen.
+
+## 2026-04-07: Feature 17 – piTeamTargets in AppData (nicht localStorage)
+**Entscheidung:** SP-Jira-Werte (PO-Eingabe) werden in AppData.piTeamTargets gespeichert, nicht in localStorage.
+**Grund:** Konsistenz mit Backup/Restore und Multiuser-State-Sync via Socket.io.
+**Abweichung von:** PI Dashboard Tab (Feature PI-Dashboard) der noch localStorage nutzt.
+**Migration:** Bestehende localStorage-Werte beim ersten Load in AppData überführen, localStorage dann leeren.

@@ -175,16 +175,6 @@ export default function CalendarGrid({
         <span className="text-xs text-gray-400">
           {visibleDays.length} Tage · {visibleEmployees.length} Mitarbeiter
         </span>
-        <button
-          onClick={() => {
-            if (window.confirm('Alle Buchungen aller Mitarbeiter löschen?')) {
-              onClearAllocations();
-            }
-          }}
-          className="ml-auto text-xs text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded px-2 py-1 transition-colors"
-        >
-          Alle Buchungen löschen
-        </button>
       </div>
 
       {/* Kalender-Tabelle */}

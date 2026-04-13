@@ -118,14 +118,14 @@ curl http://localhost:3001/api/state > backup-$(date +%Y%m%d).json
 
 ---
 
-## 6. PI Dashboard – localStorage
+## 6. PI Dashboard – SP-in-Jira-Persistenz *(aktualisiert v1.3)*
 
-Der PI Dashboard Tab speichert SP-in-Jira-Werte **lokal im Browser** (nicht auf dem Server).
+Ab App-Version 1.3 werden SP-in-Jira-Werte im **Server-State** (AppData) gespeichert, nicht mehr im Browser-localStorage.
 
-- **Key:** `pi-dashboard-sp-jira-v1`
-- **Scope:** Gerätespezifisch – nicht zwischen Benutzern synchronisiert
-- **Verlust:** Bei Browser-Cache-Löschung gehen Werte verloren
-- **Empfehlung:** Werte zusätzlich in einem gemeinsamen Dokument (Excel, Confluence) festhalten
+- **Speicherort:** Backend JSON-File (zusammen mit allen anderen App-Daten)
+- **Scope:** Alle verbundenen Benutzer sehen dieselben Werte (via Socket.io synchronisiert)
+- **Backup:** SP-in-Jira-Werte sind im JSON-Backup enthalten (Feld `piTeamTargets`)
+- **Verlust:** Nur bei Server-Neustart ohne vorheriges Backup → regelmässig Backup erstellen
 
 ---
 
@@ -153,5 +153,5 @@ npm run dev
 | Port 5173 belegt | Anderer Vite-Prozess läuft | `npx kill-port 5173` oder anderen Port in `vite.config.ts` setzen |
 | Port 3001 belegt | Anderer Prozess | `npx kill-port 3001` |
 | Verbindungsindikator rot | Backend nicht gestartet | `npm run dev:server` separat starten |
-| SP-in-Jira-Werte weg | Browser-Cache geleert | Werte erneut erfassen; zukünftig als Backup anlegen |
+| SP-in-Jira-Werte weg | Server-Neustart ohne Backup | JSON-Backup importieren (Einstellungen → Restore) |
 | State nach Neustart weg | In-memory Backend | JSON-Backup importieren (Einstellungen → Restore) |

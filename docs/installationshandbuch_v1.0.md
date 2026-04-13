@@ -112,6 +112,12 @@ npm run build
 
 ## 7. Bekannte Einschränkungen
 
-- **localStorage:** SP-in-Jira-Werte (PI Dashboard Tab) werden lokal im Browser gespeichert und sind **nicht** zwischen verschiedenen Browsern/Geräten synchronisiert.
 - **State:** Im Multiuser-Betrieb wird der State im Backend in-memory gehalten. Bei Server-Neustart gehen nicht gesicherte Daten verloren → regelmässig JSON-Backup erstellen.
 - **Browser:** Getestet auf Chrome/Edge. Firefox nicht offiziell unterstützt.
+
+## 8. Änderungshistorie
+
+| Version | Datum | Änderung |
+|---------|-------|---------|
+| 1.0 | 01.04.2026 | Erstveröffentlichung |
+| 1.0 (Update) | 07.04.2026 | SP-in-Jira-Werte sind ab v1.3 im Server-State (nicht mehr localStorage). Keine Infrastruktur-Änderung nötig. |

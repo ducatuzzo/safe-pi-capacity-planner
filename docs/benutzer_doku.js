@@ -150,7 +150,7 @@ const doc = new Document({
       default: new Footer({
         children: [new Paragraph({
           children: [
-            new TextRun({ text: 'SAFe PI Capacity Planner \u2013 Benutzerdokumentation | BIT | Version 1.0 | 2026    ', font: 'Arial', size: 16, color: '666666' }),
+            new TextRun({ text: 'SAFe PI Capacity Planner \u2013 Benutzerdokumentation | BIT | Version 1.3 | April 2026    ', font: 'Arial', size: 16, color: '666666' }),
             new TextRun({ children: [new SimpleField('PAGE')], font: 'Arial', size: 16, color: '666666' })
           ],
           border: { top: { style: BorderStyle.SINGLE, size: 4, color: HELL_GRAU, space: 1 } }
@@ -171,7 +171,7 @@ const doc = new Document({
       new Paragraph({ spacing: { before: 200 } }),
       new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Benutzerdokumentation', font: 'Arial', size: 36, color: TEXT })] }),
       new Paragraph({ spacing: { before: 200 } }),
-      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Version 1.0 | M\u00e4rz 2026', font: 'Arial', size: 22, color: '666666' })] }),
+      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Version 1.3 | April 2026', font: 'Arial', size: 22, color: '666666' })] }),
       new Paragraph({ spacing: { before: 2000 } }),
       new Table({
         width: { size: 9026, type: WidthType.DXA },
@@ -180,8 +180,8 @@ const doc = new Document({
           new TableRow({ children: [headerCell('Dokument', 2000), headerCell('', 7026)] }),
           new TableRow({ children: [cell('Titel', 2000, true, GRAU), cell('SAFe PI Capacity Planner \u2013 Benutzerdokumentation', 7026)] }),
           new TableRow({ children: [cell('Zielgruppe', 2000, true, GRAU), cell('Team-Mitglieder, Scrum Master, Chapter Leads, PI Planning Teilnehmer', 7026)] }),
-          new TableRow({ children: [cell('Version', 2000, true, GRAU), cell('1.0', 7026)] }),
-          new TableRow({ children: [cell('Datum', 2000, true, GRAU), cell('M\u00e4rz 2026', 7026)] }),
+          new TableRow({ children: [cell('Version', 2000, true, GRAU), cell('1.3', 7026)] }),
+          new TableRow({ children: [cell('Datum', 2000, true, GRAU), cell('April 2026', 7026)] }),
         ]
       }),
       pageBreak(),
@@ -380,15 +380,40 @@ const doc = new Document({
         ]
       }),
 
-      h2('6.4 Team-Zielwerte'),
-      p('Definieren Sie pro Team die Mindestanforderungen:'),
-      bullet('Min. Pikett-Personen: Mindestanzahl Personen im Pikett-Dienst pro Tag'),
-      bullet('Min. Betrieb-Personen: Mindestanzahl Personen f\u00fcr Betriebsaufgaben pro Tag'),
-      bullet('SP/Tag: Story Points pro Arbeitstag (Standard: 1)'),
-      bullet('Stunden/Jahr: Standardstunden pro Jahr bei 100% FTE (Standard: 1600)'),
-      p('Diese Zielwerte werden im Dashboard f\u00fcr die L\u00fccken-Erkennung verwendet.'),
+      h2('6.4 Team-Zielwerte (Legacy)'),
+      p('Urspr\u00fcngliche Konfigurations-Ansicht. F\u00fcr neue Installationen werden die Subtabs 6.5 und 6.6 empfohlen. F\u00fcr Kompatibilit\u00e4t mit \u00e4lteren Backups weiterhin verf\u00fcgbar.'),
 
-      h2('6.5 Farbeinstellungen'),
+      h2('6.5 Team-Konfiguration \u2013 neu in v1.3'),
+      p('Konfiguriert die Mindestbesetzung f\u00fcr Pikett und Betrieb pro Team. Teamnamen werden automatisch aus dem Mitarbeiterstamm abgeleitet.'),
+      new Table({
+        width: { size: 9026, type: WidthType.DXA },
+        columnWidths: [2500, 6526],
+        rows: [
+          new TableRow({ children: [headerCell('Spalte', 2500), headerCell('Beschreibung', 6526)] }),
+          new TableRow({ children: [cell('Team', 2500), cell('Automatisch aus Mitarbeiterstamm \u2013 read-only', 6526)] }),
+          new TableRow({ children: [cell('Min. Pikett', 2500), cell('Mindestanzahl Personen t\u00e4glich (inkl. WE + Feiertage)', 6526)] }),
+          new TableRow({ children: [cell('Min. Betrieb', 2500), cell('Mindestanzahl Personen nur an Arbeitstagen (kein WE, kein Feiertag)', 6526)] }),
+        ]
+      }),
+      new Paragraph({ spacing: { after: 120 } }),
+      p('Bedienung: Wert direkt im Feld \u00e4ndern \u2192 Speichern-Button klicken. CSV-Export/Import \u00fcber die Buttons oben rechts (Semikolon-getrennt).'),
+      infoBox('CSV-Format: teamName;minPikett;minBetrieb\nBeispiel: PAF;1;2 | ACM;1;2 | NET;0;1 | CON;0;1'),
+
+      h2('6.6 Globale Parameter \u2013 neu in v1.3'),
+      p('Globale SP-Standardwerte f\u00fcr alle Berechnungen:'),
+      new Table({
+        width: { size: 9026, type: WidthType.DXA },
+        columnWidths: [3000, 2000, 4026],
+        rows: [
+          new TableRow({ children: [headerCell('Parameter', 3000), headerCell('Standard', 2000), headerCell('Beschreibung', 4026)] }),
+          new TableRow({ children: [cell('SP pro Tag', 3000), cell('1.0', 2000), cell('Story Points pro Arbeitstag bei 100% FTE', 4026)] }),
+          new TableRow({ children: [cell('Arbeitsstunden pro Jahr', 3000), cell('1600', 2000), cell('Referenzwert f\u00fcr FTE-Umrechnung', 4026)] }),
+        ]
+      }),
+      new Paragraph({ spacing: { after: 120 } }),
+      infoBox('\u26a0\ufe0f Hinweis: \u00c4nderungen an Globalen Parametern wirken sofort auf alle SP-Berechnungen der gesamten App.'),
+
+      h2('6.7 Farbeinstellungen'),
       p('Passen Sie die Farben der Buchungstypen und Kalenderelemente an Ihre Bed\u00fcrfnisse an. F\u00fcr jeden Typ k\u00f6nnen Sie Hintergrundfarbe und Schriftfarbe separat w\u00e4hlen. Eine Vorschau zeigt das Ergebnis sofort. Mit "Auf Standard zur\u00fccksetzen" stellen Sie die Originalfarben wieder her.'),
 
       pageBreak(),
@@ -441,9 +466,10 @@ const doc = new Document({
           new TableRow({ children: [headerCell('Spalte', 2800), headerCell('Beschreibung', 6226)] }),
           new TableRow({ children: [cell('Iteration', 2800), cell('Name der Iteration innerhalb des PI', 6226)] }),
           new TableRow({ children: [cell('Betriebstage', 2800), cell('Arbeitstage (Mo\u2013Fr) ohne gesetzliche Feiertage', 6226)] }),
-          new TableRow({ children: [cell('SP in Jira \u2013 editierbar', 2800), cell('Manuell erfasste Jira-Commitments (Klick zum Bearbeiten)', 6226)] }),
+          new TableRow({ children: [cell('SP in Jira \u2013 editierbar', 2800), cell('Manuell erfasste Jira-Commitments des PO (Klick zum Bearbeiten)', 6226)] }),
           new TableRow({ children: [cell('Berechnet SP', 2800), cell('Theoretische Kapazit\u00e4t: Betriebstage \u00d7 SP-Rate \u00d7 FTE \u00d7 (1\u2212Betrieb%) \u00d7 (1\u2212Pauschale%)', 6226)] }),
           new TableRow({ children: [cell('Verf\u00fcgbar SP Netto', 2800), cell('Tagesgenaue Kapazit\u00e4t aus dem Planner (inkl. FERIEN, ABWESEND etc.)', 6226)] }),
+          new TableRow({ children: [cell('Delta (neu v1.3)', 2800), cell('Verf\u00fcgbar SP Netto \u2212 SP in Jira: \u2705 Puffer | \u2139\ufe0f Exakt | \u26a0\ufe0f \u00dcberbucht', 6226)] }),
           new TableRow({ children: [cell('Auslastung Jira %', 2800), cell('SP in Jira \u00f7 Verf\u00fcgbar SP Netto \u00d7 100', 6226)] }),
           new TableRow({ children: [cell('Auslastung App %', 2800), cell('Berechnet SP \u00f7 Verf\u00fcgbar SP Netto \u00d7 100', 6226)] }),
         ]
@@ -457,7 +483,22 @@ const doc = new Document({
       numbered('Enter oder Klick ausserhalb speichert den Wert automatisch'),
       numbered('Escape bricht ab \u2013 Originalwert bleibt erhalten'),
       new Paragraph({ spacing: { after: 120 } }),
-      infoBox('Hinweis: Die SP-in-Jira-Werte werden lokal im Browser gespeichert (localStorage). Sie sind ger\u00e4tespezifisch und werden nicht mit anderen Benutzern synchronisiert. Bei gel\u00f6schtem Browser-Cache gehen die Werte verloren.'),
+      infoBox('Hinweis (ab v1.3): Die SP-in-Jira-Werte werden im Server-State gespeichert und mit allen verbundenen Benutzern synchronisiert. Sie sind im JSON-Backup enthalten (Feld piTeamTargets).'),
+
+      h2('9.2b Delta-Spalte (neu in v1.3)'),
+      p('Die Delta-Spalte zeigt die Differenz zwischen verf\u00fcgbarer Kapazit\u00e4t und den Jira-Commitments:'),
+      new Table({
+        width: { size: 9026, type: WidthType.DXA },
+        columnWidths: [1200, 2000, 5826],
+        rows: [
+          new TableRow({ children: [headerCell('Symbol', 1200), headerCell('Delta', 2000), headerCell('Bedeutung', 5826)] }),
+          new TableRow({ children: [cell('\u2705 +x.x', 1200), cell('Positiv', 2000), cell('Kapazit\u00e4tspuffer vorhanden \u2013 mehr SP verf\u00fcgbar als committed', 5826)] }),
+          new TableRow({ children: [cell('\u2139\ufe0f 0.0', 1200), cell('Null', 2000), cell('Exakt ausgelastet', 5826)] }),
+          new TableRow({ children: [cell('\u26a0\ufe0f \u2212x.x', 1200), cell('Negativ', 2000), cell('\u00dcberbucht \u2013 Commitments \u00fcbersteigen Kapazit\u00e4t. R\u00fccksprache mit PO empfohlen.', 5826)] }),
+        ]
+      }),
+      new Paragraph({ spacing: { after: 120 } }),
+      infoBox('Hinweis: Die App weist nur auf Delta-Situationen hin. Ob Commitments angepasst werden, bleibt Entscheidung des Teams und des Product Owners.'),
 
       h2('9.3 Farbcodierung Auslastung'),
       new Table({
@@ -507,9 +548,11 @@ const doc = new Document({
           new TableRow({ children: [cell('Kann ich meine Farben zur\u00fccksetzen?', 4000), cell('Einstellungen \u2192 Farbeinstellungen \u2192 "Auf Standard zur\u00fccksetzen".', 5026)] }),
           new TableRow({ children: [cell('Wie exportiere ich f\u00fcr Confluence?', 4000), cell('Dashboard \u2192 "Als PDF exportieren" oder "Als PNG exportieren".', 5026)] }),
           new TableRow({ children: [cell('Was bedeutet die \u2744\ufe0f-Markierung?', 4000), cell('Change Freeze / Blocker-Tag. Diese Tage z\u00e4hlen als Arbeitstage (kein SP-Abzug), aber Deployments sind gesperrt.', 5026)] }),
-          new TableRow({ children: [cell('SP in Jira sind nach Browser-Neustart weg', 4000), cell('Die Werte liegen im Browser-Cache (localStorage). Bei Cache-L\u00f6schung gehen sie verloren. Werte zus\u00e4tzlich in einem gemeinsamen Dokument festhalten.', 5026)] }),
+          new TableRow({ children: [cell('SP in Jira sind nach Server-Neustart weg', 4000), cell('Ab v1.3 liegen die Werte im Server-State. Bei Server-Neustart JSON-Backup importieren (Einstellungen \u2192 Backup/Restore).', 5026)] }),
           new TableRow({ children: [cell('Warum unterscheiden sich Berechnet SP und Verf\u00fcgbar SP Netto?', 4000), cell('Berechnet SP ist theoretisch (keine Absenzen ber\u00fccksichtigt). Verf\u00fcgbar SP Netto zieht Ferien, Abwesenheiten etc. tagesgenau ab.', 5026)] }),
-          new TableRow({ children: [cell('Sehen andere Benutzer meine SP-in-Jira-Werte?', 4000), cell('Nein. Diese Werte sind lokal im Browser gespeichert und nicht synchronisiert.', 5026)] }),
+          new TableRow({ children: [cell('Sehen andere Benutzer meine SP-in-Jira-Werte?', 4000), cell('Ja, ab v1.3. Die Werte werden via Socket.io synchronisiert und sind f\u00fcr alle verbundenen Benutzer sofort sichtbar.', 5026)] }),
+          new TableRow({ children: [cell('Was bedeutet das Delta im PI Dashboard?', 4000), cell('Delta = Verf\u00fcgbar SP Netto \u2212 SP in Jira. Positiv = Puffer (\u2705), Null = exakt (\u2139\ufe0f), Negativ = \u00fcberbucht (\u26a0\ufe0f).', 5026)] }),
+          new TableRow({ children: [cell('Wie stelle ich Min. Pikett / Betrieb ein?', 4000), cell('Einstellungen \u2192 Team-Konfiguration. Werte direkt im Feld \u00e4ndern und Speichern klicken. CSV-Import/Export verf\u00fcgbar.', 5026)] }),
         ]
       }),
     ]
@@ -517,6 +560,6 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then(buffer => {
-  fs.writeFileSync('./benutzerdokumentation_v1.2.docx', buffer);
-  console.log('benutzerdokumentation_v1.2.docx erstellt');
+  fs.writeFileSync('./benutzerdokumentation_v1.3.docx', buffer);
+  console.log('benutzerdokumentation_v1.3.docx erstellt');
 });

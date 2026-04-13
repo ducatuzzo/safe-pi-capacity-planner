@@ -398,22 +398,22 @@ const doc = new Document({
 
       pageBreak(),
 
-      // 4.x PI Dashboard localStorage
-      h2('4.x Hinweis: PI Dashboard Tab \u2013 localStorage'),
-      p('Der PI Dashboard Tab speichert die manuell erfassten \u201eSP in Jira\u201c-Werte lokal im Browser (localStorage). Diese Werte werden \u2013 im Gegensatz zu Buchungen und Einstellungen \u2013 nicht \u00fcber den Server synchronisiert.'),
+      // 4.x PI Dashboard – Server-State (ab v1.3)
+      h2('4.x Hinweis: PI Dashboard Tab \u2013 SP-in-Jira-Persistenz (ab v1.3)'),
+      p('Ab App-Version 1.3 werden die manuell erfassten \u201eSP in Jira\u201c-Werte im Server-State (AppData) gespeichert und via Socket.io synchronisiert. Sie sind Teil des JSON-Backups.'),
       new Table({
         width: { size: 9026, type: WidthType.DXA },
         columnWidths: [2500, 6526],
         rows: [
           new TableRow({ children: [headerCell('Eigenschaft', 2500), headerCell('Details', 6526)] }),
-          new TableRow({ children: [cell('Speicherort', 2500), cell('Browser localStorage (Key: pi-dashboard-sp-jira-v1)', 6526)] }),
-          new TableRow({ children: [cell('Scope', 2500), cell('Ger\u00e4te- und browserspezifisch \u2013 nicht zwischen Benutzern synchronisiert', 6526)] }),
-          new TableRow({ children: [cell('Verlust', 2500), cell('Bei Browser-Cache-L\u00f6schung gehen die Werte verloren', 6526)] }),
-          new TableRow({ children: [cell('Empfehlung', 2500), cell('Werte zus\u00e4tzlich in einem gemeinsamen Dokument (Excel, Confluence) festhalten', 6526)] }),
+          new TableRow({ children: [cell('Speicherort', 2500), cell('Server-State (AppData.piTeamTargets), JSON-File auf Backend', 6526)] }),
+          new TableRow({ children: [cell('Scope', 2500), cell('Alle verbundenen Benutzer sehen dieselben Werte (synchronisiert)', 6526)] }),
+          new TableRow({ children: [cell('Verlust', 2500), cell('Nur bei Server-Neustart ohne vorheriges Backup', 6526)] }),
+          new TableRow({ children: [cell('Backup', 2500), cell('Im JSON-Backup enthalten (Feld piTeamTargets) \u2013 bei Restore wiederhergestellt', 6526)] }),
         ]
       }),
       new Paragraph({ spacing: { after: 120 } }),
-      infoBox('Wichtig: Alle anderen App-Daten (Buchungen, Einstellungen, PIs, Mitarbeiter) werden \u00fcber den Server synchronisiert und sind f\u00fcr alle verbundenen Benutzer sichtbar. Nur die SP-in-Jira-Werte im PI Dashboard sind lokal.'),
+      infoBox('Wichtig: Alle App-Daten inkl. SP-in-Jira-Werte werden \u00fcber den Server synchronisiert. Regelm\u00e4ssige JSON-Backups (Einstellungen \u2192 Backup/Restore) sch\u00fctzen vor Datenverlust bei Server-Neustart.'),
 
       pageBreak(),
 

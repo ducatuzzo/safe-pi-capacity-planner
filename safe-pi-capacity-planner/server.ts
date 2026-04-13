@@ -69,11 +69,6 @@ app.use((_req, res, next) => {
   next();
 });
 
-// OPTIONS Pre-flight
-app.options('{*path}', (_req, res) => {
-  res.sendStatus(200);
-});
-
 // Gesundheitscheck
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
