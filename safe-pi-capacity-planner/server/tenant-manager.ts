@@ -1,7 +1,7 @@
 // Tenant-Manager: Verwaltet mehrere Tenants (Trains) mit isolierten States
 // Jeder Tenant hat eine eigene state_{tenantId}.json und einen Admin-Code-Hash
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
@@ -331,6 +331,26 @@ export function resetTenantState(tenantId: string): void {
   const initial = buildInitialState();
   setTenantState(tenantId, initial);
   console.log(`[TenantManager] State für Tenant '${tenantId}' zurückgesetzt.`);
+}
+
+export function deleteTenant(tenantId: string): void {
+  const tenants = loadTenants();
+  const filtered = tenants.filter(t => t.id !== tenantId);
+  if (filtered.length === tenants.length) {
+    throw new Error(`Tenant '${tenantId}' nicht gefunden.`);
+  }
+  saveTenants(filtered);
+  stateCache.delete(tenantId);
+
+  // State-Datei löschen
+  const stateFile = getTenantStateFile(tenantId);
+  try {
+    if (existsSync(stateFile)) unlinkSync(stateFile);
+  } catch (err) {
+    console.warn(`[TenantManager] State-Datei für Tenant '${tenantId}' konnte nicht gelöscht werden:`, err);
+  }
+
+  console.log(`[TenantManager] Tenant '${tenantId}' gelöscht.`);
 }
 
 export function updateTenant(tenantId: string, updates: { name?: string; newAdminCode?: string }): void {

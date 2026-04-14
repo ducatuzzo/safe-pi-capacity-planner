@@ -12,6 +12,7 @@ import {
   applyTenantSettingsChange,
   resetTenantState,
   updateTenant,
+  deleteTenant,
 } from './server/tenant-manager';
 import type { AllocationType, SavedProjectState } from './src/types';
 
@@ -64,7 +65,7 @@ app.use(express.json());
 // CORS-Header für REST-Endpoints
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
@@ -151,6 +152,39 @@ app.post('/api/tenants/:tenantId/reset', (req, res) => {
   resetAttempts(tenantId);
   resetTenantState(tenantId);
   io.to(`tenant:${tenantId}`).emit('state:full', getTenantState(tenantId));
+  res.json({ ok: true });
+});
+
+// Tenant löschen (Admin-geschützt, default-Tenant und aktiver Tenant nicht löschbar)
+app.delete('/api/tenants/:tenantId', (req, res) => {
+  const { tenantId } = req.params;
+  const { adminCode } = req.body as { adminCode?: string };
+
+  if (tenantId === 'default') {
+    res.status(400).json({ error: 'Der Default-Train kann nicht gelöscht werden.' });
+    return;
+  }
+  if (!getTenant(tenantId)) {
+    res.status(404).json({ error: `Tenant '${tenantId}' nicht gefunden.` });
+    return;
+  }
+  if (!adminCode) {
+    res.status(400).json({ error: 'adminCode ist erforderlich.' });
+    return;
+  }
+  if (!checkRateLimit(tenantId)) {
+    res.status(429).json({ error: 'Zu viele Versuche. Bitte 60 Sekunden warten.' });
+    return;
+  }
+  if (!verifyAdminCode(tenantId, adminCode)) {
+    recordFailedAttempt(tenantId);
+    res.status(401).json({ error: 'Admin-Code ungültig' });
+    return;
+  }
+
+  resetAttempts(tenantId);
+  deleteTenant(tenantId);
+  io.to(`tenant:${tenantId}`).emit('tenant:deleted');
   res.json({ ok: true });
 });
 

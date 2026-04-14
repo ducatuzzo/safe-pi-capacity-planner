@@ -1,8 +1,8 @@
 // AdminView: Admin-Bereich mit Tenant-Verwaltung und gefährlichen Aktionen
 // Zugriffsschutz via AdminGate (6-stelliger OTP-Code)
 
-import { useState, useEffect, useCallback } from 'react';
-import { Shield, RefreshCw, KeyRound, PlusCircle, ArrowRightLeft } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, RefreshCw, KeyRound, PlusCircle, ArrowRightLeft, Trash2 } from 'lucide-react';
 import type { TenantInfo } from '../../types';
 import AdminGate, { clearStoredAdminCode } from './AdminGate';
 import { useTenant } from '../../hooks/useTenant';
@@ -121,6 +121,12 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid }:
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Train löschen
+  const [deletingTenantId, setDeletingTenantId] = useState<string | null>(null);
+  const [deleteCode, setDeleteCode] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
 
   const loadData = useCallback(async () => {
@@ -206,6 +212,31 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid }:
     if (res.status === 429) return { ok: false, error: 'Zu viele Versuche. Bitte warten.' };
     if (res.status === 401) return { ok: false, error: body.error ?? 'Falscher Code.' };
     return { ok: false, error: 'Fehler beim Ändern des Codes.' };
+  }
+
+  async function handleDeleteTenant() {
+    if (!deletingTenantId || !deleteCode) return;
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      const res = await fetch(`${backendUrl}/api/tenants/${deletingTenantId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminCode: deleteCode }),
+      });
+      const body = await res.json() as { ok?: boolean; error?: string };
+      if (res.ok) {
+        setDeletingTenantId(null);
+        setDeleteCode('');
+        void loadData();
+      } else {
+        setDeleteError(body.error ?? 'Fehler beim Löschen.');
+      }
+    } catch {
+      setDeleteError('Verbindungsfehler.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleCreateTenant() {
@@ -353,26 +384,74 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid }:
             </thead>
             <tbody>
               {tenants.map(t => (
-                <tr key={t.id} className="border-b border-gray-100 last:border-0">
-                  <td className="py-2 font-mono text-gray-700">{t.id}</td>
-                  <td className="py-2 text-gray-800">
-                    {t.id === tenantId ? (
-                      <span className="font-semibold">{t.name} <span className="text-xs text-bund-blau">(aktiv)</span></span>
-                    ) : t.name}
-                  </td>
-                  <td className="py-2 text-gray-500">{formatDate(t.createdAt)}</td>
-                  <td className="py-2 text-right">
-                    {t.id !== tenantId && (
-                      <button
-                        onClick={() => setTenant(t.id, t.name)}
-                        className="flex items-center gap-1 text-xs text-bund-blau hover:underline ml-auto"
-                      >
-                        <ArrowRightLeft className="w-3 h-3" />
-                        Wechseln
-                      </button>
-                    )}
-                  </td>
-                </tr>
+                <React.Fragment key={t.id}>
+                  <tr className="border-b border-gray-100 last:border-0">
+                    <td className="py-2 font-mono text-gray-700">{t.id}</td>
+                    <td className="py-2 text-gray-800">
+                      {t.id === tenantId ? (
+                        <span className="font-semibold">{t.name} <span className="text-xs text-bund-blau">(aktiv)</span></span>
+                      ) : t.name}
+                    </td>
+                    <td className="py-2 text-gray-500">{formatDate(t.createdAt)}</td>
+                    <td className="py-2 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        {t.id !== tenantId && (
+                          <button
+                            onClick={() => setTenant(t.id, t.name)}
+                            className="flex items-center gap-1 text-xs text-bund-blau hover:underline"
+                          >
+                            <ArrowRightLeft className="w-3 h-3" />
+                            Wechseln
+                          </button>
+                        )}
+                        {t.id !== 'default' && t.id !== tenantId && (
+                          <button
+                            onClick={() => { setDeletingTenantId(t.id); setDeleteCode(''); setDeleteError(null); }}
+                            className="flex items-center gap-1 text-xs text-red-600 hover:underline"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Löschen
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {/* Inline-Bestätigung für Löschen */}
+                  {deletingTenantId === t.id && (
+                    <tr>
+                      <td colSpan={4} className="pb-3 pt-1">
+                        <div className="bg-red-50 border border-red-200 rounded p-3 space-y-2">
+                          <p className="text-xs text-red-700 font-medium">
+                            Train <span className="font-mono">{t.id}</span> ({t.name}) wirklich löschen? Diese Aktion ist nicht rückgängig zu machen.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="password"
+                              placeholder="Admin-Code zur Bestätigung"
+                              value={deleteCode}
+                              onChange={e => setDeleteCode(e.target.value)}
+                              className="border border-red-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-red-400 bg-white w-48"
+                            />
+                            <button
+                              onClick={handleDeleteTenant}
+                              disabled={deleting || !deleteCode}
+                              className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-50"
+                            >
+                              {deleting ? 'Lösche...' : 'Bestätigen'}
+                            </button>
+                            <button
+                              onClick={() => { setDeletingTenantId(null); setDeleteCode(''); setDeleteError(null); }}
+                              className="text-xs text-gray-500 px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                            >
+                              Abbrechen
+                            </button>
+                          </div>
+                          {deleteError && <p className="text-red-700 text-xs">{deleteError}</p>}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

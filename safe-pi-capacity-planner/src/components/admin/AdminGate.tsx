@@ -14,9 +14,10 @@ export { clearStoredAdminCode };
 interface AdminGateProps {
   onSubmit: (code: string) => Promise<{ ok: boolean; error?: string }>;
   onCancel: () => void;
+  embedded?: boolean; // true = kein Modal-Overlay, inline rendern
 }
 
-export default function AdminGate({ onSubmit, onCancel }: AdminGateProps) {
+export default function AdminGate({ onSubmit, onCancel, embedded = false }: AdminGateProps) {
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -101,6 +102,65 @@ export default function AdminGate({ onSubmit, onCancel }: AdminGateProps) {
 
   const code = digits.join('');
 
+  const content = (
+    <>
+      <p className="text-sm text-gray-600 mb-5">
+        6-stelligen Admin-Code eingeben
+      </p>
+
+      {/* 6 OTP-Felder */}
+      <div className="flex gap-2 justify-center mb-4" onPaste={handlePaste}>
+        {digits.map((digit, i) => (
+          <input
+            key={i}
+            ref={el => { inputRefs.current[i] = el; }}
+            type="password"
+            maxLength={1}
+            value={digit}
+            onChange={e => handleDigitChange(i, e.target.value)}
+            onKeyDown={e => handleKeyDown(i, e)}
+            disabled={submitting}
+            className={[
+              'w-11 h-12 text-center text-lg font-bold border-2 rounded-md',
+              'focus:outline-none focus:ring-2 focus:ring-bund-blau focus:border-bund-blau',
+              'disabled:opacity-50',
+              digit ? 'border-bund-blau' : 'border-gray-300',
+            ].join(' ')}
+          />
+        ))}
+      </div>
+
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded p-3 text-center">
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      )}
+
+      <div className="flex gap-3 mt-4">
+        <button
+          onClick={onCancel}
+          disabled={submitting}
+          className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+        >
+          Abbrechen
+        </button>
+        <button
+          onClick={handleConfirm}
+          disabled={submitting || code.length < 6}
+          className="flex-1 bg-bund-blau text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-bund-blau/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {submitting ? 'Prüfen...' : 'Bestätigen'}
+        </button>
+      </div>
+    </>
+  );
+
+  // embedded = inline (kein Modal-Overlay) — für Admin-Tab
+  if (embedded) {
+    return content;
+  }
+
+  // Modal-Overlay — für Reset/Code-Änderung innerhalb AdminViewContent
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-8">
@@ -110,55 +170,7 @@ export default function AdminGate({ onSubmit, onCancel }: AdminGateProps) {
           </div>
           <h2 className="text-lg font-semibold text-gray-800">Admin-Zugang</h2>
         </div>
-
-        <p className="text-sm text-gray-600 mb-5">
-          6-stelligen Admin-Code eingeben
-        </p>
-
-        {/* 6 OTP-Felder */}
-        <div className="flex gap-2 justify-center mb-4" onPaste={handlePaste}>
-          {digits.map((digit, i) => (
-            <input
-              key={i}
-              ref={el => { inputRefs.current[i] = el; }}
-              type="password"
-              maxLength={1}
-              value={digit}
-              onChange={e => handleDigitChange(i, e.target.value)}
-              onKeyDown={e => handleKeyDown(i, e)}
-              disabled={submitting}
-              className={[
-                'w-11 h-12 text-center text-lg font-bold border-2 rounded-md',
-                'focus:outline-none focus:ring-2 focus:ring-bund-blau focus:border-bund-blau',
-                'disabled:opacity-50',
-                digit ? 'border-bund-blau' : 'border-gray-300',
-              ].join(' ')}
-            />
-          ))}
-        </div>
-
-        {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded p-3 text-center">
-            <p className="text-red-700 text-sm">{error}</p>
-          </div>
-        )}
-
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={onCancel}
-            disabled={submitting}
-            className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
-          >
-            Abbrechen
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={submitting || code.length < 6}
-            className="flex-1 bg-bund-blau text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-bund-blau/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {submitting ? 'Prüfen...' : 'Bestätigen'}
-          </button>
-        </div>
+        {content}
       </div>
     </div>
   );

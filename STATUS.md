@@ -68,6 +68,8 @@
 - FIX-12: AdminGate «Abbrechen»-Button ohne Funktion – AdminView erhält onCancel-Prop aus App.tsx; handleGateCancel() ruft onCancel() auf → Tab-Wechsel zurück zu «Planung» ✅
 - FIX-13: AdminGate «Abbrechen» löschte sessionStorage-Code unzuverlässig – Admin-Session-Helpers in `src/utils/admin-session.ts` ausgelagert; clearStoredAdminCode() läuft VOR onCancel(), sodass der nächste Mount das leere Formular zeigt und keinen Auto-Submit auslöst ✅
 - FIX-14: Train-Wechsel liess Admin-Code-Cache von Train A aktiv – `useTenant.setTenant()` / `clearTenant()` rufen jetzt `clearStoredAdminCode()` vor dem Reload auf; Circular-Import via gemeinsamem `utils/admin-session.ts` vermieden ✅
+- FIX-15: AdminGate als `fixed inset-0` Modal blockierte UI auch nach Tab-Wechsel – `embedded`-Prop eingeführt; Admin-Tab rendert Gate inline (kein Overlay), Modal-Overlay bleibt nur für Reset/Code-Änderung in AdminViewContent ✅
+- FIX-16: Train löschen fehlte – DELETE `/api/tenants/:id` (Backend), `deleteTenant()` (tenant-manager), Trash2-Button + Inline-Bestätigung mit Admin-Code (Frontend); default-Train und aktiver Train sind geschützt ✅
 
 ## Dokumentation (muss bei Änderungen nachgeführt werden)
 - Installationshandbuch: docs/installationshandbuch_v1.0.md ✅
