@@ -1,5 +1,5 @@
 # Benutzerdokumentation SAFe PI Capacity Planner
-**Version:** 1.6
+**Version:** 1.7
 **Stand:** 14.04.2026
 **Erstellt für:** BIT – Bundesamt für Informatik und Telekommunikation
 
@@ -262,10 +262,29 @@ Zeigt ID, Name und Erstellungsdatum des aktiven Trains. Der Train-Name kann dire
 
 ### Alle Trains
 
-Übersicht aller registrierten Trains. Über «Wechseln» kann zu einem anderen Train gewechselt werden. Neuen Train anlegen mit «Neuen Train anlegen»:
+Übersicht aller registrierten Trains mit folgenden Aktionen pro Zeile:
+
+| Aktion | Verfügbarkeit | Beschreibung |
+|--------|-------------|-------------|
+| **Wechseln** | Alle ausser aktivem Train | Zu diesem Train wechseln |
+| **Löschen** | Alle ausser `default` und aktivem Train | Train unwiderruflich löschen |
+
+#### Neuen Train anlegen
+Über «Neuen Train anlegen» oben rechts:
 - Train-ID (Kleinbuchstaben, z.B. `ps-net`)
 - Train-Name (Anzeigename)
 - Admin-Code (min. 6 Zeichen)
+
+#### Train löschen
+1. «Löschen»-Button (Mülleimer-Icon) in der Zeile des gewünschten Trains klicken
+2. Inline-Bestätigungsformular erscheint direkt unter der Zeile
+3. Admin-Code des **aktuellen Trains** eingeben
+4. «Bestätigen» klicken
+5. Train wird aus der Registry entfernt und seine State-Datei gelöscht
+
+> ⚠️ **Achtung:** Das Löschen eines Trains ist **nicht rückgängig zu machen**. Alle Planungsdaten dieses Trains gehen verloren. Vorher ein Backup des Trains erstellen (als dessen Admin einloggen → Einstellungen → Backup & Restore).
+
+> **Schutz:** Der `default`-Train und der aktuell aktive Train können nicht gelöscht werden. Der «Löschen»-Button erscheint nur bei Trains, die weder `default` noch aktiv sind.
 
 ### Gefährliche Aktionen
 
@@ -294,6 +313,9 @@ A: Tab «PI Dashboard» → oben rechts «PDF» oder «PNG» Button. Der Export 
 
 **F: Wie lösche ich alle Buchungen aller Mitarbeiter?**
 A: Tab «Admin» → Admin-Code eingeben → «Alle Daten löschen». Alternativ: Im Planung-Tab kann der ✕-Hover-Button pro Mitarbeiter dessen Buchungen einzeln löschen.
+
+**F: Wie lösche ich einen Train komplett?**
+A: Tab «Admin» → Admin-Code eingeben → Sektion «Alle Trains» → «Löschen»-Button beim gewünschten Train → Admin-Code bestätigen. Der `default`-Train und der aktuell aktive Train sind geschützt und können nicht gelöscht werden.
 
 **F: Die SP-in-Jira-Werte sind nach Server-Neustart weg.**
 A: SP-in-Jira-Werte werden im Server-State gespeichert. Bei Server-Neustart werden sie aus dem letzten JSON-Backup wiederhergestellt. Empfehlung: Regelmässig Backup erstellen (Einstellungen → Backup & Restore).
@@ -327,6 +349,6 @@ A: Team-Konfiguration gilt pro Team (Pikett/Betrieb/SP/Std). Globale Parameter s
 | 1.2 | 01.04.2026 | PI Dashboard Tab |
 | 1.3 | 07.04.2026 | Team-Konfiguration, Globale Parameter, PI Dashboard Delta-Spalte, piTeamTargets synchronisiert, Pikett-Lücken 7×/Woche |
 | 1.4 | 09.04.2026 | PDF/PNG-Export im PI Dashboard Tab (Bundeslogo-Header, Filter-Label); Team-Zielwerte in Team-Konfiguration zusammengeführt (eine Seite); Backup-Validierung: teamZielwerte optional |
-| 1.5 | 14.04.2026 | «Alle Buchungen löschen» aus Planungs-Tab entfernt (nur noch im Admin-Bereich); «Abbrechen» im Admin-Gate navigiert zurück zu Planung-Tab; Admin-Bereich vollständig dokumentiert; BP-Abdeckung verifiziert |
-| **1.6** | **14.04.2026** | **FIX-13: «Abbrechen» im Admin-Gate löscht sessionStorage zuverlässig vor Navigation; FIX-14: Train-Wechsel löscht Admin-Code-Cache; FIX-15: AdminGate inline (kein Modal-Overlay auf Admin-Tab)** |
+| 1.5 | 14.04.2026 | «Alle Buchungen löschen» aus Planungs-Tab entfernt; «Abbrechen» im Admin-Gate navigiert zurück zu Planung-Tab; Admin-Bereich vollständig dokumentiert; BP-Abdeckung verifiziert |
+| 1.6 | 14.04.2026 | FIX-13: Admin-Gate sessionStorage zuverlässig geleert; FIX-14: Train-Wechsel löscht Admin-Code-Cache; FIX-15: AdminGate inline (kein Modal-Overlay auf Admin-Tab) |
 | **1.7** | **14.04.2026** | **FIX-16: Train löschen – neuer «Löschen»-Button in Train-Liste mit Inline-Bestätigung und Admin-Code; default-Train und aktiver Train geschützt; Backend DELETE-Endpoint + deleteTenant() — getestet ✅** |

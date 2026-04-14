@@ -1,4 +1,4 @@
-# STATUS.md – Stand: 14.04.2026
+# STATUS.md – Stand: 14.04.2026 (zuletzt aktualisiert: 14.04.2026)
 
 ## Projektstatus
 ✅ Feature 18+19 deployed und getestet. App produktionsbereit.
@@ -69,11 +69,11 @@
 - FIX-13: AdminGate «Abbrechen» löschte sessionStorage-Code unzuverlässig – Admin-Session-Helpers in `src/utils/admin-session.ts` ausgelagert; clearStoredAdminCode() läuft VOR onCancel(), sodass der nächste Mount das leere Formular zeigt und keinen Auto-Submit auslöst ✅
 - FIX-14: Train-Wechsel liess Admin-Code-Cache von Train A aktiv – `useTenant.setTenant()` / `clearTenant()` rufen jetzt `clearStoredAdminCode()` vor dem Reload auf; Circular-Import via gemeinsamem `utils/admin-session.ts` vermieden ✅
 - FIX-15: AdminGate als `fixed inset-0` Modal blockierte UI auch nach Tab-Wechsel – `embedded`-Prop eingeführt; Admin-Tab rendert Gate inline (kein Overlay), Modal-Overlay bleibt nur für Reset/Code-Änderung in AdminViewContent ✅
-- FIX-16: Train löschen fehlte – DELETE `/api/tenants/:id` (Backend), `deleteTenant()` (tenant-manager), Trash2-Button + Inline-Bestätigung mit Admin-Code (Frontend); default-Train und aktiver Train sind geschützt ✅
+- FIX-16: Train löschen fehlte – DELETE `/api/tenants/:id` (Backend), `deleteTenant()` (tenant-manager), Trash2-Button + Inline-Bestätigung mit Admin-Code (Frontend); default-Train und aktiver Train sind geschützt ✅ **getestet ✅**
 
 ## Dokumentation (muss bei Änderungen nachgeführt werden)
 - Installationshandbuch: docs/installationshandbuch_v1.0.md ✅
-- Benutzerdokumentation: docs/benutzerdokumentation_v1.6.md ✅ (Stand 14.04.2026)
+- Benutzerdokumentation: docs/benutzerdokumentation_v1.7.md ✅ (Stand 14.04.2026)
 - Deployment-Handbuch: docs/deployment_handbuch_v1.0.md ✅
 - CLAUDE.md: Technischer Kompass für Claude Sessions ✅
 
