@@ -1,4 +1,4 @@
-# STATUS.md – Stand: 11.04.2026
+# STATUS.md – Stand: 14.04.2026
 
 ## Projektstatus
 ✅ Feature 18+19 deployed und getestet. App produktionsbereit.
@@ -64,10 +64,14 @@
 - FIX-09: piTeamTargets fehlte im Backup-Export (SettingsPage appState unvollständig) ✅
 - FIX-10: Echte Namen aus AI.md entfernt → MA-ACM-01 etc. ✅
 - BUG-05: app.options Wildcard-Route entfernt — CORS wird durch manuelle res.setHeader-Middleware abgedeckt, separater OPTIONS-Handler war redundant und inkompatibel mit path-to-regexp v8 ✅
+- FIX-11: «Alle Buchungen löschen»-Button aus Planungs-Tab (CalendarGrid Toolbar) entfernt – Funktion ist ausschliesslich im Admin-Bereich verfügbar; Mitarbeiter-Zeile ✕-Button (hover) bleibt erhalten ✅
+- FIX-12: AdminGate «Abbrechen»-Button ohne Funktion – AdminView erhält onCancel-Prop aus App.tsx; handleGateCancel() ruft onCancel() auf → Tab-Wechsel zurück zu «Planung» ✅
+- FIX-13: AdminGate «Abbrechen» löschte sessionStorage-Code unzuverlässig – Admin-Session-Helpers in `src/utils/admin-session.ts` ausgelagert; clearStoredAdminCode() läuft VOR onCancel(), sodass der nächste Mount das leere Formular zeigt und keinen Auto-Submit auslöst ✅
+- FIX-14: Train-Wechsel liess Admin-Code-Cache von Train A aktiv – `useTenant.setTenant()` / `clearTenant()` rufen jetzt `clearStoredAdminCode()` vor dem Reload auf; Circular-Import via gemeinsamem `utils/admin-session.ts` vermieden ✅
 
 ## Dokumentation (muss bei Änderungen nachgeführt werden)
 - Installationshandbuch: docs/installationshandbuch_v1.0.md ✅
-- Benutzerdokumentation: docs/benutzerdokumentation_v1.4.md ✅ (Stand 09.04.2026)
+- Benutzerdokumentation: docs/benutzerdokumentation_v1.6.md ✅ (Stand 14.04.2026)
 - Deployment-Handbuch: docs/deployment_handbuch_v1.0.md ✅
 - CLAUDE.md: Technischer Kompass für Claude Sessions ✅
 
@@ -87,7 +91,7 @@
 - Build Command: `npx vite build`
 - Output Directory: `dist`
 - Auto-Deploy bei Push auf master-Branch
-- Letztes erfolgreiches Deploy: 11.04.2026
+- Letztes erfolgreiches Deploy: 14.04.2026
 
 ## Projektpfad
 - Context Engineering: `C:\Users\Davide\Documents\AI\safe-pi-planner\`

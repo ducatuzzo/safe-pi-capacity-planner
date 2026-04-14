@@ -3,38 +3,13 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Lock } from 'lucide-react';
+import {
+  getStoredAdminCode,
+  storeAdminCode,
+  clearStoredAdminCode,
+} from '../../utils/admin-session';
 
-const SESSION_KEY = 'pi-planner-admin-code';
-const CODE_TTL_MS = 15 * 60 * 1000; // 15 Minuten
-
-interface StoredCode {
-  code: string;
-  expiresAt: number;
-}
-
-function getStoredCode(): string | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const stored = JSON.parse(raw) as StoredCode;
-    if (Date.now() > stored.expiresAt) {
-      sessionStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return stored.code;
-  } catch {
-    return null;
-  }
-}
-
-function storeCode(code: string): void {
-  const data: StoredCode = { code, expiresAt: Date.now() + CODE_TTL_MS };
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-}
-
-export function clearStoredAdminCode(): void {
-  sessionStorage.removeItem(SESSION_KEY);
-}
+export { clearStoredAdminCode };
 
 interface AdminGateProps {
   onSubmit: (code: string) => Promise<{ ok: boolean; error?: string }>;
@@ -47,13 +22,13 @@ export default function AdminGate({ onSubmit, onCancel }: AdminGateProps) {
   const [submitting, setSubmitting] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Beim Mount: gespeicherten Code prüfen und direkt einreichen
+  // Beim Mount: gespeicherten Code prüfen und direkt einreichen.
+  // Wurde der Code zuvor via «Abbrechen» gelöscht, erscheint das leere Formular.
   useEffect(() => {
-    const stored = getStoredCode();
+    const stored = getStoredAdminCode();
     if (stored) {
       void handleSubmitCode(stored);
     } else {
-      // Fokus auf erstes Feld setzen
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,7 +40,7 @@ export default function AdminGate({ onSubmit, onCancel }: AdminGateProps) {
     try {
       const result = await onSubmit(code);
       if (result.ok) {
-        storeCode(code);
+        storeAdminCode(code);
       } else {
         setError(result.error ?? 'Falscher Code.');
         setDigits(['', '', '', '', '', '']);

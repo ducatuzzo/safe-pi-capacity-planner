@@ -2,6 +2,8 @@
 // sessionStorage-Key: 'pi-planner-tenant'
 // Format: JSON { tenantId: string, tenantName: string }
 
+import { clearStoredAdminCode } from '../utils/admin-session';
+
 const SESSION_KEY = 'pi-planner-tenant';
 
 interface TenantSession {
@@ -30,11 +32,14 @@ export function useTenant(): {
   function setTenant(id: string, name: string): void {
     const data: TenantSession = { tenantId: id, tenantName: name };
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+    // Admin-Code ist pro Train gültig – beim Train-Wechsel zwingend invalidieren.
+    clearStoredAdminCode();
     window.location.reload();
   }
 
   function clearTenant(): void {
     sessionStorage.removeItem(SESSION_KEY);
+    clearStoredAdminCode();
     window.location.reload();
   }
 

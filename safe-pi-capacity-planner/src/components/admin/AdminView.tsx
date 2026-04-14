@@ -10,11 +10,12 @@ import { useTenant } from '../../hooks/useTenant';
 interface AdminViewProps {
   tenantId: string;
   tenantName: string;
+  onCancel: () => void;
 }
 
 type AdminScreen = 'gate' | 'view';
 
-export default function AdminView({ tenantId, tenantName }: AdminViewProps) {
+export default function AdminView({ tenantId, tenantName, onCancel }: AdminViewProps) {
   const [screen, setScreen] = useState<AdminScreen>('gate');
   const [verifiedCode, setVerifiedCode] = useState('');
 
@@ -43,9 +44,10 @@ export default function AdminView({ tenantId, tenantName }: AdminViewProps) {
   }
 
   function handleGateCancel() {
-    // Zurück zu Planung-Tab nicht möglich direkt — User kann Tab wechseln
+    // Reihenfolge: erst Code-Cache leeren, dann Navigation auslösen.
+    // Verhindert, dass AdminGate beim erneuten Mount den alten Code auto-submitted.
     clearStoredAdminCode();
-    setScreen('gate');
+    onCancel();
   }
 
   if (screen === 'gate') {
