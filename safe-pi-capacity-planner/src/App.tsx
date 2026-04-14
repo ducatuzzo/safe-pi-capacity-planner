@@ -353,7 +353,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
           />
         )}
         {activeTab === 'admin' && (
-          <AdminView tenantId={tenantId} tenantName={tenantName} />
+          <AdminView tenantId={tenantId} tenantName={tenantName} onCancel={() => setActiveTab('planung')} />
         )}
         {activeTab === 'settings' && (
           <SettingsPage

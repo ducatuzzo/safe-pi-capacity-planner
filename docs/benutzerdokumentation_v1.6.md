@@ -1,6 +1,6 @@
 # Benutzerdokumentation SAFe PI Capacity Planner
-**Version:** 1.4
-**Stand:** 09.04.2026
+**Version:** 1.6
+**Stand:** 14.04.2026
 **Erstellt für:** BIT – Bundesamt für Informatik und Telekommunikation
 
 ---
@@ -18,6 +18,7 @@ Der **SAFe PI Capacity Planner** ist eine Webanwendung zur Kapazitätsplanung f�
 | **Dashboard** | KPI-Übersicht: SP-Diagramm, Absenz-Tabelle, Pikett/Betrieb-Lücken, PDF/PNG-Export |
 | **PI Dashboard** | Vergleich Jira-SP vs. berechnete App-Kapazität pro PI und Team (inkl. Delta), PDF/PNG-Export |
 | **Einstellungen** | Mitarbeiter, PI-Planung, Feiertage, Team-Konfiguration, Globale Parameter, Farben verwalten |
+| **Admin** | Geschützter Bereich: Train-Verwaltung, Daten-Reset, Admin-Code ändern |
 
 ---
 
@@ -49,12 +50,18 @@ Die Filterleiste erscheint bei den Tabs Planung, Kapazität, Dashboard und PI Da
 | BP | Betrieb + Pikett | Violett | 0 SP |
 | P | Pikett | Rosa | 0 SP |
 
+> **Hinweis BP:** Eine BP-Buchung zählt gleichzeitig für die Pikett-Abdeckung (7×24) **und** die Betrieb-Abdeckung (Arbeitstage). An Tagen mit ausreichend BP-Buchungen entstehen weder Pikett-Lücken noch Betrieb-Unterbesetzungen.
+
 ### Drag-Buchung
 1. Buchungstyp links in der Legende auswählen (Klick)
 2. Auf erste Zelle klicken und gedrückt halten
 3. Über die gewünschten Tage ziehen
 4. Loslassen – alle Tage werden mit dem gewählten Typ gebucht
-5. Rechtsklick auf gebuchte Zelle löscht die Buchung
+5. Nochmals auf eine gebuchte Zelle klicken löscht die Buchung (Toggle)
+
+### Buchungen löschen
+- **Einzelner Mitarbeiter:** Mauszeiger über Mitarbeiter-Zeile → ✕-Button erscheint rechts im Namen-Feld → Klick löscht alle Buchungen dieser Person im sichtbaren Zeitraum
+- **Alle Buchungen aller Mitarbeiter löschen:** Ausschliesslich im **Admin-Bereich** verfügbar (Tab Admin → Gefährliche Aktionen)
 
 ---
 
@@ -74,6 +81,8 @@ Die Mindestbesetzungswerte kommen aus der **Team-Konfiguration** (Einstellungen 
 |-----------|---------|
 | **Pikett-Lücke** | Täglich – inkl. Wochenenden und gesetzliche Feiertage (7 Tage/Woche) |
 | **Betrieb-Lücke** | Nur an Arbeitstagen (Mo–Fr, kein gesetzlicher Feiertag) |
+
+> **BP zählt für beide:** Eine BP-Buchung schliesst sowohl Pikett- als auch Betrieb-Lücken an diesem Tag.
 
 ### PDF/PNG-Export
 
@@ -139,7 +148,7 @@ Direkter Vergleich zwischen in Jira committeten Story Points und der vom Planner
 | Orange | 85 – 100 % | Nah an der Grenze – Achtung |
 | Rot | > 100 % | Überlastet – Anpassung nötig |
 
-### PDF/PNG-Export *(neu in v1.4)*
+### PDF/PNG-Export
 
 Oben rechts im PI Dashboard-Tab befinden sich zwei Export-Buttons:
 
@@ -229,10 +238,62 @@ CON;0;1;1;1600
 
 ---
 
-## 7. Tipps & Häufige Fragen
+## 7. Admin-Bereich
+
+**Zugang:** Tab «Admin» → 6-stelliger Admin-Code eingeben → Bestätigen
+
+Der Admin-Bereich ist durch einen OTP-Style Code-Dialog geschützt. Der eingegebene Code wird für 15 Minuten im Browser zwischengespeichert (kein erneuter Login nötig bei Tab-Wechsel innerhalb dieser Zeit).
+
+### Zugang und Navigation
+
+| Aktion | Beschreibung |
+|--------|-------------|
+| **Bestätigen** | Code prüfen – bei Erfolg wird der Admin-Bereich geöffnet |
+| **Abbrechen** | sessionStorage-Code sofort löschen, Dialog schliessen und zurück zum Planung-Tab navigieren |
+
+> **Hinweis:** «Abbrechen» löscht den zwischengespeicherten Code sofort. Beim nächsten Öffnen des Admin-Tabs erscheint immer das leere Code-Eingabeformular — kein Auto-Login. Beim Train-Wechsel wird der Admin-Code-Cache ebenfalls automatisch geleert.
+
+### Aktueller Train
+
+Zeigt ID, Name und Erstellungsdatum des aktiven Trains. Der Train-Name kann direkt umbenannt werden:
+1. «Umbenennen» klicken
+2. Neuen Namen eingeben
+3. «Speichern» – Änderung wird sofort synchronisiert
+
+### Alle Trains
+
+Übersicht aller registrierten Trains. Über «Wechseln» kann zu einem anderen Train gewechselt werden. Neuen Train anlegen mit «Neuen Train anlegen»:
+- Train-ID (Kleinbuchstaben, z.B. `ps-net`)
+- Train-Name (Anzeigename)
+- Admin-Code (min. 6 Zeichen)
+
+### Gefährliche Aktionen
+
+> ⚠️ Diese Aktionen sind **nicht rückgängig zu machen**. Vor der Ausführung ein Backup erstellen (Einstellungen → Backup & Restore).
+
+#### Alle Daten löschen
+Setzt den gesamten Planungsstand (Mitarbeiter, Buchungen, PI-Planung) auf den Ausgangszustand zurück.
+
+1. «LÖSCHEN» in das Bestätigungsfeld eingeben
+2. «Alle Daten löschen» klicken
+3. Admin-Code erneut eingeben zur finalen Bestätigung
+4. Seite wird nach erfolgreichem Reset neu geladen
+
+#### Admin-Code ändern
+1. «Code ändern» klicken
+2. Neuen Code zweimal eingeben (min. 6 Zeichen)
+3. «Weiter» – aktuellen Code zur Bestätigung eingeben
+4. Bei Erfolg: Code ist sofort aktiv, sessionStorage wird geleert
+
+---
+
+## 8. Tipps & Häufige Fragen
 
 **F: Wo finde ich den PDF-Export für das PI Dashboard?**
 A: Tab «PI Dashboard» → oben rechts «PDF» oder «PNG» Button. Der Export enthält alle sichtbaren Tabellen mit Bundeslogo-Header.
+
+**F: Wie lösche ich alle Buchungen aller Mitarbeiter?**
+A: Tab «Admin» → Admin-Code eingeben → «Alle Daten löschen». Alternativ: Im Planung-Tab kann der ✕-Hover-Button pro Mitarbeiter dessen Buchungen einzeln löschen.
 
 **F: Die SP-in-Jira-Werte sind nach Server-Neustart weg.**
 A: SP-in-Jira-Werte werden im Server-State gespeichert. Bei Server-Neustart werden sie aus dem letzten JSON-Backup wiederhergestellt. Empfehlung: Regelmässig Backup erstellen (Einstellungen → Backup & Restore).
@@ -246,6 +307,9 @@ A: Berechnet SP ist theoretisch (keine Buchungen berücksichtigt). Verfügbar SP
 **F: Pikett-Lücken auch am Wochenende – ist das korrekt?**
 A: Ja. Pikett-Dienst gilt 7 Tage/Woche inkl. Wochenenden und Feiertagen. Betrieb-Lücken werden nur an Arbeitstagen gemeldet.
 
+**F: Zählt BP (Betrieb + Pikett) für beide Lückentypen?**
+A: Ja. BP zählt gleichzeitig für Pikett-Abdeckung (7×24) und Betrieb-Abdeckung (Arbeitstage). An Tagen mit ausreichend BP gibt es weder Pikett- noch Betrieb-Lücken.
+
 **F: Wie stelle ich die Mindestbesetzung pro Team ein?**
 A: Einstellungen → Team-Konfiguration. Teams werden automatisch aus dem Mitarbeiterstamm abgeleitet. Werte direkt im Feld editieren und «Speichern» klicken.
 
@@ -254,7 +318,7 @@ A: Team-Konfiguration gilt pro Team (Pikett/Betrieb/SP/Std). Globale Parameter s
 
 ---
 
-## 8. Versionshistorie
+## 9. Versionshistorie
 
 | Version | Datum | Änderungen |
 |---------|-------|-----------|
@@ -262,5 +326,6 @@ A: Team-Konfiguration gilt pro Team (Pikett/Betrieb/SP/Std). Globale Parameter s
 | 1.1 | März 2026 | Farbeinstellungen, CD Bund |
 | 1.2 | 01.04.2026 | PI Dashboard Tab |
 | 1.3 | 07.04.2026 | Team-Konfiguration, Globale Parameter, PI Dashboard Delta-Spalte, piTeamTargets synchronisiert, Pikett-Lücken 7×/Woche |
-| **1.4** | **09.04.2026** | **PDF/PNG-Export im PI Dashboard Tab (Bundeslogo-Header, Filter-Label); Team-Zielwerte in Team-Konfiguration zusammengeführt (eine Seite); Backup-Validierung: teamZielwerte optional** |
-| **1.5** | **14.04.2026** | **FIX-11: «Alle Buchungen löschen»-Button aus Planungs-Tab entfernt (Admin-Bereich behalten); FIX-12: «Abbrechen» im Admin-Gate navigiert zurück zu Planung-Tab; BP-Buchung zählt korrekt für Pikett- und Betrieb-Abdeckung (Verifikation)** |
+| 1.4 | 09.04.2026 | PDF/PNG-Export im PI Dashboard Tab (Bundeslogo-Header, Filter-Label); Team-Zielwerte in Team-Konfiguration zusammengeführt (eine Seite); Backup-Validierung: teamZielwerte optional |
+| 1.5 | 14.04.2026 | «Alle Buchungen löschen» aus Planungs-Tab entfernt (nur noch im Admin-Bereich); «Abbrechen» im Admin-Gate navigiert zurück zu Planung-Tab; Admin-Bereich vollständig dokumentiert; BP-Abdeckung verifiziert |
+| **1.6** | **14.04.2026** | **FIX-13: «Abbrechen» im Admin-Gate löscht sessionStorage zuverlässig vor Navigation – kein Auto-Submit beim nächsten Mount; FIX-14: Train-Wechsel löscht Admin-Code-Cache automatisch – kein Cross-Train-Zugriff mehr möglich; admin-session.ts als gemeinsames Utils-Modul eingeführt** |

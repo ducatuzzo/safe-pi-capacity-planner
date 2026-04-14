@@ -25,7 +25,23 @@
       "Bash(git checkout:*)",
       "Bash(git push:*)",
       "Bash(git merge:*)",
-      "Bash(grep -l \"offen\\\\|\\\\[ \\\\]\" /c/Users/Davide/Documents/AI/safe-pi-planner/features/*.md)"
+      "Bash(grep -l \"offen\\\\|\\\\[ \\\\]\" /c/Users/Davide/Documents/AI/safe-pi-planner/features/*.md)",
+      "Bash(node benutzer_doku.js)",
+      "Bash(npm init:*)",
+      "Bash(node install_handbuch.js)",
+      "Bash(node deployment_handbuch.js)",
+      "Bash(npx plugins:*)",
+      "Bash(export PATH=\"/c/Users/Davide/AppData/Roaming/Claude/claude-code/2.1.87:$PATH\")",
+      "Bash(cmd /c \"C:\\\\Users\\\\Davide\\\\AppData\\\\Roaming\\\\Claude\\\\claude-code\\\\2.1.87\\\\claude.exe plugin marketplace add C:\\\\Users\\\\Davide\\\\.cache\\\\plugins\\\\github.com-vercel-vercel-plugin\")",
+      "Bash(cmd /c \"C:\\\\Users\\\\Davide\\\\AppData\\\\Roaming\\\\Claude\\\\claude-code\\\\2.1.87\\\\claude.exe plugin list\")",
+      "Bash(cmd /c \"C:\\\\Users\\\\Davide\\\\AppData\\\\Roaming\\\\Claude\\\\claude-code\\\\2.1.87\\\\claude.exe plugin marketplace add C:\\\\Users\\\\Davide\\\\.cache\\\\plugins\\\\github.com-vercel-vercel-plugin && echo SUCCESS\")",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(powershell -Command \"& ''C:\\\\Users\\\\Davide\\\\AppData\\\\Roaming\\\\Claude\\\\claude-code\\\\2.1.87\\\\claude.exe'' plugin marketplace add ''C:\\\\Users\\\\Davide\\\\.cache\\\\plugins\\\\github.com-vercel-vercel-plugin''\")",
+      "Bash(npx vite:*)",
+      "Bash(python \"C:\\\\Users\\\\Davide\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\93a8e65d-a742-4645-9695-d7a64872afe6\\\\55b17aec-acc7-40c4-b765-52325c1f6777\\\\skills\\\\docx\\\\scripts\\\\office\\\\unpack.py\" \"docs/safe-kapa-planner-publish.docx\" \"docs/safe-kapa-planner-publish-unpacked/\")",
+      "Bash(pandoc \"docs/safe-kapa-planner-publish.docx\" -o -)",
+      "Bash(pandoc \"docs/safe-kapa-planner-publish.docx\" -t plain)",
+      "Bash(python -c ':*)"
     ]
   }
 }

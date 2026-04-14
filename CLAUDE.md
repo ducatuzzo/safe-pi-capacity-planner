@@ -48,6 +48,7 @@ npm run dev:server   # nur Express Backend
 | Dashboard | `dashboard` | KPI-Karten, BarChart, Absenz-Tabelle, Lücken |
 | PI Dashboard | `pidashboard` | SP-Vergleich Jira vs. App pro PI/Team/Iteration |
 | Einstellungen | `settings` | Mitarbeiter, PI-Planung, Feiertage, Zielwerte, Farben |
+| Admin | `admin` | Train-Verwaltung, Daten-Reset, Admin-Code ändern (Code-geschützt) |
 
 ## PI Dashboard Tab (Feature neu 01.04.2026)
 **Pfad:** `src/components/pidashboard/`
