@@ -122,6 +122,7 @@ export default function SettingsPage({
             onSchulferienChange={onSchulferienChange}
             blocker={blocker}
             onBlockerChange={onBlockerChange}
+            scrollToSection={aktiveView as 'feiertage' | 'schulferien' | 'blocker'}
           />
         )}
         {aktiveView === 'team-konfiguration' && (

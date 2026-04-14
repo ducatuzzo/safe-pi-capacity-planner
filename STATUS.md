@@ -4,6 +4,7 @@
 ✅ Feature 18+19 deployed und getestet. App produktionsbereit.
 - Features 01–19 abgeschlossen. Mandatenfähigkeit (Demo-Train, Admin-Code 000815, TOTP-Entscheid verworfen) implementiert.
 - Features 18–19 vollständig implementiert, deployed und getestet.
+- Feature 20 (Mitarbeiterstamm-Filter) und Feature 21 (Settings-Scroll-to-Section) abgeschlossen, Build grün.
 
 ## Abgeschlossene Features (vollständig)
 - Feature 01: Projektgerüst ✅
@@ -33,6 +34,8 @@
 - Feature PI-Dashboard-Tab: PI Dashboard Tab (Jira-SP vs. App-SP, Farbcodierung) ✅
 - Feature PI-Dashboard-Export: PDF/PNG-Export im PI Dashboard Tab (Bundeslogo-Header) ✅
 - Feature Dokumentation-Download: Handbücher als .docx in Einstellungen → Dokumentation ✅
+- Feature 20: Mitarbeiterstamm-Filter (Suche nach Name, Team-Multi-Dropdown, Typ-Filter, Zähler, Reset) ✅
+- Feature 21: Settings-Scroll-to-Section (Feiertage/Schulferien/Blocker smooth scroll) ✅
 
 ## Abgeschlossene Features (Fortsetzung)
 - Feature 18: Tenant-Model (Mandatenfähigkeit Phase 1) ✅

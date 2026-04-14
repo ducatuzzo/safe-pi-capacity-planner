@@ -1,6 +1,14 @@
-import { useState, useRef } from 'react';
-import { Pencil, Trash2, Trash, Plus, Upload, Download } from 'lucide-react';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { Pencil, Trash2, Trash, Plus, Upload, Download, Search, X, ChevronDown } from 'lucide-react';
 import type { Employee, EmployeeType } from '../../types';
+
+interface MitarbeiterFilter {
+  suchtext: string;
+  teams: string[];
+  typ: '' | 'iMA' | 'eMA';
+}
+
+const LEERER_FILTER: MitarbeiterFilter = { suchtext: '', teams: [], typ: '' };
 
 interface Props {
   employees: Employee[];
@@ -44,6 +52,54 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
   const [loescheAlleBestaetigung, setLoescheAlleBestaetigung] = useState(false);
   const [loescheIdBestaetigung, setLoescheIdBestaetigung] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [filter, setFilter] = useState<MitarbeiterFilter>(LEERER_FILTER);
+  const [teamDropdownOffen, setTeamDropdownOffen] = useState(false);
+  const teamDropdownRef = useRef<HTMLDivElement>(null);
+
+  const verfuegbareTeams = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach(ma => { if (ma.team) set.add(ma.team); });
+    return Array.from(set).sort();
+  }, [employees]);
+
+  const filterAktiv = filter.suchtext.trim() !== '' || filter.teams.length > 0 || filter.typ !== '';
+
+  const gefilterteMitarbeiter = useMemo(() => {
+    return employees.filter(ma => {
+      const suche = filter.suchtext.toLowerCase();
+      const nameMatch = !suche ||
+        ma.vorname.toLowerCase().includes(suche) ||
+        ma.name.toLowerCase().includes(suche);
+      const teamMatch = filter.teams.length === 0 || filter.teams.includes(ma.team);
+      const typMatch = !filter.typ || ma.type === filter.typ;
+      return nameMatch && teamMatch && typMatch;
+    });
+  }, [employees, filter]);
+
+  useEffect(() => {
+    if (!teamDropdownOffen) return;
+    function handler(e: MouseEvent) {
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(e.target as Node)) {
+        setTeamDropdownOffen(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [teamDropdownOffen]);
+
+  function toggleTeam(team: string) {
+    setFilter(f => ({
+      ...f,
+      teams: f.teams.includes(team) ? f.teams.filter(t => t !== team) : [...f.teams, team],
+    }));
+  }
+
+  function toggleAlleTeams() {
+    setFilter(f => ({
+      ...f,
+      teams: f.teams.length === verfuegbareTeams.length ? [] : [...verfuegbareTeams],
+    }));
+  }
 
   function oeffneNeu() {
     setForm({ ...LEERER_MITARBEITER });
@@ -235,6 +291,82 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
         </div>
       )}
 
+      {/* Filterleiste */}
+      {employees.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={filter.suchtext}
+              onChange={e => setFilter(f => ({ ...f, suchtext: e.target.value }))}
+              placeholder="Suche nach Name..."
+              className="w-64 pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-bund-blau"
+            />
+          </div>
+
+          <div ref={teamDropdownRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setTeamDropdownOffen(o => !o)}
+              className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded text-sm bg-white hover:bg-gray-50 min-w-[140px] justify-between"
+            >
+              <span>
+                {filter.teams.length === 0
+                  ? 'Alle Teams'
+                  : filter.teams.length === 1
+                    ? filter.teams[0]
+                    : `${filter.teams.length} Teams`}
+              </span>
+              <ChevronDown size={14} className="text-gray-500" />
+            </button>
+            {teamDropdownOffen && (
+              <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-200 rounded shadow-lg py-1 max-h-64 overflow-y-auto">
+                <label className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                  <input
+                    type="checkbox"
+                    checked={filter.teams.length === verfuegbareTeams.length && verfuegbareTeams.length > 0}
+                    onChange={toggleAlleTeams}
+                  />
+                  <span className="font-medium">Alle Teams</span>
+                </label>
+                {verfuegbareTeams.map(team => (
+                  <label key={team} className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={filter.teams.includes(team)}
+                      onChange={() => toggleTeam(team)}
+                    />
+                    <span>{team}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <select
+            value={filter.typ}
+            onChange={e => setFilter(f => ({ ...f, typ: e.target.value as '' | 'iMA' | 'eMA' }))}
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau"
+          >
+            <option value="">Alle Typen</option>
+            <option value="iMA">iMA</option>
+            <option value="eMA">eMA</option>
+          </select>
+
+          {filterAktiv && (
+            <button
+              type="button"
+              onClick={() => setFilter(LEERER_FILTER)}
+              className="flex items-center gap-1 text-sm text-bund-blau hover:underline"
+            >
+              <X size={14} />
+              Filter zurücksetzen
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Tabelle */}
       {employees.length === 0 ? (
         <div className="flex items-center justify-center h-40 text-gray-400 border-2 border-dashed border-gray-200 rounded">
@@ -258,7 +390,7 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
               </tr>
             </thead>
             <tbody>
-              {employees.map((ma, i) => (
+              {gefilterteMitarbeiter.map((ma, i) => (
                 <tr key={ma.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   <td className="px-3 py-2">{ma.vorname}</td>
                   <td className="px-3 py-2">{ma.name}</td>
@@ -295,7 +427,14 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
               ))}
             </tbody>
           </table>
-          <p className="text-xs text-gray-400 mt-2">{employees.length} Mitarbeiter</p>
+          <p className="text-xs text-gray-400 mt-2">
+            {filterAktiv
+              ? `${gefilterteMitarbeiter.length} von ${employees.length} Mitarbeiter`
+              : `${employees.length} Mitarbeiter`}
+          </p>
+          {filterAktiv && gefilterteMitarbeiter.length === 0 && (
+            <p className="text-sm text-gray-500 mt-3">Keine Mitarbeiter entsprechen den Filterkriterien.</p>
+          )}
         </div>
       )}
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { Feiertag, Schulferien, Blocker } from '../../types';
 import DateRangeTable from './DateRangeTable';
 
@@ -8,6 +9,7 @@ interface Props {
   onSchulferienChange: (items: Schulferien[]) => void;
   blocker: Blocker[];
   onBlockerChange: (items: Blocker[]) => void;
+  scrollToSection?: 'feiertage' | 'schulferien' | 'blocker';
 }
 
 export default function KalenderDatenSettings({
@@ -17,17 +19,37 @@ export default function KalenderDatenSettings({
   onSchulferienChange,
   blocker,
   onBlockerChange,
+  scrollToSection,
 }: Props) {
+  const feiertageRef = useRef<HTMLDivElement>(null);
+  const schulferienRef = useRef<HTMLDivElement>(null);
+  const blockerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollToSection) return;
+    const refMap = {
+      feiertage: feiertageRef,
+      schulferien: schulferienRef,
+      blocker: blockerRef,
+    };
+    const target = refMap[scrollToSection];
+    if (target?.current) {
+      target.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [scrollToSection]);
+
   return (
     <div className="space-y-10">
-      <DateRangeTable
-        titel="Gesetzliche Feiertage"
-        eintraege={feiertage}
-        onChange={items => onFeiertageChange(items as Feiertag[])}
-        csvDateiname="feiertage"
-      />
+      <div ref={feiertageRef}>
+        <DateRangeTable
+          titel="Gesetzliche Feiertage"
+          eintraege={feiertage}
+          onChange={items => onFeiertageChange(items as Feiertag[])}
+          csvDateiname="feiertage"
+        />
+      </div>
 
-      <div className="border-t border-gray-200 pt-8">
+      <div ref={schulferienRef} className="border-t border-gray-200 pt-8">
         <DateRangeTable
           titel="Schulferien"
           eintraege={schulferien}
@@ -36,7 +58,7 @@ export default function KalenderDatenSettings({
         />
       </div>
 
-      <div className="border-t border-gray-200 pt-8">
+      <div ref={blockerRef} className="border-t border-gray-200 pt-8">
         <DateRangeTable
           titel="Blocker & Spezielle Perioden"
           eintraege={blocker}
