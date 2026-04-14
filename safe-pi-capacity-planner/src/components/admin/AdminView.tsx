@@ -52,8 +52,16 @@ export default function AdminView({ tenantId, tenantName, onCancel }: AdminViewP
 
   if (screen === 'gate') {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <AdminGate onSubmit={handleGateSubmit} onCancel={handleGateCancel} />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-8 border border-gray-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-bund-blau/10 rounded-full p-2">
+              <Shield className="w-5 h-5 text-bund-blau" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800">Admin-Zugang</h2>
+          </div>
+          <AdminGate onSubmit={handleGateSubmit} onCancel={handleGateCancel} embedded />
+        </div>
       </div>
     );
   }
