@@ -10,19 +10,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { IterationSPResult } from '../../types';
-
-// Teamfarben konsistent mit Kalender-Legende (Corporate Design Bund)
-const TEAM_COLORS: Record<string, string> = {
-  NET: '#003F7F',
-  ACM: '#0070C0',
-  CON: '#00B050',
-  PAF: '#FF6600',
-};
-
-const FALLBACK_COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b'];
+import { TEAM_COLORS_HEX, TEAM_COLORS_FALLBACK } from '../../constants';
 
 function getTeamColor(team: string, index: number): string {
-  return TEAM_COLORS[team] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+  return TEAM_COLORS_HEX[team] ?? TEAM_COLORS_FALLBACK[index % TEAM_COLORS_FALLBACK.length];
 }
 
 interface SPBarChartProps {

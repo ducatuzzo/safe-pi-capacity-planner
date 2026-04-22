@@ -1,5 +1,9 @@
 # AI.md – Technischer Kompass: SAFe PI Capacity Planner
 
+> Zuletzt synchronisiert: 22.04.2026
+> Führend für: Architektur, Datenmodell, Konventionen.
+> Feature-Liste: siehe PRD.md. Status: siehe STATUS.md.
+
 ## Projekt
 - **Name:** SAFe PI Capacity Planner (BIT)
 - **Beschreibung:** Fullstack-Webanwendung zur Kapazitätsplanung für SAFe PI Planning in der Bundesverwaltung. Berechnet verfügbare Story Points pro Team und Iteration, berücksichtigt Absenzen, Feiertage, Schulferien und Betriebsaufgaben. Corporate Design Bund.
@@ -22,13 +26,17 @@
 - **Package Manager:** npm
 
 ## Corporate Design Bund
-- Primärfarbe: #003F7F (Bundesblau)
-- Sekundärfarbe: #E63312 (Bundesrot)
-- Hintergrund: #F5F5F5
-- Text: #1A1A1A
-- Schrift: Frutiger (Fallback: Arial, sans-serif)
-- Logos aus: C:\Users\Davide\Documents\AI\Bundeslogo_PNG\ und Bundeslogo_SVG\
-- Referenz: C:\Users\Davide\Documents\AI\CD-Bund-Manual_deutsch.pdf
+- Primärfarbe: #003F7F (Bundesblau) = `--color-primary-700` = `bg-primary-700` / `text-primary-700`
+- Sekundärfarbe: #E63312 (Bundesrot) = `--color-secondary-500` = `bg-secondary-500` / `text-secondary-500`
+- Hintergrund: #F5F5F5 (`bg-bund-bg`)
+- Text: #1A1A1A (`text-bund-text`)
+- Schrift: Frutiger (systemweit auf BIT-Geräten installiert) → NotoSans (Swiss DS Fallback, selbst-gehostet in `public/fonts/`) → Arial
+- Swiss DS Architektur (Feature 23): CSS Custom Properties in `src/index.css` (`--color-primary-50…900`, `--color-secondary-50…900`), Tailwind referenziert via `var(--color-*)`. Anker: `primary-700 = #003F7F`, `secondary-500 = #E63312`.
+- Rückwärtskompatible Tailwind-Aliase: `bund-blau` (= primary-700), `bund-rot` (= secondary-500), `bund-bg`, `bund-text` — nicht löschen, in Bestandscode in Gebrauch.
+- Teamfarben: `TEAM_COLORS_HEX` in `src/constants.ts` (single source of truth, Feature 23). `FarbConfig` (Feature 16) kann zur Laufzeit überschreiben.
+- Logos aus: `C:\Users\Davide\Documents\AI\Bundeslogo_PNG\` und `Bundeslogo_SVG\`
+- Referenz: `C:\Users\Davide\Documents\AI\CD-Bund-Manual_deutsch.pdf`
+- Swiss DS Repo (Skin-Muster, nicht zur Übernahme): `C:\Users\Davide\Documents\AI\safe-pi-planner\designsystem-main\`
 - Schneeflocke-Symbol für Change-Freeze-Tage: ❄️ (Unicode U+2744)
 
 ## Konventionen
@@ -37,7 +45,7 @@
 - **Dateinamen:** kebab-case für Komponenten, PascalCase für React-Komponenten
 - **Fehlerbehandlung:** immer try/catch mit Console-Logging, UI-Fehlermeldung auf Deutsch
 - **Keine direkten DOM-Manipulationen** – nur React-State
-- **Keine inline styles** – nur Tailwind-Klassen
+- **Keine inline styles** – nur Tailwind-Klassen (Ausnahme: dynamische Hex-Farben aus FarbConfig/CustomAllocationType)
 - **Typen:** alle Interfaces in types.ts, keine any
 
 ## Teams (produktive Daten)
@@ -68,12 +76,27 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - **PI (PIPlanning):** id, name (z.B. PI26-1), startStr, endStr, iterationen (Array von Iteration)
 - **Feiertag / Schulferien / Blocker:** id, name, startStr, endStr
 
-### Neue Interfaces (Feature 17)
+### Feature 17 – Konfiguration
 - **GlobalCapacityConfig:** spPerDay (default 1), hoursPerYear (default 1600)
 - **TeamConfig:** teamName, minPikett (Personen täglich, inkl. WE+Feiertage), minBetrieb (Personen pro Arbeitstag, exkl. WE+Feiertage)
 - **PITeamTarget:** piId, teamName, spJira (editierbar PO) — spNetto wird berechnet, nicht gespeichert
 
-### AppData (vollständig)
+### Feature 18 – Tenant-Architektur (Mandatenfähigkeit)
+- **Tenant:** id, name, createdAt, adminCodeHash
+- **TenantRegistry:** `tenants.json` im Backend (Liste aller Trains)
+- **State-Isolation:** `state_{tenantId}.json` pro Train (statt zentralem `state.json`)
+- **TenantManager:** `server/tenant-manager.ts` — verwaltet Registry, State-Dateien, Migration
+- **Socket.io-Rooms:** jeder Tenant hat eigenen Room (Isolation der State-Events)
+- **REST-Endpunkte:** `/api/tenants` (List/Create), `/api/tenants/:id` (Get/Update/Delete), `/api/tenants/:id/reset`, `/api/state?tenantId=...`
+- **Frontend:** `TenantGate` (Splash/Train-Auswahl vor App-Mount), `useTenant` Hook, Header zeigt Train-Name + "Train wechseln"
+- **Rückwärtskompatibilität:** Legacy `/api/state` ohne tenantId → Default-Tenant. Migration: `state.json` → `state_default.json` beim ersten Start.
+
+### Feature 19 – Admin-Bereich
+- Admin-Gate: 6-stelliger Code (sessionStorage-Cache 15min)
+- Rate-Limiting: 3 Fehlversuche → 60s Sperre (server-seitig)
+- Admin-Funktionen: Tenant-Reset, Tenant-CRUD, Code-Änderung
+
+### AppData (vollständig, Stand 16.04.2026)
 ```typescript
 interface AppData {
   feiertage: Feiertag[];
@@ -84,6 +107,8 @@ interface AppData {
   globalConfig: GlobalCapacityConfig;
   teamConfigs: TeamConfig[];
   piTeamTargets: PITeamTarget[];
+  // Feature 22 (geplant):
+  // customAllocationTypes?: CustomAllocationType[];
 }
 ```
 
@@ -99,7 +124,7 @@ interface AppData {
 - Wochenenden und gesetzliche Feiertage zählen nicht
 - **Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug)**
 
-## Lücken-Erkennungs-Logik (präzisiert, Feature 17)
+## Lücken-Erkennungs-Logik (Feature 17)
 
 ### Betrieb-Lücke
 ```
@@ -118,28 +143,30 @@ UND tag liegt innerhalb PI-Zeitraum
 Wichtig: Pikett greift im Störungsfall auch an Feiertagen und Wochenenden.
 Betrieb ist nur an Arbeitstagen nötig (kein Betrieb an Weihnachten = keine Lücke).
 
-## Header-Konfiguration (Stand 28.03.2026)
+## Header-Konfiguration (Stand 16.04.2026)
 - Logo: `src/assets/bundeslogo.svg` (Logo_RGB_farbig_negativ, weiss auf transparent)
 - Logo-Höhe: `h-14` (56px)
 - Titel: `text-xl font-semibold`
 - Untertitel: `text-sm text-white/70`
 - Padding: `px-6 py-4`
 - Verbindungsindikator: grüner/roter Punkt + Text rechts im Header
+- Train-Name + "Train wechseln"-Button (Feature 18)
 
-## Navigations-Tabs (Stand 01.04.2026)
+## Navigations-Tabs (Stand 16.04.2026)
 | Tab | Key | Beschreibung |
 |-----|-----|-------------|
 | Planung | `planung` | Kalender-Grid mit Drag-Buchung |
 | Kapazität | `kapazitaet` | SP-Berechnung pro Mitarbeiter/Team |
 | Dashboard | `dashboard` | KPI-Karten, BarChart, Absenz-Tabelle, Lücken |
 | PI Dashboard | `pidashboard` | SP-Vergleich Jira vs. App pro PI/Team/Iteration |
-| Einstellungen | `settings` | Mitarbeiter, PI-Planung, Feiertage, Farbeinstellungen, Team-Konfiguration (F17), Globale Parameter (F17) |
+| Einstellungen | `settings` | Mitarbeiter, PI-Planung, Feiertage, Schulferien, Blocker, Zielwerte, Farben, Team-Konfiguration (F17), Globale Parameter (F17), Dokumentation |
+| Admin | `admin` | Train-Verwaltung (CRUD), Daten-Reset, Admin-Code ändern (Code-geschützt, Feature 19) |
 
 ## PI Dashboard Tab
 - **Komponenten:** `src/components/pidashboard/` (PIDashboardView, PIDashboardTable, PIDashboardRow)
 - **Hook:** `src/hooks/usePIDashboard.ts`
-- **SP in Jira:** Manuell editierbar, im Server-State gespeichert (piTeamTargets)
-- **Farbcodierung:** grün <85%, orange 85–100%, rot >100% Auslastung
+- **SP in Jira:** Server-State in `AppData.piTeamTargets` (NICHT localStorage — siehe decisions/log.md 07.04.2026)
+- **Farbcodierung Auslastung:** grün <85%, orange 85–100%, rot >100%
 
 ## Quelldateien (Demo-Importdaten)
 | Datei | Inhalt |
@@ -175,8 +202,10 @@ Bei jeder Änderung die folgende Bereiche betrifft, müssen die Markdown-Dokumen
 | Änderung an Infrastruktur, Ports, Abhängigkeiten, Startbefehl | Installationshandbuch |
 | Neue Buchungstypen oder Farbcodes | Beide |
 | Änderungen an Einstellungen oder CSV-Formaten | Benutzerdokumentation |
-| Änderungen an Backup/Restore | Beide |
+| Änderungen an Backup/Restore | Beide + AI.md (Schema-Version) |
 | Neues Datenmodell (neue Interfaces in AppData) | AI.md + Benutzerdokumentation |
+| Feature abgeschlossen | PRD.md Status-Spalte + STATUS.md + decisions/log.md |
+| Architektur-Entscheidung | decisions/log.md (chronologisch am Ende) |
 
 **Ablageort:** `C:\Users\Davide\Documents\AI\safe-pi-planner\docs\`
 **Format:** `installationshandbuch_vX.Y.md`, `benutzerdokumentation_vX.Y.md`
@@ -185,5 +214,7 @@ Bei jeder Änderung die folgende Bereiche betrifft, müssen die Markdown-Dokumen
 - Keine direkten DB-Abfragen (kein SQL, kein ORM) – alles JSON-basiert
 - Keine externen Fonts via CDN (Datenschutz Bund)
 - Keine print()-Statements in Produktionscode
-- Kein localStorage für kritische Daten (nur für UI-Preferences erlaubt)
+- **Kein localStorage für Server-kritische Daten** (nur UI-Preferences wie Filter-Toggle-State erlaubt)
 - Keine Bibliotheken ohne explizite Freigabe im package.json
+- Kein `any` in TypeScript
+- Keine Direkt-Mutation von `Employee.allocations` ohne Helper (Feature 22 vorbereitend)

@@ -1,3 +1,66 @@
+/* NotoSans — Swiss Design System Fallback-Font (Open Source, selbst-gehostet) */
+@font-face {
+  font-family: 'NotoSans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/NotoSans-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'NotoSans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/NotoSans-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'NotoSans';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/NotoSans-Italic.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'NotoSans';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/NotoSans-BoldItalic.ttf') format('truetype');
+}
+
+/* ============================================================
+   BIT SKIN — Swiss Design System Architektur
+   Primär: Bundesblau-Skala  |  Sekundär: Bundesrot-Skala
+   ============================================================ */
+:root {
+  /* --- Bundesblau (primary) — Anker: primary-700 = #003F7F --- */
+  --color-primary-50:  #e6eef7;
+  --color-primary-100: #ccddf0;
+  --color-primary-200: #99bbe1;
+  --color-primary-300: #6699d1;
+  --color-primary-400: #3377c2;
+  --color-primary-500: #1a5fa3;
+  --color-primary-600: #004fa0;
+  --color-primary-700: #003F7F;   /* Bundesblau — CD Bund Primärfarbe */
+  --color-primary-800: #003066;
+  --color-primary-900: #00214d;
+
+  /* --- Bundesrot (secondary) — Anker: secondary-500 = #E63312 --- */
+  --color-secondary-50:  #fdf0ee;
+  --color-secondary-100: #fad9d4;
+  --color-secondary-200: #f5b3aa;
+  --color-secondary-300: #ef8d7f;
+  --color-secondary-400: #ea6755;
+  --color-secondary-500: #E63312;  /* Bundesrot — CD Bund Sekundärfarbe */
+  --color-secondary-600: #c22a0f;
+  --color-secondary-700: #9e220c;
+  --color-secondary-800: #7a1a09;
+  --color-secondary-900: #561206;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,6 +68,6 @@
 @layer base {
   body {
     @apply bg-bund-bg text-bund-text;
-    font-family: Frutiger, Arial, sans-serif;
+    font-family: Frutiger, 'NotoSans', Arial, sans-serif;
   }
 }

@@ -244,7 +244,7 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
         <div className="flex gap-2">
           <button
             onClick={oeffneNeu}
-            className="flex items-center gap-1 px-3 py-2 bg-bund-blau text-white text-sm rounded hover:bg-[#002D5C] transition-colors"
+            className="flex items-center gap-1 px-3 py-2 bg-primary-700 text-white text-sm rounded hover:bg-primary-800 transition-colors"
           >
             <Plus size={16} />
             Neu
@@ -482,7 +482,7 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
               </button>
               <button
                 onClick={speichern}
-                className="px-4 py-2 bg-bund-blau text-white text-sm rounded hover:bg-[#002D5C] transition-colors"
+                className="px-4 py-2 bg-primary-700 text-white text-sm rounded hover:bg-primary-800 transition-colors"
               >
                 Speichern
               </button>
@@ -561,7 +561,7 @@ function Bestaetigung({ meldung, onBestaetigen, onAbbrechen, gefaehrlich }: Best
           </button>
           <button
             onClick={onBestaetigen}
-            className={`px-4 py-2 text-sm text-white rounded transition-colors ${gefaehrlich ? 'bg-red-600 hover:bg-red-700' : 'bg-bund-blau hover:bg-[#002D5C]'}`}
+            className={`px-4 py-2 text-sm text-white rounded transition-colors ${gefaehrlich ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-700 hover:bg-primary-800'}`}
           >
             Löschen
           </button>

@@ -1,128 +1,121 @@
 # PRD.md – Product Requirements Document: SAFe PI Capacity Planner
 
+> **Führendes Dokument** für die Feature-Liste. Nummerierung ist verbindlich für STATUS.md, AI.md und features/.
+> Zuletzt synchronisiert: 22.04.2026
+
 ## Ziel
 Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren Story Points pro SAFe PI und Iteration zu berechnen. Jeder Mitarbeiter trägt seine Absenzen via Maus-Drag über einen Kalender ein. Das System berechnet automatisch die Kapazität unter Berücksichtigung von Feiertagen, Schulferien, FTE, Betriebsanteilen und Pauschalen. Das Dashboard zeigt Engpässe (Pikett-Lücken, Betrieb-Unterbesetzung) sofort an.
 
-## Features (priorisiert)
+## Features (priorisiert, Nummerierung = verbindlich)
 
-### ABGESCHLOSSEN (MVP)
+### Phase 1 — MVP (abgeschlossen)
 
-1. **Kalenderansicht mit Maus-Drag-Buchung** ✅
-   - Kalender zeigt Datum, Wochentag, KW, PI-Zeitspanne
-   - Maus über Zellen ziehen → Buchungstyp wird gesetzt (gem. gewählter Legende)
-   - Feiertage, Schulferien, Blocker automatisch eingefärbt
-   - Change-Freeze: Schneeflocke ❄️ + Hellblau
-   - Heute: fett + rot hervorgehoben
-   - Wochenenden ausgegraut, nicht buchbar
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 01 | Projektgerüst (React/Vite/Express/TS) | ✅ | feature-01-geruest.md |
+| 02 | Typen & Datenmodell | ✅ | feature-02-typen.md |
+| 03 | Mitarbeiterstamm (CRUD + CSV) | ✅ | feature-03-mitarbeiter.md |
+| 04 | PI-Planung & Iterationen (CRUD + CSV + Validierung) | ✅ | feature-04-pi-planung.md |
+| 05 | Feiertage / Schulferien / Blocker (CRUD + CSV) | ✅ | feature-05-kalender-daten.md |
+| 06 | Kalender-Komponente (Grid, Farbcodes, Sticky, Legende) | ✅ | feature-06-kalender.md |
+| 07 | Drag-Buchung (Interpolation) | ✅ | feature-07-drag-buchung.md |
+| 08 | SP-Berechnung (pure functions, Kapazitäts-Tab, Seed-Daten) | ✅ | feature-08-sp-berechnung.md |
+| 09 | Filter (Team, PI, Iteration, Jahr, Zeitraum) | ✅ | feature-09-filter.md |
+| 10 | Dashboard (KPI-Karten, BarChart, Absenz-Tabelle, Lücken) | ✅ | feature-10-dashboard.md |
+| 11 | Backup/Restore (JSON Export/Import, versioniert) | ✅ | — (kein Feature-File, nachzuholen) |
+| 12 | PDF/PNG Export (für Confluence) | ✅ | feature-12-export.md |
+| 13 | Corporate Design Bund (Farben, Schrift, Logo) | ✅ | feature-13-cd-bund.md |
 
-2. **Mitarbeiterstamm (Settings)** ✅
-   - Felder: Vorname, Name, Team, Typ (iMA/eMA), FTE, Kapazität %, Betrieb %, Pauschale %
-   - CRUD (erstellen, bearbeiten, löschen einzeln + gesamthaft)
-   - CSV-Import / CSV-Export
+### Phase 2 — Erweiterungen (abgeschlossen)
 
-3. **PI-Planung (Settings)** ✅
-   - PI-Bezeichnung (z.B. PI26-1), Startdatum, Enddatum
-   - 4 Iterationen pro PI, variabel konfigurierbar (Länge anpassbar)
-   - CSV-Import / CSV-Export
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 14 | Team-Zielwerte konfigurierbar (Settings, CSV) | ✅ | — (Teil von phase-2-planung.md, archiviert) |
+| 15 | Multiuser (Socket.io State-Sync, Row-Locking, Verbindungsindikator) | ✅ | feature-15-multiuser.md |
+| 16 | Farbeinstellungen (Buchungstypen + Kalender, Color-Picker, CSV, Reset) | ✅ | feature-16-farbeinstellungen.md |
+| 17 | Team-Konfiguration & Kapazitätsparameter (Pikett/Betrieb pro Team, Globale SP/Tag, PI Dashboard SP Netto vs. Jira) | ✅ | feature-17-team-config.md |
 
-4. **Feiertage (Settings)** ✅
-   - Name, Startdatum, Enddatum
-   - CSV-Import / CSV-Export
+### Phase 3 — Mandatenfähigkeit (abgeschlossen)
 
-5. **Schulferien (Settings)** ✅
-   - Name, Startdatum, Enddatum
-   - CSV-Import / CSV-Export
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 18 | Tenant-Model (Multi-Train, State-Isolation, Migration) | ✅ | feature-18-tenant-model.md |
+| 19 | Admin-Bereich (Code-Isolation, OTP-Style, Rate-Limiting, Train-CRUD) | ✅ | feature-19-admin-bereich.md |
 
-6. **Blocker & Spezielle Perioden (Settings)** ✅
-   - Name, Startdatum, Enddatum
-   - Darstellung: ❄️ Schneeflocke-Symbol + Hellblau (#BFDBFE)
-   - CSV-Import / CSV-Export
+### Phase 4 — UX-Verfeinerung (implementiert, nicht deployed)
 
-7. **SP-Berechnung** ✅
-   - Pro Mitarbeiter, Team, Iteration, PI
-   - Abzüge: Betrieb %, Pauschale %, Absenzen, Feiertage, Wochenenden
-   - Teilzeit = 0.5 SP pro Tag
-   - Blocker-Tage zählen als Arbeitstage (Freeze ≠ Absenz)
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 20 | Mitarbeiterstamm-Filter (Textsuche, Team-Dropdown, Typ-Filter) | ✅ impl / ⏳ deploy | feature-20-mitarbeiter-filter.md |
+| 21 | Settings-Scroll-to-Section (Sidebar-Klick → smooth scroll) | ✅ impl / ⏳ deploy | feature-21-settings-scroll.md |
 
-8. **Dashboard-Ansicht** ✅
-   - KPI-Karten, BarChart, Absenz-Tabelle
-   - Pikett-Lücken und Betrieb-Unterbesetzung (aktuell teilweise hardcodiert → Feature 17)
+### Phase 4b — CD Bund Vertiefung (implementiert, nicht deployed)
 
-9. **PI Dashboard Tab** ✅
-   - SP-Vergleich: Berechnet vs. Netto vs. Jira
-   - Auslastung % pro Team/Iteration/PI
-   - SP in Jira editierbar (localStorage)
-   - Farbcodierung: grün <85%, orange 85–100%, rot >100%
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 23 | Swiss Design System CSS Alignment (BIT Skin: NotoSans, CSS-Vars, primary/secondary) | ✅ impl / ⏳ deploy | feature-23-swiss-ds-css-alignment.md |
 
-10. **Backup & Restore** ✅
-    - Gesamtexport als JSON (versioniert mit Zeitstempel)
-    - Wiederherstellung aus JSON-File
+### Phase 5 — Custom Types (geplant)
 
-11. **Filter (durchgehend)** ✅
-    - Team, Iteration(en), Zeitraum, Jahr
-    - Filter gelten in allen Ansichten gleichzeitig
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 22 | Custom Allocation Types (individuelle Buchungstypen pro Team, Kategorie-Zuordnung) | 🔲 geplant | feature-22-custom-allocation-types.md |
 
-12. **Export** ✅
-    - PDF-Export für Confluence
-    - Bild-Export (PNG) für Confluence
+### Phase 6+ — nach Pilotbetrieb (Roadmap)
 
-13. **Multiuser** ✅
-    - Socket.io State-Sync
-    - Row-Locking
-    - Verbindungsindikator im Header
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 24 | TOTP 2FA (Google/MS Authenticator) | 🔲 Roadmap | — |
+| 25 | aGov OIDC-Integration | 🔲 Roadmap | — |
+| 26 | Jira REST API Integration (ersetzt manuelle SP-Eingabe) | 🔲 Roadmap | — |
+| 27 | Mobile-Optimierung | 🔲 Roadmap | — |
+| 28 | Audit-Log (Admin-Aktionen) | 🔲 Roadmap | — |
+| 29 | Rollen (Admin, Planer, Read-Only) | 🔲 Roadmap | — |
 
-14. **Farbeinstellungen** ✅
-    - Color-Picker pro Buchungstyp
-    - CSV Import/Export
-    - Reset auf Standardwerte
+### Eigenständige Features (ohne Phasen-Zuordnung)
 
-15. **Corporate Design Bund** ✅
-    - Bundesblau #003F7F, Bundesrot #E63312
-    - Frutiger-Schrift (Fallback Arial)
-    - Bundeslogo SVG
-
-### GEPLANT (Phase 2)
-
-16. **Team-Konfiguration & Kapazitätsparameter** 🔲
-    - Min. Personen Pikett pro Tag (gilt inkl. WE + Feiertage)
-    - Min. Personen Betrieb pro Arbeitstag (exkl. WE + gesetzliche Feiertage)
-    - Konfiguration pro Team (Settings-Subtab)
-    - Globale Parameter: SP/Tag (default 1, variabel), Std/Jahr (default 1600)
-    - Lücken-Erkennung verwendet konfigurierte Werte (nicht mehr hardcodiert)
-    - CSV Import/Export für Team-Konfiguration
-    - PI Dashboard: SP Netto (berechnet) vs. SP Jira (editierbar PO), Delta mit Farbhinweis
-    - Backup/Restore eingeschlossen
-    - Spec: features/feature-17-team-config.md
-
-### NICE TO HAVE (Phase 3)
-
-17. **Jira REST API Integration**
-    - Ersetzt manuelle SP-Eingabe im PI Dashboard
-    - Liest committete Story Points direkt aus Jira
-
-18. **Confluence-Integration**
-    - Direktexport via Confluence REST API
+| Feature | Status | Feature-Datei |
+|---------|--------|---------------|
+| PI Dashboard Tab (Jira-SP vs. App-SP, Farbcodierung) | ✅ | feature-pi-dashboard-tab.md |
+| PI Dashboard PDF/PNG-Export (Bundeslogo-Header) | ✅ | — |
+| Dokumentation-Download in Einstellungen (.docx) | ✅ | — |
 
 ## Out of Scope
-- Mobile App
-- SSO / Active Directory Integration (Phase 3+)
+- Mobile App (bis Phase 6+)
+- SSO / Active Directory Integration (Phase 6+)
 - SAP-Integration
 - Automatische Feiertagsberechnung (wird manuell gepflegt)
 
 ## Erfolgskriterien
-- [x] Kapazitätsplanung für ein vollständiges PI in unter 30 Minuten abgeschlossen
+
+### MVP (Phase 1) — alle erfüllt ✅
+- [x] Kapazitätsplanung für ein vollständiges PI in unter 30 Minuten
 - [x] Story Point Berechnung stimmt mit manueller Excel-Rechnung überein
 - [x] Pikett-Lücken werden im Dashboard rot markiert
 - [x] Backup lässt sich vollständig wiederherstellen
 - [x] CD Bund eingehalten (Farben, Schrift, Logo)
-- [ ] Mindestbesetzungs-Parameter pro Team konfigurierbar (Feature 17)
-- [ ] SP/Tag und Std/Jahr global konfigurierbar (Feature 17)
+
+### Phase 2 — alle erfüllt ✅
+- [x] Mindestbesetzungs-Parameter pro Team konfigurierbar (Feature 17)
+- [x] SP/Tag und Std/Jahr global konfigurierbar (Feature 17)
+- [x] Multiuser State-Sync funktional (Feature 15)
+- [x] piTeamTargets server-seitig in AppData (nicht localStorage)
+
+### Phase 3 — alle erfüllt ✅
+- [x] Mehrere Trains (Tenants) isoliert verwaltbar (Feature 18)
+- [x] Admin-Bereich mit Code-Schutz (Feature 19)
+
+### Phase 5 — offen
+- [ ] Custom Allocation Types mit Kategorie-Zuordnung (Feature 22)
+- [ ] SP-Berechnung berücksichtigt Custom-Type-Kategorien korrekt
 
 ## Quelldateien
-- `C:\Users\Davide\Documents\AI\mitarbeiterstamm.csv`
-- `C:\Users\Davide\Documents\AI\gesetzliche_feiertage_2026-03-25.csv`
-- `C:\Users\Davide\Documents\AI\schulferien_2026-03-25.csv`
-- `C:\Users\Davide\Documents\AI\pi_planung_(iterationen)_2026-03-25.csv`
-- `C:\Users\Davide\Documents\AI\blocker___spezielle_perioden_2026-03-25.csv`
-- `C:\Users\Davide\Documents\AI\CD-Bund-Manual_deutsch.pdf`
-- `C:\Users\Davide\Documents\AI\Bundeslogo_PNG\` (Logos)
+| Datei | Inhalt |
+|-------|--------|
+| `mitarbeiterstamm.csv` | Demo-Mitarbeiter, 4 Teams |
+| `gesetzliche_feiertage.csv` | Feiertage |
+| `schulferien.csv` | Schulferienperioden |
+| `pi_planung_iterationen.csv` | PI-Planung |
+| `blocker_spezielle_perioden.csv` | Blocker |
+| `CD-Bund-Manual_deutsch.pdf` | Corporate Design Referenz |
+| Ablage: `C:\Users\Davide\Documents\AI\` |  |

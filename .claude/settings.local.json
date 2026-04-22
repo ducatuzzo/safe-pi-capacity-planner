@@ -41,7 +41,14 @@
       "Bash(python \"C:\\\\Users\\\\Davide\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\93a8e65d-a742-4645-9695-d7a64872afe6\\\\55b17aec-acc7-40c4-b765-52325c1f6777\\\\skills\\\\docx\\\\scripts\\\\office\\\\unpack.py\" \"docs/safe-kapa-planner-publish.docx\" \"docs/safe-kapa-planner-publish-unpacked/\")",
       "Bash(pandoc \"docs/safe-kapa-planner-publish.docx\" -o -)",
       "Bash(pandoc \"docs/safe-kapa-planner-publish.docx\" -t plain)",
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Bash(bash *)",
+      "Bash(/c/Python314/python.exe --version)",
+      "Bash(claude --version)",
+      "Bash(claude models *)",
+      "Bash(claude update *)",
+      "Bash(mkdir -p \"C:/Users/Davide/Documents/AI/safe-pi-planner/safe-pi-capacity-planner/public/fonts\")",
+      "Bash(cp \"C:/Users/Davide/Documents/AI/safe-pi-planner/designsystem-main/css/foundations/fonts/NotoSans-Regular.ttf\" \"C:/Users/Davide/Documents/AI/safe-pi-planner/designsystem-main/css/foundations/fonts/NotoSans-Bold.ttf\" \"C:/Users/Davide/Documents/AI/safe-pi-planner/designsystem-main/css/foundations/fonts/NotoSans-Italic.ttf\" \"C:/Users/Davide/Documents/AI/safe-pi-planner/designsystem-main/css/foundations/fonts/NotoSans-BoldItalic.ttf\" \"C:/Users/Davide/Documents/AI/safe-pi-planner/safe-pi-capacity-planner/public/fonts/\")"
     ]
   }
 }

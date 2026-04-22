@@ -85,12 +85,12 @@ export default function AbsenzTabelle({ rows }: AbsenzTabelleProps) {
                   >
                     <td className="px-4 py-2 text-gray-800">{row.employeeName}</td>
                     <td className="px-4 py-2 text-gray-500">{row.team}</td>
-                    <td className="text-right px-4 py-2 tabular-nums text-[#60A5FA]">{row.ferienDays || '–'}</td>
-                    <td className="text-right px-4 py-2 tabular-nums text-[#FB923C]">{row.abwesendDays || '–'}</td>
-                    <td className="text-right px-4 py-2 tabular-nums text-[#84CC16]">{row.militaerDays || '–'}</td>
-                    <td className="text-right px-4 py-2 tabular-nums text-[#A78BFA]">{row.ipaDays || '–'}</td>
-                    <td className="text-right px-4 py-2 tabular-nums text-[#F87171]">{row.betriebDays || '–'}</td>
-                    <td className="text-right px-4 py-2 tabular-nums text-[#F9A8D4]">{row.pikettDays || '–'}</td>
+                    <td className="text-right px-4 py-2 tabular-nums text-buchung-ferien">{row.ferienDays || '–'}</td>
+                    <td className="text-right px-4 py-2 tabular-nums text-buchung-abwesend">{row.abwesendDays || '–'}</td>
+                    <td className="text-right px-4 py-2 tabular-nums text-buchung-militaer">{row.militaerDays || '–'}</td>
+                    <td className="text-right px-4 py-2 tabular-nums text-buchung-ipa">{row.ipaDays || '–'}</td>
+                    <td className="text-right px-4 py-2 tabular-nums text-buchung-betrieb">{row.betriebDays || '–'}</td>
+                    <td className="text-right px-4 py-2 tabular-nums text-buchung-pikett">{row.pikettDays || '–'}</td>
                   </tr>
                 ))}
 

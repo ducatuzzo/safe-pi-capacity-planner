@@ -2,17 +2,10 @@
 
 import type { PIDashboardTeamData } from '../../hooks/usePIDashboard';
 import { PIDashboardIterRow, PIDashboardTotalRow } from './PIDashboardRow';
-
-// Teamfarben konsistent mit Kalender-Legende
-const TEAM_COLORS: Record<string, string> = {
-  NET: '#003F7F',
-  ACM: '#0070C0',
-  CON: '#00B050',
-  PAF: '#FF6600',
-};
+import { TEAM_COLORS_HEX, TEAM_COLORS_FALLBACK } from '../../constants';
 
 function teamColor(team: string): string {
-  return TEAM_COLORS[team] ?? '#6366f1';
+  return TEAM_COLORS_HEX[team] ?? TEAM_COLORS_FALLBACK[0];
 }
 
 interface PIDashboardTableProps {

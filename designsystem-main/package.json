@@ -1,0 +1,42 @@
+{
+  "name": "designsystem",
+  "version": "1.0.5",
+  "description": "Design System for the Swiss Confederation",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "watch": "NODE_ENV=css postcss css/main.postcss --ext css --dir dist --watch",
+    "dev:storybook": "concurrently \"npm run watch\" \"cd app && npm run storybook\"",
+    "dev:nuxt": "cd app && npm run dev",
+    "dev:all": "concurrently \"npm run dev:storybook \" \"npm run dev:nuxt\" ",
+    "dev": "npm run dev:storybook",
+    "build-css": "NODE_ENV=css postcss css/main.postcss --ext css --dir dist",
+    "build": "concurrently \"NODE_ENV=css postcss css/main.postcss --ext css --dir dist \" \"cd app && npm run build-storybook\"",
+    "postinstall": "concurrently \"npm run build-css\" \"cd app && pnpm install\"",
+    "test": "cd app && npm run chromatic"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swiss/designsystem.git"
+  },
+  "author": "Liip AG",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/swiss/designsystem/issues"
+  },
+  "homepage": "https://github.com/swiss/designsystem#readme",
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^6.5.1",
+    "cssnano": "^7.0.6",
+    "postcss-cli": "^8.3.1",
+    "postcss-import": "^14.1.0",
+    "tailwindcss": "^3.4.14"
+  },
+  "devDependencies": {
+    "postcss": "^8.4.47"
+  },
+  "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"
+}

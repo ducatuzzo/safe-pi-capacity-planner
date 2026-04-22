@@ -8,6 +8,17 @@ export const FARBEN = {
   TEXT: '#1A1A1A',
 } as const;
 
+// Teamfarben — single source of truth (Feature 23)
+// Konsistent mit AI.md; FarbConfig (Feature 16) kann diese Werte zur Laufzeit überschreiben
+export const TEAM_COLORS_HEX: Record<string, string> = {
+  NET: '#003F7F',  // = FARBEN.BUND_BLAU / primary-700
+  ACM: '#0070C0',
+  CON: '#00B050',
+  PAF: '#FF6600',
+};
+
+export const TEAM_COLORS_FALLBACK: readonly string[] = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b'];
+
 // Farbzuordnung für Buchungstypen (gemäss Legende Screenshot 28.03.2026)
 export const BUCHUNGSTYP_FARBEN: Record<AllocationType, string> = {
   NONE: 'transparent',

@@ -254,7 +254,7 @@ export default function DashboardView({ employees, pis, appData, filterState }: 
         <button
           onClick={handleExportPDF}
           disabled={exportLoading !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#003F7F] text-white text-sm rounded hover:bg-[#002D5C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 text-white text-sm rounded hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Download size={15} />
           {exportLoading === 'pdf' ? 'Exportiere…' : 'PDF'}
@@ -262,7 +262,7 @@ export default function DashboardView({ employees, pis, appData, filterState }: 
         <button
           onClick={handleExportPNG}
           disabled={exportLoading !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#003F7F] text-white text-sm rounded hover:bg-[#002D5C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 text-white text-sm rounded hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <FileImage size={15} />
           {exportLoading === 'png' ? 'Exportiere…' : 'PNG'}
@@ -275,7 +275,7 @@ export default function DashboardView({ employees, pis, appData, filterState }: 
         <div className="flex items-center justify-between border-b border-gray-200 pb-3">
           <img src={bundeslogo} alt="Schweizerische Eidgenossenschaft" className="h-10" />
           <div className="text-right">
-            <div className="text-sm font-semibold text-[#003F7F]">SAFe PI Capacity Planner</div>
+            <div className="text-sm font-semibold text-primary-700">SAFe PI Capacity Planner</div>
             <div className="text-xs text-gray-500">{filterLabel}</div>
           </div>
         </div>

@@ -37,14 +37,14 @@ export default function KPICards({ totalSP, employeeCount, pikettGapsCount, betr
         label="Verfügbare Story Points"
         value={totalSP.toFixed(1)}
         icon={<TrendingUp size={22} />}
-        colorClass="text-[#003F7F]"
+        colorClass="text-primary-700"
         bgClass="bg-blue-50"
       />
       <KPICard
         label="Mitarbeiter (gefiltert)"
         value={employeeCount}
         icon={<Users size={22} />}
-        colorClass="text-[#0070C0]"
+        colorClass="text-primary-500"
         bgClass="bg-sky-50"
       />
       <KPICard

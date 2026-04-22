@@ -2,6 +2,37 @@
 
 ## Session-Typ: IMPL (komplex — eigene Session, mehrteilig)
 
+## Voraussetzungen (immer zuerst lesen!)
+1. Lies AI.md → Abschnitt Datenmodell (Kern) + AllocationType
+2. Lies STATUS.md → Prüfe ob Features 20/21 deployed sind
+3. Prüfe: Existiert `src/utils/sp-calculator.ts`? → Das ist die kritische Datei
+4. Prüfe: Existiert `src/types.ts`? → Employee.allocations Typ muss geändert werden
+
+## Recovery-Protokoll
+**ACHTUNG: Feature 22 ist ein Breaking Change.** `Employee.allocations` ändert sich von `Record<string, AllocationType>` zu `Record<string, string>`. Fehler hier brechen Kalender, SP-Berechnung, Dashboard und Backup gleichzeitig.
+
+### Bei Context Rot oder Fehler:
+1. **Sofort stoppen** — nicht im gleichen Chat weitermachen
+2. STATUS.md aktualisieren — eintragen welcher Implementierungsschritt abgebrochen wurde (1–8)
+3. `git diff` prüfen — welche Dateien bereits geändert sind
+4. Neuen Chat öffnen
+5. Laden in dieser Reihenfolge:
+   - AI.md
+   - STATUS.md
+   - features/feature-22-custom-allocation-types.md (dieses Dokument)
+6. Agent fasst zusammen was bereits geändert wurde — erst dann weitermachen
+
+### Bei kaputtem Build nach Typ-Änderung:
+1. `git stash` — Änderungen sichern
+2. `npx tsc --noEmit` — TypeScript-Fehler auflisten
+3. Jeden Fehler = eine Stelle die `AllocationType` direkt liest statt über Helper
+4. Systematisch alle Stellen über `allocation-helpers.ts` umleiten
+
+### Backup-Migration prüfen:
+1. Bestehenden Backup laden → `customAllocationTypes` fehlt → muss als `[]` defaulten
+2. Allocation-Werte in Employee.allocations → alle müssen als `string` validierbar sein
+3. Custom-Type-IDs in allocations die nicht in `customAllocationTypes` existieren → Warnung, nicht Block
+
 ## Hintergrund
 Teams im PS-NET Train brauchen eigene Buchungskürzel neben den 8 Standard-Typen. Beispiel: Team PAF nutzt "R" = Portöffnungen (Farbe #FE58B3, Text #1A1A1A). Das sind explizit ausgewiesene Aufwände die zugewiesen werden — nicht für Jira-Planung verfügbare SP.
 
@@ -32,10 +63,8 @@ type AllocationCategory =
 
 ### types.ts
 ```typescript
-// Berechnungskategorie für Custom-Buchungstypen
 export type AllocationCategory = 'ABSENCE' | 'BETRIEB' | 'PIKETT' | 'BETRIEB_PIKETT' | 'NEUTRAL';
 
-// Custom-Buchungstyp (benutzerdefiniert, pro Tenant)
 export interface CustomAllocationType {
   id: string;           // Interner Key, z.B. 'CUSTOM_R_PAF' (auto-generiert)
   kuerzel: string;      // Anzeigekürzel im Kalender, z.B. 'R' (max. 3 Zeichen)
@@ -60,8 +89,23 @@ allocations: Record<string, string>; // Wert = AllocationType | CustomAllocation
 
 ### AppData / FullAppState erweitern
 ```typescript
-// In AppData und FullAppState:
 customAllocationTypes?: CustomAllocationType[];
+```
+
+## Schema-Migration für Backup/Restore
+```typescript
+// Beim Laden eines Backups:
+function migrateBackup(data: any): AppData {
+  // 1. customAllocationTypes defaulten
+  if (!data.customAllocationTypes) {
+    data.customAllocationTypes = [];
+  }
+  // 2. Employee.allocations: Werte sind bereits strings (JSON-kompatibel)
+  //    Keine Migration nötig — AllocationType-Strings bleiben gültig
+  // 3. Orphan-Check: Custom-IDs in allocations die nicht in customAllocationTypes existieren
+  //    → Warnung loggen, Allocation entfernen oder beibehalten (Warnung bevorzugt)
+  return data;
+}
 ```
 
 ## Betroffene Dateien und Änderungen
@@ -76,91 +120,52 @@ customAllocationTypes?: CustomAllocationType[];
 ### 2. Neue Datei: src/utils/allocation-helpers.ts
 Zentrale Lookup-Funktionen die ALLE Komponenten nutzen:
 ```typescript
-// Prüft ob ein Allocation-Wert ein Built-in-Type ist
 function isBuiltinType(value: string): value is AllocationType
-
-// Findet den Custom-Type zu einem Allocation-Wert
 function findCustomType(value: string, customTypes: CustomAllocationType[]): CustomAllocationType | undefined
-
-// Gibt Kürzel zurück (Built-in-Letter oder Custom-Kürzel)
 function getAllocationLetter(value: string, customTypes: CustomAllocationType[]): string
-
-// Gibt Farben zurück (Built-in aus FarbConfig oder Custom-Farbe)
 function getAllocationColors(value: string, farbConfig: FarbConfig, customTypes: CustomAllocationType[]): { bg: string; text: string }
-
-// Gibt SP-Faktor zurück (0 oder 1 oder 0.5, abhängig von Kategorie)
 function getAllocationSpFactor(value: string, customTypes: CustomAllocationType[]): number
-
-// Prüft ob Allocation zur Absenz zählt
 function isAbsenceType(value: string, customTypes: CustomAllocationType[]): boolean
-
-// Prüft ob Allocation zum Betrieb zählt
 function isBetriebType(value: string, customTypes: CustomAllocationType[]): boolean
-
-// Prüft ob Allocation zum Pikett zählt
 function isPikettType(value: string, customTypes: CustomAllocationType[]): boolean
 ```
 
 ### 3. src/utils/sp-calculator.ts
-- `ABSENCE_TYPES`, `BETRIEB_TYPES`, `PIKETT_TYPES` Sets ersetzen durch Aufrufe der Helper-Funktionen
-- `getSpRaw()` erweitern: Custom-Types via Kategorie auflösen
-- `calculateSPForEmployee()`: `customTypes` als Parameter hinzufügen
+- `ABSENCE_TYPES`, `BETRIEB_TYPES`, `PIKETT_TYPES` Sets ersetzen durch Helper-Aufrufe
+- `calculateSPForEmployee()`: `customTypes` als Parameter
 - `calculateSPForTeam()`: `customTypes` durchreichen, Lücken-Check anpassen
-- Alle Aufrufstellen anpassen (appData.customAllocationTypes durchreichen)
 
 ### 4. src/components/calendar/CalendarCell.tsx
-- `ALLOCATION_LETTER` Record ersetzen durch `getAllocationLetter()`
-- `getCellStyle()`: Custom-Type-Farben via `getAllocationColors()`
-- `isPikettType()`: Custom-Pikett-Types berücksichtigen
-- Props: `customTypes: CustomAllocationType[]` hinzufügen
+- `ALLOCATION_LETTER` Record → `getAllocationLetter()`
+- `getCellStyle()` → `getAllocationColors()`
+- Props: `customTypes: CustomAllocationType[]`
 
 ### 5. src/components/calendar/CalendarGrid.tsx
-- Buchungstyp-Auswahl (Dropdown/Legende): Custom-Types zum Dropdown hinzufügen
+- Buchungstyp-Dropdown: Custom-Types hinzufügen
 - `customTypes` an `CalendarCell` durchreichen
-- Legende erweitern: Custom-Types mit Kürzel, Farbe, Label anzeigen
+- Legende: Custom-Types mit Kürzel, Farbe, Label
 
 ### 6. src/components/settings/FarbeinstellungenSettings.tsx
-- Custom-Types-Sektion unterhalb der Built-in-Buchungstypen anzeigen
-- Custom-Types werden NICHT in FarbConfig.buchungstypen gespeichert (Farbe ist Teil des CustomAllocationType)
-- Nur Vorschau anzeigen (Bearbeitung passiert in der Custom-Types-Verwaltung)
+- Custom-Types in Vorschau (nicht editierbar hier)
 
 ### 7. Neue Komponente: src/components/settings/CustomAllocationSettings.tsx
-- CRUD für Custom-Buchungstypen
-- Felder: Kürzel (max 3 Zeichen), Label, Hintergrundfarbe, Schriftfarbe, Kategorie (Dropdown), Team (optional)
-- Vorschau-Zelle wie bei Farbeinstellungen
-- CSV Import/Export
-- Validierung: Kürzel darf nicht mit Built-in-Kürzeln kollidieren (F, A, T, M, I, B, BP, P)
+- CRUD, Validierung, CSV Import/Export
+- Kürzel-Kollisionsprüfung mit Built-in (F, A, T, M, I, B, BP, P)
 
 ### 8. src/components/settings/SettingsPage.tsx
-- Neuer Sidebar-Eintrag: "Buchungstypen" (zwischen Farbeinstellungen und Backup)
-- `SettingsView` um `'buchungstypen'` erweitern
-- Props: `customAllocationTypes` + `onCustomAllocationTypesChange`
+- Sidebar: "Buchungstypen" (zwischen Farbeinstellungen und Backup)
 
 ### 9. src/constants.ts
-- `BUCHUNGSTYP_LABEL` und `BUCHUNGSTYP_FARBEN`: Bleiben für Built-in-Types, keine Änderung
-- `ALLOCATION_CATEGORIES` Konstante mit Labels für Dropdown:
-```typescript
-export const ALLOCATION_CATEGORY_LABEL: Record<AllocationCategory, string> = {
-  ABSENCE: 'Abwesenheit (SP = 0)',
-  BETRIEB: 'Betrieb (zählt für Betrieb-Lücke)',
-  PIKETT: 'Pikett (zählt für Pikett-Lücke)',
-  BETRIEB_PIKETT: 'Betrieb + Pikett (zählt für beide)',
-  NEUTRAL: 'Geplante Arbeit (SP = 0, keine Lücke)',
-};
-```
+- `ALLOCATION_CATEGORY_LABEL` für Dropdown
 
 ### 10. Backend: server/state-manager.ts
-- `customAllocationTypes` in State aufnehmen und persistieren
-- Socket.io-Event für Custom-Type-Änderungen
+- `customAllocationTypes` persistieren + Socket.io-Event
 
 ### 11. Backup/Restore
-- `customAllocationTypes` im Backup einschliessen
-- Migration: Backups ohne `customAllocationTypes` → leeres Array
-- Validierung: Custom-Type-IDs in allocations müssen existieren (Warnung, nicht Block)
+- `customAllocationTypes` einschliessen, Migration (s.o.)
 
-### 12. Legende (CalendarGrid oder separate Komponente)
-- Custom-Types in Legende anzeigen mit Kürzel, Farbvorschau und Label
-- Gruppierung: Built-in | Custom
+### 12. Legende
+- Custom-Types mit Gruppierung: Built-in | Custom
 
 ## Akzeptanzkriterien
 - [ ] Custom-Buchungstypen in Einstellungen → Buchungstypen verwalten (CRUD)
@@ -171,7 +176,7 @@ export const ALLOCATION_CATEGORY_LABEL: Record<AllocationCategory, string> = {
 - [ ] Legende zeigt Custom-Types
 - [ ] SP-Berechnung berücksichtigt Custom-Type-Kategorie korrekt
 - [ ] Dashboard: Lücken-Erkennung berücksichtigt Custom-Betrieb/Pikett-Types
-- [ ] Backup/Restore enthält Custom-Types
+- [ ] Backup/Restore enthält Custom-Types + Migration für alte Backups
 - [ ] Socket.io synchronisiert Custom-Types
 - [ ] CSV Export/Import für Custom-Types
 - [ ] Rückwärtskompatibilität: Backups ohne Custom-Types laden fehlerfrei
@@ -183,7 +188,7 @@ export const ALLOCATION_CATEGORY_LABEL: Record<AllocationCategory, string> = {
 4. CalendarCell.tsx + CalendarGrid.tsx (Kalender-Rendering + Legende + Dropdown)
 5. FarbeinstellungenSettings.tsx (Custom-Types in Vorschau)
 6. Backend state-manager.ts + Socket.io
-7. Backup/Restore anpassen
+7. Backup/Restore anpassen + Schema-Migration
 8. Testen
 
 ## Konventionen (CLAUDE.md)

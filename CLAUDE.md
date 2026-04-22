@@ -2,6 +2,7 @@
 
 > Dieses Dokument ist das primäre Referenz-Dokument für alle Claude Code Sessions in diesem Projekt.
 > Immer zuerst lesen. Ergänzend: AI.md (Architektur), STATUS.md (Stand), features/ (Specs).
+> Zuletzt synchronisiert: 16.04.2026
 
 ## Projekt-Kontext
 - **Name:** SAFe PI Capacity Planner (BIT)
@@ -10,21 +11,30 @@
 - **App-Pfad:** `safe-pi-capacity-planner/`
 - **Context-Pfad:** Wurzel dieses Repos (AI.md, PRD.md, STATUS.md, features/, docs/)
 - **Frontend-Deployment:** https://safe-pi-capacity-planner.vercel.app (Vercel, Auto-Deploy via GitHub master)
-- **Backend-Deployment:** Railway → URL nach Setup in AI.md und Vercel-Env-Var eintragen
+- **Backend-Deployment:** Railway → URL in AI.md und Vercel-Env-Var
 - **Vercel Root Directory:** `safe-pi-capacity-planner` (Unterordner! nicht `./` — kritisch für Build)
 - **Vercel Build Command:** `npx vite build` (nicht `vite build`, vite liegt in devDependencies)
+
+## Dokumenten-Hierarchie (verbindlich)
+1. **PRD.md** — führend für Feature-Liste und Nummerierung
+2. **STATUS.md** — führend für aktuellen Implementierungsstatus
+3. **AI.md** — führend für Architektur, Datenmodell, Konventionen
+4. **CLAUDE.md** (dieses Dokument) — Kurzreferenz für Session-Start
+5. **features/*.md** — Detailspezifikation pro Feature
+6. **decisions/log.md** — Entscheidungshistorie (chronologisch)
+
+Bei Widersprüchen gilt die höher nummerierte Quelle.
 
 ## Environment Variables
 | Variable | Wo setzen | Wert |
 |----------|-----------|------|
 | `VITE_BACKEND_URL` | Vercel → Environment Variables | Railway-Backend-URL (z.B. `https://xxx.railway.app`) |
 | `VITE_BACKEND_URL` | lokal `.env` | leer lassen (Vite-Proxy übernimmt) |
-| `PORT` | Railway → automatisch | wird von Railway gesetzt, kein manueller Eintrag nötig |
+| `PORT` | Railway → automatisch | wird von Railway gesetzt |
+| `DEFAULT_ADMIN_CODE` | Railway → Env-Var | Demo-Train Initial-Code `000815` |
 
-- **Demo-Train Initial-Passwort:** `000815` (konfigurierbar via Env-Var `DEFAULT_ADMIN_CODE`) — muss nach erstem Login geändert werden
 - Lokal: `VITE_BACKEND_URL` nicht setzen → `window.location.origin` → Vite-Proxy → `localhost:3001`
 - Produktion: `VITE_BACKEND_URL=https://xxx.railway.app` in Vercel setzen → direkter Socket.io-Connect
-- Template: `safe-pi-capacity-planner/.env.example`
 
 ## Techstack (Kurzfassung)
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS, Recharts, Lucide React
@@ -40,40 +50,30 @@ npm run dev:client   # nur Vite Frontend
 npm run dev:server   # nur Express Backend
 ```
 
-## Navigations-Tabs (Stand 01.04.2026)
+## Navigations-Tabs (Stand 16.04.2026)
 | Tab | Route-Key | Beschreibung |
 |-----|-----------|-------------|
 | Planung | `planung` | Kalender-Grid mit Drag-Buchung |
 | Kapazität | `kapazitaet` | SP-Berechnung pro Mitarbeiter/Team |
 | Dashboard | `dashboard` | KPI-Karten, BarChart, Absenz-Tabelle, Lücken |
 | PI Dashboard | `pidashboard` | SP-Vergleich Jira vs. App pro PI/Team/Iteration |
-| Einstellungen | `settings` | Mitarbeiter, PI-Planung, Feiertage, Zielwerte, Farben |
+| Einstellungen | `settings` | Mitarbeiter, PI-Planung, Feiertage, Zielwerte, Farben, Team-Konfiguration, Globale Parameter |
 | Admin | `admin` | Train-Verwaltung, Daten-Reset, Admin-Code ändern (Code-geschützt) |
 
-## PI Dashboard Tab (Feature neu 01.04.2026)
+## PI Dashboard Tab
 **Pfad:** `src/components/pidashboard/`
 **Hook:** `src/hooks/usePIDashboard.ts`
 
-### Spalten der Tabelle
-| Spalte | Quelle | Beschreibung |
-|--------|--------|-------------|
-| Iteration | PIPlanning | Name der Iteration |
-| Betriebstage | getWorkingDays() | Arbeitstage Mo–Fr ohne Feiertage |
-| SP in Jira | localStorage | Manuell eingetragen, editierbar per Klick |
-| Berechnet SP | Formel | Theoretisch: Arbeitstage × SP-Rate × FTE × (1-Betrieb%) × (1-Pauschale%) |
-| Verfügbar SP Netto | sp-calculator.ts | Tagesgenau: berücksichtigt Buchungen (FERIEN, ABWESEND etc.) |
-| Auslastung Jira % | spJira / verfuegbarSP | Farbcodiert: grün/orange/rot |
-| Auslastung App % | berechnetSP / verfuegbarSP | Zeigt Einfluss der Buchungen |
+### Datenquelle SP in Jira
+- **Server-seitig** in `AppData.piTeamTargets` (NICHT localStorage)
+- Format: `PITeamTarget { piId, teamName, spJira }` — editierbar durch PO
+- Synchronisiert via Socket.io, enthalten in Backup/Restore
+- **Entscheidung:** decisions/log.md 07.04.2026 — localStorage-Ansatz ersetzt
 
 ### Farbcodierung Auslastung
 - **Grün** (`< 85 %`): Kapazität gut ausgeschöpft
-- **Orange** (`85–100 %`): Achtung, nah an der Kapazitätsgrenze
+- **Orange** (`85–100 %`): Nah an der Kapazitätsgrenze
 - **Rot** (`> 100 %`): Überlastet
-
-### localStorage
-- Key: `pi-dashboard-sp-jira-v1`
-- Format: JSON-Objekt `{ "${piId}::${iterationId}::${team}": number }`
-- Wird NICHT auf den Server synchronisiert (lokale Planung)
 
 ## Wichtige Konventionen
 - Sprache: Deutsch (UI + Kommentare), Englisch (Variablen/Typen)
@@ -86,11 +86,49 @@ npm run dev:server   # nur Express Backend
 Bei jeder Änderung die folgende Bereiche betrifft:
 - Neues Feature → `features/feature-XX.md` + `STATUS.md` + `docs/benutzerdokumentation_vX.Y.md`
 - Infrastruktur/Ports → `docs/installationshandbuch_vX.Y.md`
-- Entscheidung → `decisions/log.md`
+- Entscheidung → `decisions/log.md` (chronologisch, neue Einträge am Ende)
+- Feature abgeschlossen → PRD.md Status-Spalte aktualisieren
 
 ## Verbote
 - Keine npm-Pakete ohne explizite Freigabe
 - Kein `any` in TypeScript
 - Keine direkten DOM-Manipulationen
-- Kein localStorage für Server-kritische Daten (SP in Jira = UI-Präferenz, erlaubt)
+- Kein localStorage für Server-kritische Daten
 - Keine CDN-Fonts (Datenschutz Bund)
+
+## Session-Checkliste (gemäss Context Engineering Guide)
+
+### Session-Start
+1. STATUS.md lesen — aktuellen Stand verstehen
+2. AI.md laden — Techstack und Konventionen verstehen
+3. Relevante Feature-Datei laden — heutigen Auftrag verstehen
+4. Entscheiden: **PLAN-Session** oder **IMPL-Session** (nicht mischen!)
+5. Zusammenfassung in 3–5 Sätzen — warten auf Bestätigung
+
+### Session-Ende
+1. STATUS.md aktualisieren (was getan, was offen)
+2. PRD.md Status-Spalte aktualisieren (wenn Feature abgeschlossen)
+3. Entscheidungen in decisions/log.md eintragen (chronologisch am Ende)
+4. Feature-Datei aktualisieren (Checkboxen, Status)
+5. Code committen oder sichern
+
+### Recovery (bei Context Rot)
+1. **Sofort stoppen** — nicht im gleichen Chat weitermachen
+2. STATUS.md aktualisieren — eintragen wo abgebrochen
+3. Neuen Chat öffnen
+4. Start-Prompt verwenden (siehe unten)
+5. Agent bestätigen lassen
+
+## Start-Prompt (Vorlage)
+```
+Du bist mein AI-Entwicklungspartner für SAFe PI Capacity Planner.
+Lies folgende Dateien in dieser Reihenfolge:
+1. AI.md – verstehe den Techstack und die Konventionen
+2. STATUS.md – verstehe den aktuellen Stand
+3. features/[aktuelle-feature-datei].md – verstehe den heutigen Auftrag
+Fasse nach dem Lesen in 3-5 Sätzen zusammen:
+- Was der Projektstatus ist
+- Was dein heutiger Auftrag ist
+- Welche Einschränkungen/Konventionen gelten
+Warte auf meine Bestätigung, bevor du mit der Arbeit beginnst.
+```
