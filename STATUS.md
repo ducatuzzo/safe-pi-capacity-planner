@@ -93,6 +93,9 @@
 ## Aktuell in Arbeit
 - Feature 22: Custom Allocation Types — Datenmodell-Review ausstehend
 
+## Abgebrochene Sessions
+- **Paket 7 IMPL am 2026-04-24 abgebrochen – Architektur-Spec fehlt.** Kein Dokument mit dem Bezeichner "Paket 7" in features/, prompts/ oder anderen Verzeichnissen gefunden. Projekt nutzt Feature-basierte Nummerierung (01–23), kein Paket-Schema. Vor Implementierung muss eine Architektur-Spec erstellt werden (features/paket-7-settings.md oder äquivalent).
+
 ## Nächste Schritte (priorisiert)
 1. Feature 22: Custom Allocation Types — Datenmodell-Review vor Implementierung
 2. Recovery-Protokoll für Feature 22 schreiben (Breaking Change: allocations-Typ)
