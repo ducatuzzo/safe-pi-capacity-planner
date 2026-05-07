@@ -1,8 +1,8 @@
-// Feature 29: Zeremonien-Editor pro PI – CRUD + Modal
-// .ics-Export wird in Schritt 5 hinzugefügt (Button-Platzhalter ist disabled)
+// Feature 29 v2 (Schema 1.6): Zeremonien-Editor mit Start/Ende-Datum + Serie
+// CRUD + Modal + .ics-Export pro Zeremonie
 
 import { useState } from 'react';
-import { Pencil, Trash2, Plus, Download } from 'lucide-react';
+import { Pencil, Trash2, Plus, Download, Repeat } from 'lucide-react';
 import type { PIPlanning, PIZeremonie, ZeremonieType } from '../../types';
 import {
   ZEREMONIE_LABELS,
@@ -17,62 +17,124 @@ interface Props {
   onPiChange: (updatedPi: PIPlanning) => void;
 }
 
+type RecurrenceMode = 'count' | 'until';
+
 interface ZeremonieFormState {
   type: ZeremonieType;
   title: string;
-  date: string;
+  startDate: string;
   startTime: string;
-  durationMinutes: number;
+  endDate: string;
+  endTime: string;
   location: string;
   description: string;
-  iterationId: string; // '' = keine Zuordnung
+  iterationId: string;
+  // Serie:
+  hasRecurrence: boolean;
+  recurrenceFrequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  recurrenceInterval: number;
+  recurrenceMode: RecurrenceMode;
+  recurrenceCount: number;
+  recurrenceUntil: string;
 }
 
 const ZEREMONIE_TYPES: ZeremonieType[] = [
-  'PI_PLANNING',
-  'DRAFT_PLAN_REVIEW',
-  'FINAL_PLAN_REVIEW',
-  'PRIO_MEETING',
-  'SYSTEM_DEMO',
-  'FINAL_SYSTEM_DEMO',
-  'INSPECT_ADAPT',
+  'PI_PLANNING', 'DRAFT_PLAN_REVIEW', 'FINAL_PLAN_REVIEW', 'PRIO_MEETING',
+  'SYSTEM_DEMO', 'FINAL_SYSTEM_DEMO', 'INSPECT_ADAPT',
 ];
+
+const FREQUENCY_LABEL: Record<'DAILY' | 'WEEKLY' | 'MONTHLY', string> = {
+  DAILY: 'Täglich',
+  WEEKLY: 'Wöchentlich',
+  MONTHLY: 'Monatlich',
+};
+
+// ─── Defaults ──────────────────────────────────────────────────────────────────
 
 function leeresFormular(pi: PIPlanning): ZeremonieFormState {
   const initialType: ZeremonieType = 'SYSTEM_DEMO';
+  const startDate = pi.startStr;
+  const startTime = ZEREMONIE_DEFAULT_START_TIME[initialType];
+  const dur = ZEREMONIE_DEFAULT_DURATION[initialType];
+  const computed = addMinutes(startDate, startTime, dur);
   return {
     type: initialType,
     title: ZEREMONIE_LABELS[initialType],
-    date: pi.startStr,
-    startTime: ZEREMONIE_DEFAULT_START_TIME[initialType],
-    durationMinutes: ZEREMONIE_DEFAULT_DURATION[initialType],
+    startDate,
+    startTime,
+    endDate: computed.date,
+    endTime: computed.time,
     location: '',
     description: '',
     iterationId: '',
+    hasRecurrence: false,
+    recurrenceFrequency: 'WEEKLY',
+    recurrenceInterval: 1,
+    recurrenceMode: 'count',
+    recurrenceCount: 5,
+    recurrenceUntil: pi.endStr,
   };
 }
+
+// ─── Validierung ───────────────────────────────────────────────────────────────
 
 function validiereZeremonie(f: ZeremonieFormState, pi: PIPlanning): string | null {
   if (!f.type) return 'Typ ist erforderlich.';
   if (!f.title.trim()) return 'Titel ist erforderlich.';
-  if (!f.date) return 'Datum ist erforderlich.';
-  if (f.date < pi.startStr || f.date > pi.endStr) {
-    return `Datum muss innerhalb des PI-Zeitraums liegen (${pi.startStr} – ${pi.endStr}).`;
+  if (!f.startDate) return 'Start-Datum ist erforderlich.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f.startDate)) return 'Start-Datum muss im Format YYYY-MM-DD sein.';
+  if (f.startDate < pi.startStr || f.startDate > pi.endStr) {
+    return `Start-Datum muss innerhalb des PI-Zeitraums liegen (${pi.startStr} – ${pi.endStr}).`;
   }
-  if (!f.startTime || !/^\d{2}:\d{2}$/.test(f.startTime)) return 'Startzeit muss im Format HH:MM angegeben werden.';
-  if (f.durationMinutes < 1 || f.durationMinutes > 60 * 48) {
-    return 'Dauer muss zwischen 1 Minute und 48 Stunden liegen.';
+  if (!f.startTime || !/^\d{2}:\d{2}$/.test(f.startTime)) return 'Start-Zeit muss im Format HH:MM sein.';
+  if (!f.endDate) return 'Ende-Datum ist erforderlich.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f.endDate)) return 'Ende-Datum muss im Format YYYY-MM-DD sein.';
+  if (!f.endTime || !/^\d{2}:\d{2}$/.test(f.endTime)) return 'Ende-Zeit muss im Format HH:MM sein.';
+  if (f.endDate < f.startDate) return 'Ende-Datum muss am Start-Datum oder später liegen.';
+  if (f.endDate === f.startDate && f.endTime <= f.startTime) {
+    return 'Wenn Start- und Ende-Datum gleich sind, muss die Ende-Zeit nach der Start-Zeit liegen.';
+  }
+  if (f.hasRecurrence) {
+    if (f.recurrenceInterval < 1 || f.recurrenceInterval > 99) {
+      return 'Serien-Intervall muss zwischen 1 und 99 liegen.';
+    }
+    if (f.recurrenceMode === 'count') {
+      if (f.recurrenceCount < 1 || f.recurrenceCount > 999) {
+        return 'Anzahl Wiederholungen muss zwischen 1 und 999 liegen.';
+      }
+    } else {
+      if (!f.recurrenceUntil || !/^\d{4}-\d{2}-\d{2}$/.test(f.recurrenceUntil)) {
+        return 'Serien-Enddatum ist erforderlich (YYYY-MM-DD).';
+      }
+      if (f.recurrenceUntil < f.startDate) {
+        return 'Serien-Enddatum muss am Start-Datum oder später liegen.';
+      }
+    }
   }
   return null;
 }
 
-/** Zeigt Minuten als "X Min" / "Xh" / "X.XT" (T = Tag à 8h) */
-function formatDauer(min: number): string {
-  if (min < 60) return `${min} Min`;
-  if (min < 8 * 60) return `${(min / 60).toFixed(min % 60 === 0 ? 0 : 1)}h`;
-  const tage = min / (8 * 60);
-  return `${tage.toFixed(tage % 1 === 0 ? 0 : 1)}T`;
+// ─── Display-Helpers ──────────────────────────────────────────────────────────
+
+function formatRecurrence(z: PIZeremonie): string {
+  if (!z.recurrence) return '—';
+  const freq = FREQUENCY_LABEL[z.recurrence.frequency];
+  const interval = z.recurrence.interval > 1 ? ` (alle ${z.recurrence.interval})` : '';
+  if (z.recurrence.count !== undefined) {
+    return `${freq}${interval} × ${z.recurrence.count}`;
+  }
+  if (z.recurrence.until) {
+    return `${freq}${interval} bis ${z.recurrence.until}`;
+  }
+  return freq + interval;
 }
+
+function formatDateTimeShort(date: string, time: string): string {
+  if (!date || !time) return '—';
+  return `${date} ${time}`;
+}
+
+// ─── Komponente ────────────────────────────────────────────────────────────────
 
 export default function ZeremonienEditor({ pi, onPiChange }: Props) {
   const [modalOffen, setModalOffen] = useState(false);
@@ -91,15 +153,28 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
   }
 
   function oeffneBearbeiten(z: PIZeremonie) {
+    // Schema-1.6-Felder bevorzugen, Fallback auf 1.5
+    const startDate = z.startDate ?? z.date;
+    const computed = addMinutes(startDate, z.startTime, z.durationMinutes);
+    const endDate = z.endDate ?? computed.date;
+    const endTime = z.endTime ?? computed.time;
+
     setForm({
       type: z.type,
       title: z.title,
-      date: z.date,
+      startDate,
       startTime: z.startTime,
-      durationMinutes: z.durationMinutes,
+      endDate,
+      endTime,
       location: z.location,
       description: z.description,
       iterationId: z.iterationId ?? '',
+      hasRecurrence: !!z.recurrence,
+      recurrenceFrequency: z.recurrence?.frequency ?? 'WEEKLY',
+      recurrenceInterval: z.recurrence?.interval ?? 1,
+      recurrenceMode: z.recurrence?.until ? 'until' : 'count',
+      recurrenceCount: z.recurrence?.count ?? 5,
+      recurrenceUntil: z.recurrence?.until ?? pi.endStr,
     });
     setBearbeiteteId(z.id);
     setFehler(null);
@@ -112,16 +187,20 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
     setFehler(null);
   }
 
-  /** Bei Typ-Wechsel: Default-Dauer/Zeit übernehmen (sofern Titel noch dem alten Default entspricht) */
+  /** Bei Typ-Wechsel: Default-Zeit + Default-Ende übernehmen (sofern Titel = Default) */
   function aendereTyp(neuerTyp: ZeremonieType) {
     setForm(f => {
       const titelWarDefault = f.title === ZEREMONIE_LABELS[f.type];
+      const newStartTime = ZEREMONIE_DEFAULT_START_TIME[neuerTyp];
+      const newDur = ZEREMONIE_DEFAULT_DURATION[neuerTyp];
+      const computed = addMinutes(f.startDate, newStartTime, newDur);
       return {
         ...f,
         type: neuerTyp,
         title: titelWarDefault ? ZEREMONIE_LABELS[neuerTyp] : f.title,
-        startTime: ZEREMONIE_DEFAULT_START_TIME[neuerTyp],
-        durationMinutes: ZEREMONIE_DEFAULT_DURATION[neuerTyp],
+        startTime: newStartTime,
+        endDate: computed.date,
+        endTime: computed.time,
       };
     });
   }
@@ -130,22 +209,46 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
     const err = validiereZeremonie(form, pi);
     if (err) { setFehler(err); return; }
 
-    // Schema 1.6: startDate/endDate/endTime aus 1.5-Werten ableiten,
-    // damit neu erstellte Zeremonien sofort 1.6-konform sind (Etappe 3 stellt UI um).
-    const computedEnd = addMinutes(form.date, form.startTime, form.durationMinutes);
+    // Schema 1.5 (legacy): durationMinutes berechnen
+    const startMs = Date.UTC(
+      Number(form.startDate.slice(0, 4)),
+      Number(form.startDate.slice(5, 7)) - 1,
+      Number(form.startDate.slice(8, 10)),
+      Number(form.startTime.slice(0, 2)),
+      Number(form.startTime.slice(3, 5)),
+    );
+    const endMs = Date.UTC(
+      Number(form.endDate.slice(0, 4)),
+      Number(form.endDate.slice(5, 7)) - 1,
+      Number(form.endDate.slice(8, 10)),
+      Number(form.endTime.slice(0, 2)),
+      Number(form.endTime.slice(3, 5)),
+    );
+    const durationMinutes = Math.max(1, Math.round((endMs - startMs) / 60_000));
+
+    const recurrence = form.hasRecurrence
+      ? {
+          frequency: form.recurrenceFrequency,
+          interval: form.recurrenceInterval,
+          ...(form.recurrenceMode === 'count'
+            ? { count: form.recurrenceCount }
+            : { until: form.recurrenceUntil }),
+        }
+      : undefined;
+
     const neue: PIZeremonie = {
       id: bearbeiteteId ?? crypto.randomUUID(),
       type: form.type,
       title: form.title.trim(),
       // Schema 1.5 (legacy):
-      date: form.date,
+      date: form.startDate,
       startTime: form.startTime,
-      durationMinutes: form.durationMinutes,
-      // Schema 1.6 (neu, additiv):
-      startDate: form.date,
-      endDate: computedEnd.date,
-      endTime: computedEnd.time,
-      // recurrence noch nicht über UI editierbar (kommt in Etappe 3)
+      durationMinutes,
+      // Schema 1.6:
+      startDate: form.startDate,
+      endDate: form.endDate,
+      endTime: form.endTime,
+      ...(recurrence ? { recurrence } : {}),
       location: form.location.trim(),
       description: form.description.trim(),
       iterationId: form.iterationId || undefined,
@@ -154,7 +257,6 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
     const neueListe = bearbeiteteId
       ? zeremonien.map(z => (z.id === bearbeiteteId ? neue : z))
       : [...zeremonien, neue];
-
     onPiChange({ ...pi, zeremonien: neueListe });
     schliesseModal();
   }
@@ -164,9 +266,11 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
     setLoescheId(null);
   }
 
-  /** Sortierung: nach Datum + Startzeit aufsteigend */
+  // Sortierung: nach Start-Datum + Start-Zeit aufsteigend
   const sortiert = [...zeremonien].sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    const aDate = a.startDate ?? a.date;
+    const bDate = b.startDate ?? b.date;
+    if (aDate !== bDate) return aDate < bDate ? -1 : 1;
     return a.startTime < b.startTime ? -1 : 1;
   });
 
@@ -198,52 +302,67 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
             <tr className="border-b border-blue-200 text-gray-600">
               <th className="py-1 px-2 text-left font-medium">Typ</th>
               <th className="py-1 px-2 text-left font-medium">Titel</th>
-              <th className="py-1 px-2 text-left font-medium">Datum</th>
-              <th className="py-1 px-2 text-left font-medium">Zeit</th>
-              <th className="py-1 px-2 text-left font-medium">Dauer</th>
+              <th className="py-1 px-2 text-left font-medium">Start</th>
+              <th className="py-1 px-2 text-left font-medium">Ende</th>
+              <th className="py-1 px-2 text-left font-medium">Serie</th>
               <th className="py-1 px-2 text-left font-medium">Iter.</th>
               <th className="py-1 px-2 text-center font-medium">.ics</th>
               <th className="py-1 px-2"></th>
             </tr>
           </thead>
           <tbody>
-            {sortiert.map(z => (
-              <tr key={z.id} className="border-b border-blue-100 hover:bg-blue-100 transition-colors">
-                <td className="py-1 px-2">{ZEREMONIE_LABELS[z.type]}</td>
-                <td className="py-1 px-2">{z.title}</td>
-                <td className="py-1 px-2">{z.date}</td>
-                <td className="py-1 px-2">{z.startTime}</td>
-                <td className="py-1 px-2">{formatDauer(z.durationMinutes)}</td>
-                <td className="py-1 px-2">{iterationName(z.iterationId)}</td>
-                <td className="py-1 px-2 text-center">
-                  <button
-                    onClick={() => downloadIcs(pi, z)}
-                    title=".ics-Datei herunterladen"
-                    className="p-0.5 text-gray-500 hover:text-bund-blau transition-colors"
-                  >
-                    <Download size={13} />
-                  </button>
-                </td>
-                <td className="py-1 px-2">
-                  <div className="flex gap-1 justify-end">
+            {sortiert.map(z => {
+              const startDate = z.startDate ?? z.date;
+              const computed = addMinutes(startDate, z.startTime, z.durationMinutes);
+              const endDate = z.endDate ?? computed.date;
+              const endTime = z.endTime ?? computed.time;
+              return (
+                <tr key={z.id} className="border-b border-blue-100 hover:bg-blue-100 transition-colors">
+                  <td className="py-1 px-2">{ZEREMONIE_LABELS[z.type]}</td>
+                  <td className="py-1 px-2">{z.title}</td>
+                  <td className="py-1 px-2 whitespace-nowrap">{formatDateTimeShort(startDate, z.startTime)}</td>
+                  <td className="py-1 px-2 whitespace-nowrap">{formatDateTimeShort(endDate, endTime)}</td>
+                  <td className="py-1 px-2 whitespace-nowrap">
+                    {z.recurrence ? (
+                      <span className="inline-flex items-center gap-1 text-bund-blau">
+                        <Repeat size={11} />
+                        {formatRecurrence(z)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="py-1 px-2">{iterationName(z.iterationId)}</td>
+                  <td className="py-1 px-2 text-center">
                     <button
-                      onClick={() => oeffneBearbeiten(z)}
-                      className="p-0.5 text-gray-400 hover:text-bund-blau transition-colors"
-                      title="Bearbeiten"
+                      onClick={() => downloadIcs(pi, z)}
+                      title=".ics-Datei herunterladen"
+                      className="p-0.5 text-gray-500 hover:text-bund-blau transition-colors"
                     >
-                      <Pencil size={13} />
+                      <Download size={13} />
                     </button>
-                    <button
-                      onClick={() => setLoescheId(z.id)}
-                      className="p-0.5 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Löschen"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="py-1 px-2">
+                    <div className="flex gap-1 justify-end">
+                      <button
+                        onClick={() => oeffneBearbeiten(z)}
+                        className="p-0.5 text-gray-400 hover:text-bund-blau transition-colors"
+                        title="Bearbeiten"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => setLoescheId(z.id)}
+                        className="p-0.5 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Löschen"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -251,7 +370,7 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
       {/* Modal: Zeremonie Neu / Bearbeiten */}
       {modalOffen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-base font-semibold text-bund-blau">
                 {bearbeiteteId ? 'Zeremonie bearbeiten' : 'Zeremonie hinzufügen'}
@@ -278,27 +397,121 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
                 value={form.title}
                 onChange={v => setForm(f => ({ ...f, title: v }))}
               />
-              <div className="grid grid-cols-3 gap-3">
+
+              {/* Start/Ende */}
+              <div className="grid grid-cols-2 gap-3">
                 <FormFeld
-                  label="Datum *"
-                  value={form.date}
-                  onChange={v => setForm(f => ({ ...f, date: v }))}
+                  label="Start-Datum *"
+                  value={form.startDate}
+                  onChange={v => setForm(f => ({ ...f, startDate: v }))}
                   type="date"
                 />
                 <FormFeld
-                  label="Startzeit *"
+                  label="Start-Zeit *"
                   value={form.startTime}
                   onChange={v => setForm(f => ({ ...f, startTime: v }))}
                   type="time"
                 />
-                <FormFeldZahl
-                  label="Dauer (Min) *"
-                  value={form.durationMinutes}
-                  onChange={v => setForm(f => ({ ...f, durationMinutes: v }))}
-                  min={1}
-                  max={60 * 48}
+                <FormFeld
+                  label="Ende-Datum *"
+                  value={form.endDate}
+                  onChange={v => setForm(f => ({ ...f, endDate: v }))}
+                  type="date"
+                />
+                <FormFeld
+                  label="Ende-Zeit *"
+                  value={form.endTime}
+                  onChange={v => setForm(f => ({ ...f, endTime: v }))}
+                  type="time"
                 />
               </div>
+
+              {/* Serie */}
+              <div className="border border-gray-200 rounded p-3 bg-gray-50">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.hasRecurrence}
+                    onChange={e => setForm(f => ({ ...f, hasRecurrence: e.target.checked }))}
+                    className="cursor-pointer"
+                  />
+                  <span className="flex items-center gap-1 text-sm font-medium text-gray-700">
+                    <Repeat size={14} />
+                    Terminserie (täglich / wöchentlich / monatlich)
+                  </span>
+                </label>
+                {form.hasRecurrence && (
+                  <div className="mt-3 space-y-2 pl-6">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Häufigkeit</label>
+                        <select
+                          value={form.recurrenceFrequency}
+                          onChange={e => setForm(f => ({ ...f, recurrenceFrequency: e.target.value as 'DAILY' | 'WEEKLY' | 'MONTHLY' }))}
+                          className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-bund-blau"
+                        >
+                          <option value="DAILY">Täglich</option>
+                          <option value="WEEKLY">Wöchentlich</option>
+                          <option value="MONTHLY">Monatlich</option>
+                        </select>
+                      </div>
+                      <FormFeldZahl
+                        label="Intervall (alle N)"
+                        value={form.recurrenceInterval}
+                        onChange={v => setForm(f => ({ ...f, recurrenceInterval: v }))}
+                        min={1}
+                        max={99}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Endet</label>
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-1 text-sm">
+                          <input
+                            type="radio"
+                            name="recmode"
+                            checked={form.recurrenceMode === 'count'}
+                            onChange={() => setForm(f => ({ ...f, recurrenceMode: 'count' }))}
+                          />
+                          nach
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={999}
+                          value={form.recurrenceCount}
+                          disabled={form.recurrenceMode !== 'count'}
+                          onChange={e => {
+                            const n = parseInt(e.target.value, 10);
+                            setForm(f => ({ ...f, recurrenceCount: Number.isFinite(n) ? n : 0 }));
+                          }}
+                          className="w-20 border border-gray-300 rounded px-2 py-1.5 text-sm disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-bund-blau"
+                        />
+                        <span className="text-sm text-gray-600">Wiederholungen</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <label className="flex items-center gap-1 text-sm">
+                          <input
+                            type="radio"
+                            name="recmode"
+                            checked={form.recurrenceMode === 'until'}
+                            onChange={() => setForm(f => ({ ...f, recurrenceMode: 'until' }))}
+                          />
+                          am
+                        </label>
+                        <input
+                          type="date"
+                          value={form.recurrenceUntil}
+                          disabled={form.recurrenceMode !== 'until'}
+                          onChange={e => setForm(f => ({ ...f, recurrenceUntil: e.target.value }))}
+                          className="border border-gray-300 rounded px-2 py-1.5 text-sm disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-bund-blau"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <FormFeld
                 label="Ort / Link"
                 value={form.location}
@@ -358,6 +571,7 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
             <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 p-6">
               <p className="text-sm text-gray-700 mb-6">
                 Zeremonie «{z?.title}» wirklich löschen?
+                {z?.recurrence && ' Die gesamte Serie wird entfernt.'}
               </p>
               <div className="flex justify-end gap-2">
                 <button
