@@ -1,5 +1,6 @@
-// Seed-Daten: leer — App startet ohne Vordaten.
-// Daten werden via Backup-Import oder manuell in der App erfasst.
+// Seed-Daten: leer bei Initial-Mount der App.
+// Demo-Daten für den Demo-Train werden separat in seed-demo.ts gehalten
+// und greifen via App.tsx wenn Server-State leer ist (siehe applyServerState).
 
 import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, GlobalCapacityConfig, TeamConfig } from '../types';
 

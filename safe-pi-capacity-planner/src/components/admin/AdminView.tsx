@@ -11,11 +11,13 @@ interface AdminViewProps {
   tenantId: string;
   tenantName: string;
   onCancel: () => void;
+  /** Callback: alle PIs löschen (PIs-Liste leeren). Wird nach Bestätigung aufgerufen. */
+  onClearAllPis?: () => void;
 }
 
 type AdminScreen = 'gate' | 'view';
 
-export default function AdminView({ tenantId, tenantName, onCancel }: AdminViewProps) {
+export default function AdminView({ tenantId, tenantName, onCancel, onClearAllPis }: AdminViewProps) {
   const [screen, setScreen] = useState<AdminScreen>('gate');
   const [verifiedCode, setVerifiedCode] = useState('');
 
@@ -71,6 +73,7 @@ export default function AdminView({ tenantId, tenantName, onCancel }: AdminViewP
       tenantId={tenantId}
       tenantName={tenantName}
       verifiedCode={verifiedCode}
+      onClearAllPis={onClearAllPis}
       onCodeInvalid={() => {
         clearStoredAdminCode();
         setScreen('gate');
@@ -84,9 +87,10 @@ interface AdminViewContentProps {
   tenantName: string;
   verifiedCode: string;
   onCodeInvalid: () => void;
+  onClearAllPis?: () => void;
 }
 
-function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid }: AdminViewContentProps) {
+function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid, onClearAllPis }: AdminViewContentProps) {
   const { setTenant } = useTenant();
   const [tenants, setTenants] = useState<TenantInfo[]>([]);
   const [currentTenant, setCurrentTenant] = useState<TenantInfo | null>(null);
@@ -103,6 +107,11 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid }:
   const [showResetGate, setShowResetGate] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+
+  // Alle PIs löschen (Feature 29 v2)
+  const [clearPisConfirmText, setClearPisConfirmText] = useState('');
+  const [clearPisDone, setClearPisDone] = useState(false);
+  const [clearPisError, setClearPisError] = useState<string | null>(null);
 
   // Admin-Code ändern
   const [showCodeChangeForm, setShowCodeChangeForm] = useState(false);
@@ -508,6 +517,60 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid }:
         </div>
 
         <div className="border-t border-red-200" />
+
+        {/* Alle PIs löschen (Feature 29 v2 — verschoben aus PI-Planung) */}
+        {onClearAllPis && (
+          <>
+            <div>
+              <h4 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Alle PIs löschen
+              </h4>
+              <p className="text-xs text-red-600 mb-3">
+                Entfernt alle erfassten PIs (inkl. Iterationen, Blocker-Wochen und Zeremonien) dieses Trains.
+                Mitarbeiter, Buchungen, Feiertage und Konfiguration bleiben erhalten.
+                Diese Aktion kann nicht rückgängig gemacht werden.
+              </p>
+
+              {clearPisDone ? (
+                <p className="text-green-700 text-sm font-medium">Alle PIs wurden gelöscht.</p>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <label className="block text-xs text-red-700 mb-1">
+                      Tippen Sie <strong>LÖSCHEN</strong> zur Bestätigung:
+                    </label>
+                    <input
+                      type="text"
+                      value={clearPisConfirmText}
+                      onChange={e => setClearPisConfirmText(e.target.value)}
+                      placeholder="LÖSCHEN"
+                      className="border border-red-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                    />
+                  </div>
+                  {clearPisError && <p className="text-red-700 text-xs mb-2">{clearPisError}</p>}
+                  <button
+                    onClick={() => {
+                      if (clearPisConfirmText !== 'LÖSCHEN') {
+                        setClearPisError('Bitte "LÖSCHEN" eingeben um fortzufahren.');
+                        return;
+                      }
+                      setClearPisError(null);
+                      onClearAllPis();
+                      setClearPisDone(true);
+                    }}
+                    disabled={clearPisConfirmText !== 'LÖSCHEN'}
+                    className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Alle PIs löschen
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="border-t border-red-200" />
+          </>
+        )}
 
         {/* Admin-Code ändern */}
         <div>

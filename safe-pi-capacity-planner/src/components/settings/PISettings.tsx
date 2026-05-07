@@ -1,8 +1,7 @@
 import { useState, useRef, Fragment } from 'react';
-import { Pencil, Trash2, Trash, Plus, Upload, Download, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
-import type { PIPlanning, Iteration } from '../../types';
+import { Pencil, Trash2, Plus, Upload, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import type { PIPlanning } from '../../types';
 import IterationEditor from './IterationEditor';
-import ZeremonienEditor from './ZeremonienEditor';
 import { calculateIterationDates, calculatePIEndDate, isMonday } from '../../utils/pi-calculator';
 import { downloadPiXlsx, parsePiXlsx, mergeImportedPis } from '../../utils/pi-xlsx';
 
@@ -73,39 +72,6 @@ function formatDeutsch(dateStr: string): string {
   return `${d}.${m}.${y}`;
 }
 
-function addTage(dateStr: string, tage: number): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + tage);
-  return d.toISOString().slice(0, 10);
-}
-
-function tageZwischen(startStr: string, endStr: string): number {
-  const s = new Date(startStr + 'T00:00:00');
-  const e = new Date(endStr + 'T00:00:00');
-  return Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function teilePiInIterationen(startStr: string, endStr: string, anzahl = 4): Iteration[] {
-  const gesamtTage = tageZwischen(startStr, endStr);
-  const basisTage = Math.floor(gesamtTage / anzahl);
-  const rest = gesamtTage % anzahl;
-  const iterationen: Iteration[] = [];
-  let aktuellerStart = startStr;
-
-  for (let i = 0; i < anzahl; i++) {
-    const tage = basisTage + (i < rest ? 1 : 0);
-    const aktuellesEnd = i === anzahl - 1 ? endStr : addTage(aktuellerStart, tage - 1);
-    iterationen.push({
-      id: crypto.randomUUID(),
-      name: `IT${i + 1}`,
-      startStr: aktuellerStart,
-      endStr: aktuellesEnd,
-    });
-    aktuellerStart = addTage(aktuellesEnd, 1);
-  }
-
-  return iterationen;
-}
 
 export default function PISettings({ pis, onChange }: Props) {
   const [modalOffen, setModalOffen] = useState(false);
@@ -115,9 +81,7 @@ export default function PISettings({ pis, onChange }: Props) {
   const [importFehler, setImportFehler] = useState<string | null>(null);
   const [importInfo, setImportInfo] = useState<string | null>(null);
   const [ausgeklappt, setAusgeklappt] = useState<Set<string>>(new Set());
-  const [loescheAlleBestaetigung, setLoescheAlleBestaetigung] = useState(false);
   const [loescheIdBestaetigung, setLoescheIdBestaetigung] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const xlsxFileInputRef = useRef<HTMLInputElement>(null);
 
   // Feature 29: Excel-Import-Modus-Dialog (nach Datei-Wahl, vor Anwenden)
@@ -213,12 +177,6 @@ export default function PISettings({ pis, onChange }: Props) {
     setLoescheIdBestaetigung(null);
   }
 
-  function loescheAlle() {
-    onChange([]);
-    setAusgeklappt(new Set());
-    setLoescheAlleBestaetigung(false);
-  }
-
   function toggleAusgeklappt(id: string) {
     setAusgeklappt(prev => {
       const s = new Set(prev);
@@ -229,23 +187,6 @@ export default function PISettings({ pis, onChange }: Props) {
 
   function aktualisierePi(piId: string, updated: PIPlanning) {
     onChange(pis.map(pi => pi.id === piId ? updated : pi));
-  }
-
-  function exportiereCsv() {
-    const BOM = '\uFEFF';
-    // Feature 29: iterationWeeks als 4. Spalte (abw\u00E4rtskompatibel \u2014 leer wenn nicht gesetzt)
-    const header = 'name;startStr;endStr;iterationWeeks';
-    const zeilen = pis.map(pi =>
-      `${pi.name};${pi.startStr};${pi.endStr};${pi.iterationWeeks ?? ''}`
-    );
-    const inhalt = BOM + [header, ...zeilen].join('\n');
-    const blob = new Blob([inhalt], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pi_planung_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   // ─── Feature 29: Excel-Workbook Export/Import (für RTE) ─────────────────────
@@ -295,69 +236,6 @@ export default function PISettings({ pis, onChange }: Props) {
     }
   }
 
-  function importiereCsv(e: React.ChangeEvent<HTMLInputElement>) {
-    setImportFehler(null);
-    const datei = e.target.files?.[0];
-    if (!datei) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        let text = event.target?.result as string;
-        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-        const zeilen = text.split(/\r?\n/).filter(z => z.trim());
-        if (zeilen.length < 2) throw new Error('CSV enthält keine Datenzeilen.');
-        const kopf = zeilen[0].split(';').map(s => s.trim().toLowerCase());
-        if (!kopf.includes('name') || !kopf.includes('startstr') || !kopf.includes('endstr')) {
-          throw new Error('Ungültiger CSV-Header. Erwartet: name;startStr;endStr');
-        }
-        const idx = {
-          name: kopf.indexOf('name'),
-          start: kopf.indexOf('startstr'),
-          end: kopf.indexOf('endstr'),
-          iterationWeeks: kopf.indexOf('iterationweeks'), // Feature 29, optional (-1 wenn nicht vorhanden)
-        };
-        const neuePis: PIPlanning[] = [];
-        for (let i = 1; i < zeilen.length; i++) {
-          const felder = zeilen[i].split(';');
-          const name = felder[idx.name]?.trim() ?? '';
-          const startStr = felder[idx.start]?.trim() ?? '';
-          const endStr = felder[idx.end]?.trim() ?? '';
-          if (!name || !startStr || !endStr) throw new Error(`Zeile ${i + 1}: Name, Start und Ende sind erforderlich.`);
-          if (startStr >= endStr) throw new Error(`Zeile ${i + 1}: Startdatum muss vor Enddatum liegen.`);
-
-          // Feature 29: optionale iterationWeeks-Spalte
-          let iterationWeeks: number | undefined;
-          if (idx.iterationWeeks >= 0) {
-            const raw = felder[idx.iterationWeeks]?.trim() ?? '';
-            if (raw) {
-              const parsed = parseInt(raw, 10);
-              if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 6) {
-                iterationWeeks = parsed;
-              } else {
-                throw new Error(`Zeile ${i + 1}: iterationWeeks muss zwischen 1 und 6 liegen (war: "${raw}").`);
-              }
-            }
-          }
-
-          neuePis.push({
-            id: crypto.randomUUID(),
-            name,
-            startStr,
-            endStr,
-            iterationen: teilePiInIterationen(startStr, endStr),
-            ...(iterationWeeks !== undefined ? { iterationWeeks } : {}),
-            blockerWeeks: [],
-            zeremonien: [],
-          });
-        }
-        onChange([...pis, ...neuePis]);
-      } catch (err) {
-        setImportFehler(err instanceof Error ? err.message : 'Unbekannter Fehler beim CSV-Import.');
-      }
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-    reader.readAsText(datei, 'UTF-8');
-  }
 
   return (
     <div>
@@ -372,23 +250,7 @@ export default function PISettings({ pis, onChange }: Props) {
             <Plus size={16} />
             Neu
           </button>
-          <button
-            onClick={exportiereCsv}
-            disabled={pis.length === 0}
-            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Download size={16} />
-            CSV Export
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200 transition-colors"
-          >
-            <Upload size={16} />
-            CSV Import
-          </button>
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={importiereCsv} />
-          {/* Feature 29: Excel-Workbook (4 Sheets — RTE-freundlich) */}
+          {/* Feature 29: Excel-Workbook (4 Sheets — RTE-freundlich, ersetzt CSV) */}
           <button
             onClick={exportiereXlsx}
             disabled={pis.length === 0}
@@ -413,15 +275,6 @@ export default function PISettings({ pis, onChange }: Props) {
             className="hidden"
             onChange={waehleXlsxDatei}
           />
-          {pis.length > 0 && (
-            <button
-              onClick={() => setLoescheAlleBestaetigung(true)}
-              className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-700 text-sm rounded hover:bg-red-100 transition-colors"
-            >
-              <Trash size={16} />
-              Alle löschen
-            </button>
-          )}
         </div>
       </div>
 
@@ -503,10 +356,6 @@ export default function PISettings({ pis, onChange }: Props) {
                     <tr>
                       <td colSpan={7} className="px-6 py-3 bg-blue-50 border-t border-blue-100">
                         <IterationEditor
-                          pi={pi}
-                          onPiChange={(updated) => aktualisierePi(pi.id, updated)}
-                        />
-                        <ZeremonienEditor
                           pi={pi}
                           onPiChange={(updated) => aktualisierePi(pi.id, updated)}
                         />
@@ -627,15 +476,7 @@ export default function PISettings({ pis, onChange }: Props) {
         />
       )}
 
-      {/* Bestätigung: Alle löschen */}
-      {loescheAlleBestaetigung && (
-        <Bestaetigung
-          meldung={`Wirklich alle ${pis.length} PIs löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
-          onBestaetigen={loescheAlle}
-          onAbbrechen={() => setLoescheAlleBestaetigung(false)}
-          gefaehrlich
-        />
-      )}
+      {/* «Alle PIs löschen» wurde nach Admin → Gefährliche Aktionen verschoben */}
 
       {/* Feature 29: Excel-Import-Modus-Dialog */}
       {xlsxImportPending && (

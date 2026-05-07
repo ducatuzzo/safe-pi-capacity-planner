@@ -11,6 +11,7 @@ import PIDashboardView from './components/pidashboard/PIDashboardView';
 import AdminView from './components/admin/AdminView';
 import TenantGate from './components/tenant/TenantGate';
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER, SEED_GLOBAL_CONFIG, SEED_TEAM_CONFIGS } from './data/seed';
+import { DEMO_PIS, DEMO_FEIERTAGE } from './data/seed-demo';
 import { DEFAULT_FARB_CONFIG } from './constants';
 import { useSocket } from './hooks/useSocket';
 import type { SettingsChangeType } from './hooks/useSocket';
@@ -85,16 +86,32 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
   const userName = useRef(getSessionUserName());
 
   const applyServerState = useCallback((state: SavedProjectState) => {
+    // Feature 29 v2: wenn der State des Demo-Trains komplett leer ist, fallback auf Demo-Daten
+    // (greift bei frischer Installation oder nach Reset; user-erstellte Daten werden nie überschrieben)
+    const istKomplettLeer =
+      state.employees.length === 0 &&
+      (state.appData.pis?.length ?? 0) === 0 &&
+      (state.appData.feiertage?.length ?? 0) === 0 &&
+      (state.appData.schulferien?.length ?? 0) === 0 &&
+      (state.appData.blocker?.length ?? 0) === 0;
+    const istDemoTrain = tenantId === 'default';
+
     setEmployees(state.employees);
-    // Schema-Migration auf 1.5 (Feature 29): blockerWeeks/zeremonien defaulten, Demo-PI26-2 entfernen
-    setPis(migratePIs(state.appData.pis as PIPlanning[]));
-    setFeiertage(state.appData.feiertage);
+    if (istKomplettLeer && istDemoTrain) {
+      // Schema-1.6-Migration läuft auch auf Demo-Daten (idempotent)
+      setPis(migratePIs(DEMO_PIS));
+      setFeiertage(DEMO_FEIERTAGE);
+    } else {
+      // Schema-Migration auf 1.6 (Feature 29 v2): blockerWeeks/zeremonien defaulten, Zeremonien-Felder ergänzen
+      setPis(migratePIs(state.appData.pis as PIPlanning[]));
+      setFeiertage(state.appData.feiertage);
+    }
     setSchulferien(state.appData.schulferien);
     setBlocker(state.appData.blocker);
     setGlobalConfig(state.appData.globalConfig ?? SEED_GLOBAL_CONFIG);
     setTeamConfigs(state.appData.teamConfigs ?? SEED_TEAM_CONFIGS);
     setPiTeamTargets(state.appData.piTeamTargets ?? []);
-  }, []);
+  }, [tenantId]);
 
   const handleRemoteAllocationChange = useCallback(
     (employeeId: string, dateStr: string, type: AllocationType) => {
@@ -355,7 +372,12 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
           />
         )}
         {activeTab === 'admin' && (
-          <AdminView tenantId={tenantId} tenantName={tenantName} onCancel={() => setActiveTab('planung')} />
+          <AdminView
+            tenantId={tenantId}
+            tenantName={tenantName}
+            onCancel={() => setActiveTab('planung')}
+            onClearAllPis={() => handlePisChange([])}
+          />
         )}
         {activeTab === 'settings' && (
           <SettingsPage

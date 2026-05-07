@@ -1,4 +1,5 @@
 node_modules/
 dist/
 .env
-data/
+# Nur Server-Daten-Verzeichnis im Wurzel des Subprojekts ignorieren — NICHT src/data/
+/data/
