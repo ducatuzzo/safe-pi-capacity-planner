@@ -1,6 +1,35 @@
-# STATUS.md – Stand: 22.04.2026
+# STATUS.md – Stand: 06.05.2026
 
 > Feature-Nummerierung folgt PRD.md (verbindlich). Dieses Dokument trackt nur den Implementierungsstatus.
+
+## Stand: 2026-05-06
+
+### Zuletzt erledigt (Session 06.05.2026)
+- **Feature 29: PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen** ✅ implementiert
+  - Schritt 1 ✅ types.ts erweitert (PIBlockerWeek, PIZeremonie, ZeremonieType), pi-calculator.ts (calculateIterationDates, ZEREMONIE_DEFAULTS), state-migration.ts (Schema 1.4 → 1.5)
+  - Schritt 2 ✅ PI-Erstellung Modal: wochenbasiert, Auto-Berechnung Enddatum, Iter.-Wo. Spalte
+  - Schritt 3 ✅ IterationEditor: Blocker-Wochen Inline-Anzeige + CRUD + automatische Re-Berechnung
+  - Schritt 4 ✅ ZeremonienEditor (NEU): CRUD-Tabelle + Modal mit 7 Typen, Default-Dauer/Zeit pro Typ
+  - Schritt 5 ✅ ics-export.ts (NEU): RFC 5545 konforme Generierung, client-side Download
+  - Schritt 6 ✅ Planungs-Kalender: Blocker-Balken (gestreift) + Zeremonien-Marker (◆) mit Tooltip
+- Build grün, TypeScript-Check `tsc --noEmit` ohne Fehler
+- Browser-Verifikation in jedem Schritt durchgeführt
+
+### Entscheidungen für Feature 29 (06.05.2026)
+- Nummern-Konflikt: PRD.md „Rollen" 29 → 30 verschoben, Feature 29 = PI-Planung wochenbasiert
+- Naming additiv: bestehendes `PIPlanning`/`PiDefinition` bleibt, neue Felder als optional ergänzt
+- Backup-Format: `BACKUP_FORMAT_VERSION` 1.0 → 1.5 (Schema-Bump, Migration mit leeren Arrays)
+- Demo-PI26-2 Löschung: nur einmalig beim ersten Migrationspass (gated via fehlende blockerWeeks/zeremonien-Felder), neu angelegte PI26-2 bleiben erhalten
+- Spec-Datei-Name bleibt `feature-29-pi-planung-v2.md`
+- 6. Header-Zeile (vorher 5) für Zeremonien-Marker, Blocker als variant='blocker' Span in Iter-Zeile (additiv, kein neues groupBy)
+- ICS: floating local time (kein TZ-Suffix) → Empfänger-Kalender interpretiert als lokal
+
+### Bekannte Abhängigkeiten
+- Feature 22 (Custom Allocation Types) muss deployed sein vor F29-Deploy
+- Blocker/Freeze (Change-Management) bleibt vollständig unberührt
+- Demo-Daten PI26-2: Migrations-Skript greift automatisch beim ersten State-Load nach Deploy
+
+---
 
 ## Projektstatus
 ✅ Features 01–21 abgeschlossen, Build grün, **auf Vercel deployed** (Commit `1ee0095`).
@@ -51,6 +80,11 @@
 |-----|---------|--------|
 | 23 | Swiss Design System CSS Alignment (BIT Skin) | ✅ impl / ⏳ deploy |
 
+### Phase 5b — PI-Planung Vertiefung
+| Nr. | Feature | Status |
+|-----|---------|--------|
+| 29 | PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen (.ics) | ✅ impl / ⏳ deploy |
+
 ### Eigenständige Features
 | Feature | Status |
 |---------|--------|
@@ -97,8 +131,9 @@
 - **Paket 7 IMPL am 2026-04-24 abgebrochen – Architektur-Spec fehlt.** Kein Dokument mit dem Bezeichner "Paket 7" in features/, prompts/ oder anderen Verzeichnissen gefunden. Projekt nutzt Feature-basierte Nummerierung (01–23), kein Paket-Schema. Vor Implementierung muss eine Architektur-Spec erstellt werden (features/paket-7-settings.md oder äquivalent).
 
 ## Nächste Schritte (priorisiert)
-1. Feature 22: Custom Allocation Types — Datenmodell-Review vor Implementierung
-2. Recovery-Protokoll für Feature 22 schreiben (Breaking Change: allocations-Typ)
+1. Feature 29: Deploy zusammen mit F22 + F23 nach Vercel
+2. Feature 22: Custom Allocation Types — Datenmodell-Review vor Implementierung
+3. Recovery-Protokoll für Feature 22 schreiben (Breaking Change: allocations-Typ)
 
 ## Bekannte Risiken
 - **JSON-Persistenz ohne Locking:** Bei gleichzeitigen Schreibzugriffen via Socket.io kann ein Race Condition auftreten. Für aktuelle Nutzerzahl (< 10 gleichzeitig) akzeptiert.

@@ -71,3 +71,17 @@
     font-family: Frutiger, 'NotoSans', Arial, sans-serif;
   }
 }
+
+/* Feature 29: Schraffur-Hintergrund für Blocker-Wochen im Planungs-Kalender */
+@layer utilities {
+  .bg-blocker-stripe {
+    background-color: #E5E7EB;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      rgba(0, 0, 0, 0.08) 4px,
+      rgba(0, 0, 0, 0.08) 8px
+    );
+  }
+}

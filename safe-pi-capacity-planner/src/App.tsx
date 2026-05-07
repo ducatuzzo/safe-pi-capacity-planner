@@ -15,6 +15,7 @@ import { DEFAULT_FARB_CONFIG } from './constants';
 import { useSocket } from './hooks/useSocket';
 import type { SettingsChangeType } from './hooks/useSocket';
 import { useTenant } from './hooks/useTenant';
+import { migratePIs } from './utils/state-migration';
 
 const INITIAL_FILTER: FilterState = {
   teams: [],
@@ -85,7 +86,8 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
 
   const applyServerState = useCallback((state: SavedProjectState) => {
     setEmployees(state.employees);
-    setPis(state.appData.pis as PIPlanning[]);
+    // Schema-Migration auf 1.5 (Feature 29): blockerWeeks/zeremonien defaulten, Demo-PI26-2 entfernen
+    setPis(migratePIs(state.appData.pis as PIPlanning[]));
     setFeiertage(state.appData.feiertage);
     setSchulferien(state.appData.schulferien);
     setBlocker(state.appData.blocker);
@@ -250,7 +252,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
     setPiTeamTargets(restoredPiTeamTargets);
 
     const fullState: SavedProjectState = {
-      version: '1.0',
+      version: '1.5',
       timestamp: new Date().toISOString(),
       year: new Date().getFullYear(),
       employees: state.employees,

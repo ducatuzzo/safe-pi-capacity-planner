@@ -159,3 +159,44 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 **Folge-Renumbering in PRD.md:**
 - Phase 6+ Roadmap-Features 23–28 wurden auf 24–29 verschoben (TOTP 2FA, aGov OIDC, Jira REST, Mobile, Audit-Log, Rollen).
 - Historische Referenz im Eintrag 2026-04-12 (Feature 19) auf "Feature 23" für TOTP bleibt als Zeitdokument unverändert; gilt jetzt als Feature 24.
+
+## 2026-05-06: Feature 29 – PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen
+**Entscheidung:** ARTFlow-PI-Planung-Funktionalität (RTE) vollständig in den Capacity Planner integriert. Drei neue Konzepte additiv zum bestehenden `PIPlanning`-Datenmodell: wochenbasierte Generierung, Blocker-Wochen, SAFe-Zeremonien.
+
+**Begründung:**
+- Spec definiert `PIPlan` mit anderem Naming (`startDate`/`iterationWeeks`); Code nutzt seit Feature 04 `PIPlanning` mit `startStr`/`endStr`/`iterationen`. Ein Naming-Refactor wäre Breaking Change und hätte Schema 1.4 → 2.0 statt 1.5 erfordert.
+- Stattdessen: optionale Felder `iterationWeeks?`, `blockerWeeks?`, `zeremonien?` direkt auf `PIPlanning` und `PiDefinition` ergänzt. Schema 1.4 → 1.5 mit additiver Migration (leere Arrays als Default).
+- `Blocker/Freeze` (Change-Management, IT-Wartungsfenster) bleibt vollständig unberührt — nicht zu verwechseln mit dem neuen `PIBlockerWeek` (PI-internes Konzept).
+- Iterations-Daten und PI-Enddatum werden bei Blocker-Add/Delete via `calculateIterationDates()` neu berechnet; bestehende Iter-IDs werden beibehalten (Allocations und Zeremonie-Referenzen bleiben gültig).
+
+**Nummern-Konflikt:** Feature 29 war in PRD.md Phase 6+ als „Rollen (Admin, Planer, Read-Only)" reserviert. Roadmap-Eintrag „Rollen" auf Nummer 30 verschoben, neue Phase 5b in PRD.md eingeführt.
+
+**Demo-PI26-2 Löschung:** Migrations-Skript (`migratePIs()` in `state-migration.ts`) entfernt das ARTFlow-Demo-PI nur dann, wenn das PI noch keine `blockerWeeks`/`zeremonien`-Felder hat (= un-migriert). Damit kann der User nach dem Schema-Bump problemlos neue PIs mit Namen „PI26-2" anlegen, ohne dass sie automatisch verschwinden.
+
+**ICS-Format:** RFC 5545 konform, "floating local time" (kein TZ-Suffix). Kein npm-Paket — pure JS in `ics-export.ts`. Filename-Schema: `{PI-Name}_{Zeremonien-Typ}_{Datum}.ics`.
+
+**Kalender-Header:** 6 Zeilen statt 5 (Monat / KW / PI / Iter+Blocker / Zeremonien-Marker / Tag). Blocker-Wochen erscheinen als gestreifter Span (`bg-blocker-stripe` Utility-Klasse in `index.css`) in der Iter-Zeile. Zeremonien als rotes ◆ in eigener Zeile mit Hover-Tooltip (`title`-Attribut).
+
+**Geänderte Dateien:**
+- `safe-pi-capacity-planner/src/types.ts` (3 neue Interfaces, 3 optionale Felder auf PIPlanning + PiDefinition)
+- `safe-pi-capacity-planner/src/utils/pi-calculator.ts` (NEU — pure functions + Zeremonien-Defaults)
+- `safe-pi-capacity-planner/src/utils/state-migration.ts` (NEU — Schema-Migration, Demo-PI-Cleanup)
+- `safe-pi-capacity-planner/src/utils/ics-export.ts` (NEU — RFC 5545 ICS-Generator + Download)
+- `safe-pi-capacity-planner/src/components/settings/BackupRestoreSettings.tsx` (BACKUP_FORMAT_VERSION 1.0 → 1.5, 1.0-Backups akzeptiert + auto-migriert)
+- `safe-pi-capacity-planner/src/components/settings/PISettings.tsx` (wochenbasiertes PI-Modal, Iter.-Wo. Spalte, Auto-Berechnung)
+- `safe-pi-capacity-planner/src/components/settings/IterationEditor.tsx` (Schnittstelle auf onPiChange, Blocker-Wochen Inline + CRUD)
+- `safe-pi-capacity-planner/src/components/settings/ZeremonienEditor.tsx` (NEU — CRUD-Tabelle + Modal mit 7 Typen)
+- `safe-pi-capacity-planner/src/components/calendar/CalendarHeader.tsx` (5 → 6 Zeilen, Blocker-Variant + Zeremonien-Zeile)
+- `safe-pi-capacity-planner/src/components/calendar/CalendarGrid.tsx` (Legende erweitert)
+- `safe-pi-capacity-planner/src/utils/calendar-helpers.ts` (HeaderSpan.variant, groupByIterationOrBlocker, getZeremonienByDate)
+- `safe-pi-capacity-planner/src/index.css` (.bg-blocker-stripe Utility-Klasse für 45° Schraffur)
+- `safe-pi-capacity-planner/src/App.tsx` (Server-State-Migration via migratePIs, SavedProjectState.version 1.0 → 1.5)
+
+**Alternativ geprüft & verworfen:**
+- Naming-Refactor `PIPlanning` → `PIPlan` (Breaking Change, hätte Schema 2.0 erfordert)
+- Eigene Header-Zeile NUR für Blocker-Wochen (7 Header-Zeilen total — visuell zu viel)
+- Blocker-Anzeige als overlay über der Tag-Zeile (Konflikt mit bestehendem Snowflake-Symbol für Change-Freeze)
+- Drag & Drop für Blocker-Wochen (Spec Section 7: out of scope)
+- Automatische Verschiebung von Zeremonien bei Blocker-Einfügung (Spec Section 7: out of scope)
+- ICS mit TZID (Europe/Zurich) — floating local time einfacher und für interne BIT-Termine ausreichend
+

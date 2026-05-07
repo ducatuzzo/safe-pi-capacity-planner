@@ -41,14 +41,53 @@ export interface DateRangeDefinition {
 // Iteration innerhalb eines PI
 export interface Iteration extends DateRangeDefinition {}
 
+// Feature 29: SAFe-Zeremonien-Typen (rein kalendarisch, kein Kapazitäts-Abzug)
+export type ZeremonieType =
+  | 'PI_PLANNING'
+  | 'DRAFT_PLAN_REVIEW'
+  | 'FINAL_PLAN_REVIEW'
+  | 'PRIO_MEETING'
+  | 'SYSTEM_DEMO'
+  | 'FINAL_SYSTEM_DEMO'
+  | 'INSPECT_ADAPT';
+
+// Feature 29: Blocker-Woche innerhalb eines PI (verschiebt nachfolgende Iterationen)
+// Abgrenzung: völlig unabhängig vom bestehenden `Blocker` (Change-Freeze)
+export interface PIBlockerWeek {
+  id: string;
+  label: string;             // z.B. "Weihnachten", "Sommerpause"
+  afterIterationId: string;  // Blocker sitzt NACH dieser Iteration
+  weeks: number;             // Dauer in Wochen, Default 1
+}
+
+// Feature 29: SAFe-Zeremonie innerhalb eines PI (rein kalendarisch)
+export interface PIZeremonie {
+  id: string;
+  type: ZeremonieType;
+  title: string;             // editierbar, Default = Typ-Label
+  date: string;              // YYYY-MM-DD
+  startTime: string;         // "HH:mm" (24h)
+  durationMinutes: number;   // Default je nach Typ (siehe ZEREMONIE_DEFAULT_DURATION)
+  location: string;          // optional, Freitext / Teams-Link
+  description: string;       // optional, erscheint im .ics Body
+  iterationId?: string;      // optional: Zuordnung zu Iteration
+}
+
 // PI-Planung mit Iterationen (kanonisch)
+// Feature 29: optional erweitert um iterationWeeks, blockerWeeks, zeremonien (additiv, Schema 1.5)
 export interface PIPlanning extends DateRangeDefinition {
   iterationen: Iteration[];
+  iterationWeeks?: number;        // Wochen pro Iteration (für Auto-Berechnung), 1–6
+  blockerWeeks?: PIBlockerWeek[]; // Blocker-Wochen, die Iterationen verschieben
+  zeremonien?: PIZeremonie[];     // SAFe-Zeremonien (kalendarisch)
 }
 
 // PI-Planung mit Iterationen (Legacy-Alias, für Rückwärtskompatibilität)
 export interface PiDefinition extends DateRangeDefinition {
   iterationen: Iteration[];
+  iterationWeeks?: number;
+  blockerWeeks?: PIBlockerWeek[];
+  zeremonien?: PIZeremonie[];
 }
 
 // Feiertag

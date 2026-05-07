@@ -1,7 +1,7 @@
 # PRD.md – Product Requirements Document: SAFe PI Capacity Planner
 
 > **Führendes Dokument** für die Feature-Liste. Nummerierung ist verbindlich für STATUS.md, AI.md und features/.
-> Zuletzt synchronisiert: 22.04.2026
+> Zuletzt synchronisiert: 06.05.2026
 
 ## Ziel
 Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren Story Points pro SAFe PI und Iteration zu berechnen. Jeder Mitarbeiter trägt seine Absenzen via Maus-Drag über einen Kalender ein. Das System berechnet automatisch die Kapazität unter Berücksichtigung von Feiertagen, Schulferien, FTE, Betriebsanteilen und Pauschalen. Das Dashboard zeigt Engpässe (Pikett-Lücken, Betrieb-Unterbesetzung) sofort an.
@@ -61,6 +61,12 @@ Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren St
 |-----|---------|--------|---------------|
 | 22 | Custom Allocation Types (individuelle Buchungstypen pro Team, Kategorie-Zuordnung) | 🔲 geplant | feature-22-custom-allocation-types.md |
 
+### Phase 5b — PI-Planung Vertiefung
+
+| Nr. | Feature | Status | Feature-Datei |
+|-----|---------|--------|---------------|
+| 29 | PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen (.ics Export) | ✅ impl / ⏳ deploy | feature-29-pi-planung-v2.md |
+
 ### Phase 6+ — nach Pilotbetrieb (Roadmap)
 
 | Nr. | Feature | Status | Feature-Datei |
@@ -70,7 +76,7 @@ Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren St
 | 26 | Jira REST API Integration (ersetzt manuelle SP-Eingabe) | 🔲 Roadmap | — |
 | 27 | Mobile-Optimierung | 🔲 Roadmap | — |
 | 28 | Audit-Log (Admin-Aktionen) | 🔲 Roadmap | — |
-| 29 | Rollen (Admin, Planer, Read-Only) | 🔲 Roadmap | — |
+| 30 | Rollen (Admin, Planer, Read-Only) | 🔲 Roadmap | — |
 
 ### Eigenständige Features (ohne Phasen-Zuordnung)
 

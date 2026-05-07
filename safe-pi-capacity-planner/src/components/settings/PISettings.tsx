@@ -2,26 +2,74 @@ import { useState, useRef, Fragment } from 'react';
 import { Pencil, Trash2, Trash, Plus, Upload, Download, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PIPlanning, Iteration } from '../../types';
 import IterationEditor from './IterationEditor';
+import ZeremonienEditor from './ZeremonienEditor';
+import { calculateIterationDates, calculatePIEndDate, isMonday } from '../../utils/pi-calculator';
 
 interface Props {
   pis: PIPlanning[];
   onChange: (pis: PIPlanning[]) => void;
 }
 
+// Feature 29: Standard-Werte für neue wochenbasierte PIs
+const DEFAULT_ITERATION_WEEKS = 3;
+const DEFAULT_ITERATION_COUNT = 5;
+
 interface PiFormState {
   name: string;
   startStr: string;
-  endStr: string;
+  endStr: string;           // bei NEU: auto-berechnet, bei BEARBEITEN: manuell
+  iterationWeeks: number;   // Feature 29
+  iterationCount: number;   // Feature 29 — nur bei Neuanlage relevant
 }
 
-const LEERES_PI: PiFormState = { name: '', startStr: '', endStr: '' };
+const LEERES_PI: PiFormState = {
+  name: '',
+  startStr: '',
+  endStr: '',
+  iterationWeeks: DEFAULT_ITERATION_WEEKS,
+  iterationCount: DEFAULT_ITERATION_COUNT,
+};
 
-function validierePI(f: PiFormState): string | null {
-  if (!f.name.trim()) return 'Name ist erforderlich.';
-  if (!f.startStr) return 'Startdatum ist erforderlich.';
-  if (!f.endStr) return 'Enddatum ist erforderlich.';
-  if (f.startStr >= f.endStr) return 'Startdatum muss vor dem Enddatum liegen.';
-  return null;
+interface ValidierungResult {
+  fehler: string | null;
+  warnung: string | null;
+}
+
+function validierePiNeu(f: PiFormState, existierende: PIPlanning[]): ValidierungResult {
+  if (!f.name.trim()) return { fehler: 'Name ist erforderlich.', warnung: null };
+  if (existierende.some(p => p.name.trim().toLowerCase() === f.name.trim().toLowerCase())) {
+    return { fehler: `Ein PI mit dem Namen «${f.name.trim()}» existiert bereits.`, warnung: null };
+  }
+  if (!f.startStr) return { fehler: 'Startdatum ist erforderlich.', warnung: null };
+  if (f.iterationWeeks < 1 || f.iterationWeeks > 6) {
+    return { fehler: 'Wochen pro Iteration muss zwischen 1 und 6 liegen.', warnung: null };
+  }
+  if (f.iterationCount < 1 || f.iterationCount > 10) {
+    return { fehler: 'Anzahl Iterationen muss zwischen 1 und 10 liegen.', warnung: null };
+  }
+  const warnung = isMonday(f.startStr) ? null : 'Hinweis: Startdatum ist kein Montag.';
+  return { fehler: null, warnung };
+}
+
+function validierePiBearbeiten(f: PiFormState, existierende: PIPlanning[], eigeneId: string): ValidierungResult {
+  if (!f.name.trim()) return { fehler: 'Name ist erforderlich.', warnung: null };
+  if (existierende.some(p => p.id !== eigeneId && p.name.trim().toLowerCase() === f.name.trim().toLowerCase())) {
+    return { fehler: `Ein PI mit dem Namen «${f.name.trim()}» existiert bereits.`, warnung: null };
+  }
+  if (!f.startStr) return { fehler: 'Startdatum ist erforderlich.', warnung: null };
+  if (!f.endStr) return { fehler: 'Enddatum ist erforderlich.', warnung: null };
+  if (f.startStr >= f.endStr) return { fehler: 'Startdatum muss vor dem Enddatum liegen.', warnung: null };
+  if (f.iterationWeeks < 1 || f.iterationWeeks > 6) {
+    return { fehler: 'Wochen pro Iteration muss zwischen 1 und 6 liegen.', warnung: null };
+  }
+  return { fehler: null, warnung: null };
+}
+
+/** Formatiert ein YYYY-MM-DD als deutsches Datum (DD.MM.YYYY), leer wenn ungültig */
+function formatDeutsch(dateStr: string): string {
+  if (!dateStr || dateStr.length !== 10) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}.${m}.${y}`;
 }
 
 function addTage(dateStr: string, tage: number): string {
@@ -77,7 +125,13 @@ export default function PISettings({ pis, onChange }: Props) {
   }
 
   function oeffneBearbeiten(pi: PIPlanning) {
-    setForm({ name: pi.name, startStr: pi.startStr, endStr: pi.endStr });
+    setForm({
+      name: pi.name,
+      startStr: pi.startStr,
+      endStr: pi.endStr,
+      iterationWeeks: pi.iterationWeeks ?? DEFAULT_ITERATION_WEEKS,
+      iterationCount: pi.iterationen.length || DEFAULT_ITERATION_COUNT,
+    });
     setBearbeiteteId(pi.id);
     setFehler(null);
     setModalOffen(true);
@@ -89,19 +143,54 @@ export default function PISettings({ pis, onChange }: Props) {
     setFehler(null);
   }
 
-  function speichern() {
-    const err = validierePI(form);
-    if (err) { setFehler(err); return; }
+  /** Live berechnetes Enddatum für die Vorschau im "Neu"-Modal */
+  function vorschauEnddatum(): string {
+    if (!form.startStr) return '';
+    if (form.iterationWeeks < 1 || form.iterationCount < 1) return '';
+    try {
+      const iter = calculateIterationDates({
+        startDate: form.startStr,
+        iterationWeeks: form.iterationWeeks,
+        iterations: form.iterationCount,
+      });
+      return calculatePIEndDate(iter);
+    } catch {
+      return '';
+    }
+  }
 
+  function speichern() {
     if (bearbeiteteId) {
+      const { fehler: err } = validierePiBearbeiten(form, pis, bearbeiteteId);
+      if (err) { setFehler(err); return; }
       onChange(pis.map(pi =>
-        pi.id === bearbeiteteId ? { ...pi, ...form } : pi
+        pi.id === bearbeiteteId
+          ? {
+              ...pi,
+              name: form.name.trim(),
+              startStr: form.startStr,
+              endStr: form.endStr,
+              iterationWeeks: form.iterationWeeks,
+            }
+          : pi
       ));
     } else {
+      const { fehler: err } = validierePiNeu(form, pis);
+      if (err) { setFehler(err); return; }
+      const iterationen = calculateIterationDates({
+        startDate: form.startStr,
+        iterationWeeks: form.iterationWeeks,
+        iterations: form.iterationCount,
+      });
       const neuesPi: PIPlanning = {
         id: crypto.randomUUID(),
-        ...form,
-        iterationen: teilePiInIterationen(form.startStr, form.endStr),
+        name: form.name.trim(),
+        startStr: form.startStr,
+        endStr: calculatePIEndDate(iterationen),
+        iterationWeeks: form.iterationWeeks,
+        iterationen,
+        blockerWeeks: [],
+        zeremonien: [],
       };
       onChange([...pis, neuesPi]);
     }
@@ -128,8 +217,8 @@ export default function PISettings({ pis, onChange }: Props) {
     });
   }
 
-  function aktualisiereIterationen(piId: string, iterationen: Iteration[]) {
-    onChange(pis.map(pi => pi.id === piId ? { ...pi, iterationen } : pi));
+  function aktualisierePi(piId: string, updated: PIPlanning) {
+    onChange(pis.map(pi => pi.id === piId ? updated : pi));
   }
 
   function exportiereCsv() {
@@ -180,6 +269,8 @@ export default function PISettings({ pis, onChange }: Props) {
             startStr,
             endStr,
             iterationen: teilePiInIterationen(startStr, endStr),
+            blockerWeeks: [],
+            zeremonien: [],
           });
         }
         onChange([...pis, ...neuePis]);
@@ -255,6 +346,7 @@ export default function PISettings({ pis, onChange }: Props) {
                 <th className="px-3 py-2">Start</th>
                 <th className="px-3 py-2">Ende</th>
                 <th className="px-3 py-2 text-right">Iter.</th>
+                <th className="px-3 py-2 text-right">Iter.-Wo.</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
@@ -275,6 +367,9 @@ export default function PISettings({ pis, onChange }: Props) {
                     <td className="px-3 py-2">{pi.startStr}</td>
                     <td className="px-3 py-2">{pi.endStr}</td>
                     <td className="px-3 py-2 text-right">{pi.iterationen.length}</td>
+                    <td className="px-3 py-2 text-right text-gray-600">
+                      {pi.iterationWeeks ? `${pi.iterationWeeks} Wo.` : '–'}
+                    </td>
                     <td className="px-3 py-2">
                       <div className="flex gap-1 justify-end">
                         <button
@@ -296,10 +391,14 @@ export default function PISettings({ pis, onChange }: Props) {
                   </tr>
                   {ausgeklappt.has(pi.id) && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-3 bg-blue-50 border-t border-blue-100">
+                      <td colSpan={7} className="px-6 py-3 bg-blue-50 border-t border-blue-100">
                         <IterationEditor
                           pi={pi}
-                          onIterationenChange={(iter) => aktualisiereIterationen(pi.id, iter)}
+                          onPiChange={(updated) => aktualisierePi(pi.id, updated)}
+                        />
+                        <ZeremonienEditor
+                          pi={pi}
+                          onPiChange={(updated) => aktualisierePi(pi.id, updated)}
                         />
                       </td>
                     </tr>
@@ -313,48 +412,101 @@ export default function PISettings({ pis, onChange }: Props) {
       )}
 
       {/* Modal: PI Neu / Bearbeiten */}
-      {modalOffen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-bund-blau">
-                {bearbeiteteId ? 'PI bearbeiten' : 'Neues PI'}
-              </h3>
-            </div>
-            <div className="px-6 py-4 space-y-4">
-              <FormFeld label="Name *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormFeld label="Startdatum *" value={form.startStr} onChange={v => setForm(f => ({ ...f, startStr: v }))} type="date" />
-                <FormFeld label="Enddatum *" value={form.endStr} onChange={v => setForm(f => ({ ...f, endStr: v }))} type="date" />
+      {modalOffen && (() => {
+        const istBearbeiten = bearbeiteteId !== null;
+        const vorschau = istBearbeiten ? '' : vorschauEnddatum();
+        const startWarnung = form.startStr && !isMonday(form.startStr)
+          ? 'Hinweis: Startdatum ist kein Montag.'
+          : null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-bund-blau">
+                  {istBearbeiten ? 'PI bearbeiten' : 'Neues PI erstellen'}
+                </h3>
               </div>
-              {!bearbeiteteId && (
-                <p className="text-xs text-gray-500">
-                  Iterationen werden automatisch gleichmässig in 4 Teile aufgeteilt und können danach manuell angepasst werden.
-                </p>
+              <div className="px-6 py-4 space-y-4">
+                <FormFeld label="PI-Name *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
+                <FormFeld
+                  label="Startdatum *"
+                  value={form.startStr}
+                  onChange={v => setForm(f => ({ ...f, startStr: v }))}
+                  type="date"
+                />
+                {!istBearbeiten ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormFeldZahl
+                        label="Wochen/Iteration *"
+                        value={form.iterationWeeks}
+                        onChange={v => setForm(f => ({ ...f, iterationWeeks: v }))}
+                        min={1}
+                        max={6}
+                      />
+                      <FormFeldZahl
+                        label="Anzahl Iter. *"
+                        value={form.iterationCount}
+                        onChange={v => setForm(f => ({ ...f, iterationCount: v }))}
+                        min={1}
+                        max={10}
+                      />
+                    </div>
+                    <div className="rounded bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-bund-blau">
+                      Enddatum wird automatisch berechnet:{' '}
+                      <span className="font-semibold">
+                        {vorschau ? formatDeutsch(vorschau) : '—'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <FormFeld
+                      label="Enddatum *"
+                      value={form.endStr}
+                      onChange={v => setForm(f => ({ ...f, endStr: v }))}
+                      type="date"
+                    />
+                    <FormFeldZahl
+                      label="Wochen/Iteration"
+                      value={form.iterationWeeks}
+                      onChange={v => setForm(f => ({ ...f, iterationWeeks: v }))}
+                      min={1}
+                      max={6}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Iterations-Daten werden beim Bearbeiten nicht automatisch neu berechnet.
+                      Anpassungen erfolgen über die Iterations-Liste.
+                    </p>
+                  </>
+                )}
+                {startWarnung && (
+                  <p className="text-xs text-amber-700">{startWarnung}</p>
+                )}
+              </div>
+              {fehler && (
+                <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-300 text-red-700 text-sm rounded">
+                  {fehler}
+                </div>
               )}
-            </div>
-            {fehler && (
-              <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-300 text-red-700 text-sm rounded">
-                {fehler}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+                <button
+                  onClick={schliesseModal}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={speichern}
+                  className="px-4 py-2 bg-bund-blau text-white text-sm rounded hover:bg-blue-900 transition-colors"
+                >
+                  {istBearbeiten ? 'Speichern' : 'Erstellen'}
+                </button>
               </div>
-            )}
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
-              <button
-                onClick={schliesseModal}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Abbrechen
-              </button>
-              <button
-                onClick={speichern}
-                className="px-4 py-2 bg-bund-blau text-white text-sm rounded hover:bg-blue-900 transition-colors"
-              >
-                Speichern
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Bestätigung: Einzeln löschen */}
       {loescheIdBestaetigung && (
@@ -393,6 +545,33 @@ function FormFeld({ label, value, onChange, type = 'text' }: FormFeldProps) {
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
+        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-bund-blau"
+      />
+    </div>
+  );
+}
+
+interface FormFeldZahlProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+}
+
+function FormFeldZahl({ label, value, onChange, min, max }: FormFeldZahlProps) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        onChange={e => {
+          const n = parseInt(e.target.value, 10);
+          onChange(Number.isFinite(n) ? n : 0);
+        }}
         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-bund-blau"
       />
     </div>

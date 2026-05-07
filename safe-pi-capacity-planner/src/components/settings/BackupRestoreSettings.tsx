@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import type { BackupFile, FullAppState } from '../../types';
+import { migrateStateToSchema15 } from '../../utils/state-migration';
 
 const APP_VERSION = '1.0.0';
-const BACKUP_FORMAT_VERSION = '1.0';
+const BACKUP_FORMAT_VERSION = '1.5';
+// Akzeptierte Versionen beim Restore (alle werden auf 1.5 migriert)
+const SUPPORTED_BACKUP_VERSIONS = new Set(['1.0', '1.5']);
 
 interface Props {
   appState: FullAppState;
@@ -73,9 +76,16 @@ export default function BackupRestoreSettings({ appState, onRestore }: Props) {
         );
         if (!bestaetigt) return;
 
-        onRestore(backup.data);
+        // Schema-Migration auf 1.5 (Feature 29)
+        const migrated = migrateStateToSchema15(backup.data);
+
+        onRestore(migrated);
+        const versionsHinweis =
+          backup.version === BACKUP_FORMAT_VERSION
+            ? ''
+            : ` Migriert von Schema ${backup.version} → ${BACKUP_FORMAT_VERSION}.`;
         setErfolgsmeldung(
-          `Backup erfolgreich importiert (erstellt am ${new Date(backup.exportedAt).toLocaleString('de-CH')}).`
+          `Backup erfolgreich importiert (erstellt am ${new Date(backup.exportedAt).toLocaleString('de-CH')}).${versionsHinweis}`
         );
         setFehler(null);
       } catch {
@@ -158,8 +168,9 @@ function validiereDatei(parsed: unknown): string | null {
   if (!obj.version || typeof obj.version !== 'string') {
     return 'Das Backup enthält kein gültiges Versionsfeld.';
   }
-  if (obj.version !== BACKUP_FORMAT_VERSION) {
-    return `Nicht unterstützte Backup-Version "${obj.version}". Erwartet: "${BACKUP_FORMAT_VERSION}".`;
+  if (!SUPPORTED_BACKUP_VERSIONS.has(obj.version)) {
+    const erlaubt = Array.from(SUPPORTED_BACKUP_VERSIONS).join(', ');
+    return `Nicht unterstützte Backup-Version "${obj.version}". Erlaubt: ${erlaubt}.`;
   }
   if (!obj.exportedAt || typeof obj.exportedAt !== 'string') {
     return 'Das Backup enthält kein gültiges Exportdatum.';

@@ -1,6 +1,6 @@
 // Hilfsfunktionen für den Kalender-View
 
-import type { AppData, PIPlanning } from '../types';
+import type { AppData, PIPlanning, PIZeremonie, PIBlockerWeek } from '../types';
 
 // ─── Typen ────────────────────────────────────────────────────────────────────
 
@@ -14,6 +14,8 @@ export interface DayMeta {
 export interface HeaderSpan {
   label: string;
   span: number;
+  /** Feature 29: 'blocker' für gestreifte Darstellung in der Iter-Zeile */
+  variant?: 'normal' | 'blocker';
 }
 
 // ─── Datum-Utilities ──────────────────────────────────────────────────────────
@@ -182,4 +184,72 @@ export function groupByIteration(days: Date[], pis: PIPlanning[]): HeaderSpan[] 
       return '';
     }
   );
+}
+
+// ─── Feature 29 Helpers ───────────────────────────────────────────────────────
+
+/**
+ * Feature 29: Findet zu welcher Blocker-Woche ein Tag gehört.
+ * Eine Blocker-Woche von X Wochen folgt unmittelbar nach `afterIteration.endStr`
+ * (also Tag X+1) und endet X*7 Tage später.
+ */
+function findBlockerForDate(dateStr: string, pi: PIPlanning): PIBlockerWeek | null {
+  for (const b of pi.blockerWeeks ?? []) {
+    const iter = pi.iterationen.find(i => i.id === b.afterIterationId);
+    if (!iter) continue;
+    const start = parseUTC(iter.endStr);
+    start.setUTCDate(start.getUTCDate() + 1);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + b.weeks * 7 - 1);
+    if (dateStr >= toDateStr(start) && dateStr <= toDateStr(end)) {
+      return b;
+    }
+  }
+  return null;
+}
+
+/**
+ * Feature 29: Wie groupByIteration, aber Blocker-Wochen erscheinen als eigene
+ * Spans mit variant='blocker'. Lücke zwischen Iter X und Iter X+1, in der ein
+ * Blocker liegt, wird mit dem Blocker-Label gefüllt.
+ */
+export function groupByIterationOrBlocker(days: Date[], pis: PIPlanning[]): HeaderSpan[] {
+  type Entry = { key: string; label: string; variant: 'normal' | 'blocker' };
+
+  const entries: Entry[] = days.map(d => {
+    const ds = toDateStr(d);
+    for (const pi of pis) {
+      const iter = pi.iterationen.find(i => ds >= i.startStr && ds <= i.endStr);
+      if (iter) return { key: `iter:${iter.id}`, label: iter.name, variant: 'normal' };
+      const blocker = findBlockerForDate(ds, pi);
+      if (blocker) return { key: `blocker:${blocker.id}`, label: blocker.label, variant: 'blocker' };
+      if (ds >= pi.startStr && ds <= pi.endStr) {
+        return { key: `pi:${pi.id}`, label: pi.name, variant: 'normal' };
+      }
+    }
+    return { key: '', label: '', variant: 'normal' };
+  });
+
+  const spans: HeaderSpan[] = [];
+  let currentKey: string | null = null;
+  for (const e of entries) {
+    if (e.key !== currentKey) {
+      spans.push({ label: e.label, span: 1, variant: e.variant });
+      currentKey = e.key;
+    } else {
+      spans[spans.length - 1].span++;
+    }
+  }
+  return spans;
+}
+
+/** Feature 29: alle Zeremonien aller PIs an einem bestimmten Datum */
+export function getZeremonienByDate(dateStr: string, pis: PIPlanning[]): { pi: PIPlanning; zeremonie: PIZeremonie }[] {
+  const result: { pi: PIPlanning; zeremonie: PIZeremonie }[] = [];
+  for (const pi of pis) {
+    for (const z of pi.zeremonien ?? []) {
+      if (z.date === dateStr) result.push({ pi, zeremonie: z });
+    }
+  }
+  return result;
 }

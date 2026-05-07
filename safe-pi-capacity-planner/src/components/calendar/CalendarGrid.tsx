@@ -304,6 +304,14 @@ export default function CalendarGrid({
           Blocker (Header)
         </span>
         <span className="flex items-center gap-1">
+          <span className="inline-block w-4 h-4 rounded-sm bg-blocker-stripe" />
+          Blocker-Woche (PI)
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-4 h-4 rounded-sm text-center leading-4 text-secondary-500">◆</span>
+          Zeremonie
+        </span>
+        <span className="flex items-center gap-1">
           <span
             className="inline-block w-4 h-4 rounded-sm"
             style={{ backgroundColor: farbConfig.kalender.wochenende.bg }}
