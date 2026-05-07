@@ -151,7 +151,7 @@ export function addMinutes(
 }
 
 /** Addiert eine Frequenz-Periode (DAILY/WEEKLY/MONTHLY × interval) zu einem Datum */
-function addPeriod(
+export function addPeriod(
   dateStr: string,
   freq: 'DAILY' | 'WEEKLY' | 'MONTHLY',
   interval: number,

@@ -1,12 +1,14 @@
 // 6-zeiliger Kalender-Header: Monat / KW / PI / Iteration+Blocker / Zeremonien / Tag+Wochentag
+// Schema 1.6 (Etappe 4): Zeremonien-Marker mit Serien-Expansion + occurrence/total im Tooltip
 
+import { useMemo } from 'react';
 import type { PIPlanning, Blocker, FarbConfig } from '../../types';
 import {
   groupByMonth,
   groupByKW,
   groupByPI,
   groupByIterationOrBlocker,
-  getZeremonienByDate,
+  buildZeremonienIndex,
   toDateStr,
   getWeekdayLabel,
 } from '../../utils/calendar-helpers';
@@ -31,6 +33,8 @@ export default function CalendarHeader({ days, pis, todayStr, blockers, farbConf
   const kwSpans = groupByKW(days);
   const piSpans = groupByPI(days, pis);
   const iterSpans = groupByIterationOrBlocker(days, pis);
+  // Feature 29 v2: Zeremonien einmal pro Render expandieren + indexieren (Performance)
+  const zeremonienIdx = useMemo(() => buildZeremonienIndex(pis), [pis]);
 
   return (
     <thead>
@@ -106,11 +110,11 @@ export default function CalendarHeader({ days, pis, todayStr, blockers, farbConf
         })}
       </tr>
 
-      {/* Zeile 5: Zeremonien-Marker (Feature 29) */}
+      {/* Zeile 5: Zeremonien-Marker (Feature 29 v2 — Schema 1.6 mit Serien-Expansion) */}
       <tr>
         {days.map(day => {
           const ds = toDateStr(day);
-          const treffer = getZeremonienByDate(ds, pis);
+          const treffer = zeremonienIdx.get(ds) ?? [];
           if (treffer.length === 0) {
             return (
               <th
@@ -120,18 +124,34 @@ export default function CalendarHeader({ days, pis, todayStr, blockers, farbConf
             );
           }
           const tooltip = treffer
-            .map(({ pi, zeremonie }) =>
-              `${ZEREMONIE_LABELS[zeremonie.type]} (${pi.name})\n${zeremonie.title}\n${zeremonie.startTime} · ${zeremonie.durationMinutes} Min` +
-              (zeremonie.location ? `\nOrt: ${zeremonie.location}` : '')
-            )
+            .map(({ pi, zeremonie, instance }) => {
+              const serie = instance.total > 1
+                ? ` · Serie ${instance.occurrence}/${instance.total}`
+                : '';
+              const zeit = instance.startDate === instance.endDate
+                ? `${instance.startTime}–${instance.endTime}`
+                : `${instance.startDate} ${instance.startTime} → ${instance.endDate} ${instance.endTime}`;
+              return (
+                `${ZEREMONIE_LABELS[zeremonie.type]} (${pi.name})${serie}\n` +
+                `${zeremonie.title}\n` +
+                zeit +
+                (zeremonie.location ? `\nOrt: ${zeremonie.location}` : '')
+              );
+            })
             .join('\n\n');
+          // Erkennt: ist mind. eine der Treffer eine Serien-Instanz?
+          const hatSerie = treffer.some(t => t.instance.total > 1);
           return (
             <th
               key={ds}
               title={tooltip}
               className={`${TH} ${TOP[4]} bg-white h-7 w-8 min-w-[32px] max-w-[32px] p-0`}
             >
-              <span className="text-secondary-500 text-sm leading-none cursor-help">◆</span>
+              <span
+                className={`text-sm leading-none cursor-help ${hatSerie ? 'text-secondary-600' : 'text-secondary-500'}`}
+              >
+                {hatSerie ? '◈' : '◆'}
+              </span>
               {treffer.length > 1 && (
                 <span className="absolute text-[8px] text-secondary-700 leading-none">{treffer.length}</span>
               )}

@@ -1,6 +1,7 @@
 // Hilfsfunktionen für den Kalender-View
 
 import type { AppData, PIPlanning, PIZeremonie, PIBlockerWeek } from '../types';
+import { expandRecurrence, addPeriod, type ZeremonieInstanz } from './pi-calculator';
 
 // ─── Typen ────────────────────────────────────────────────────────────────────
 
@@ -243,13 +244,51 @@ export function groupByIterationOrBlocker(days: Date[], pis: PIPlanning[]): Head
   return spans;
 }
 
-/** Feature 29: alle Zeremonien aller PIs an einem bestimmten Datum */
-export function getZeremonienByDate(dateStr: string, pis: PIPlanning[]): { pi: PIPlanning; zeremonie: PIZeremonie }[] {
-  const result: { pi: PIPlanning; zeremonie: PIZeremonie }[] = [];
+/**
+ * Feature 29 v2 (Schema 1.6): ein Match einer Zeremonien-Instanz an einem
+ * bestimmten Tag. Bei Serien gibt es eine Instanz pro Wiederholung; bei
+ * mehrtägigen Terminen tritt die gleiche Instanz an mehreren Tagen auf.
+ */
+export interface ZeremonieDateMatch {
+  pi: PIPlanning;
+  zeremonie: PIZeremonie;
+  instance: ZeremonieInstanz;
+}
+
+/**
+ * Feature 29 v2: Performance-optimierter Index — einmal pro Render aufgebaut.
+ * Expandiert alle Serien-Zeremonien zu konkreten Instanzen und indexiert sie
+ * pro Tag. Mehrtägige Termine erscheinen unter jedem Tag im Bereich.
+ *
+ * Komplexität: O(N × Instanzen × Dauer-in-Tagen) einmalig statt pro Tag.
+ */
+export function buildZeremonienIndex(pis: PIPlanning[]): Map<string, ZeremonieDateMatch[]> {
+  const idx = new Map<string, ZeremonieDateMatch[]>();
   for (const pi of pis) {
     for (const z of pi.zeremonien ?? []) {
-      if (z.date === dateStr) result.push({ pi, zeremonie: z });
+      const instances = expandRecurrence(z);
+      for (const inst of instances) {
+        let cur = inst.startDate;
+        // Iteriere von startDate bis endDate (inklusiv)
+        while (cur <= inst.endDate) {
+          const list = idx.get(cur);
+          const match: ZeremonieDateMatch = { pi, zeremonie: z, instance: inst };
+          if (list) list.push(match);
+          else idx.set(cur, [match]);
+          cur = addPeriod(cur, 'DAILY', 1);
+        }
+      }
     }
   }
-  return result;
+  return idx;
+}
+
+/**
+ * Feature 29: liefert alle Zeremonien-Instanzen, die an einem bestimmten Datum
+ * stattfinden — inklusive Serien-Wiederholungen (Schema 1.6). Für viele
+ * Tag-Lookups (z.B. Kalender-Header) `buildZeremonienIndex()` einmal pro Render
+ * aufrufen und Map.get() nutzen.
+ */
+export function getZeremonienByDate(dateStr: string, pis: PIPlanning[]): ZeremonieDateMatch[] {
+  return buildZeremonienIndex(pis).get(dateStr) ?? [];
 }
