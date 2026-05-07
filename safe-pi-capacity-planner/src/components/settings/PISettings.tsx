@@ -1,9 +1,10 @@
 import { useState, useRef, Fragment } from 'react';
-import { Pencil, Trash2, Trash, Plus, Upload, Download, ChevronDown, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Trash, Plus, Upload, Download, ChevronDown, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import type { PIPlanning, Iteration } from '../../types';
 import IterationEditor from './IterationEditor';
 import ZeremonienEditor from './ZeremonienEditor';
 import { calculateIterationDates, calculatePIEndDate, isMonday } from '../../utils/pi-calculator';
+import { downloadPiXlsx, parsePiXlsx, mergeImportedPis } from '../../utils/pi-xlsx';
 
 interface Props {
   pis: PIPlanning[];
@@ -112,10 +113,19 @@ export default function PISettings({ pis, onChange }: Props) {
   const [form, setForm] = useState<PiFormState>({ ...LEERES_PI });
   const [fehler, setFehler] = useState<string | null>(null);
   const [importFehler, setImportFehler] = useState<string | null>(null);
+  const [importInfo, setImportInfo] = useState<string | null>(null);
   const [ausgeklappt, setAusgeklappt] = useState<Set<string>>(new Set());
   const [loescheAlleBestaetigung, setLoescheAlleBestaetigung] = useState(false);
   const [loescheIdBestaetigung, setLoescheIdBestaetigung] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const xlsxFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Feature 29: Excel-Import-Modus-Dialog (nach Datei-Wahl, vor Anwenden)
+  const [xlsxImportPending, setXlsxImportPending] = useState<{
+    pis: PIPlanning[];
+    warnings: string[];
+    fileName: string;
+  } | null>(null);
 
   function oeffneNeu() {
     setForm({ ...LEERES_PI });
@@ -238,6 +248,53 @@ export default function PISettings({ pis, onChange }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  // ─── Feature 29: Excel-Workbook Export/Import (für RTE) ─────────────────────
+
+  function exportiereXlsx() {
+    try {
+      downloadPiXlsx(pis);
+    } catch (err) {
+      setImportFehler(err instanceof Error ? err.message : 'Excel-Export fehlgeschlagen.');
+    }
+  }
+
+  async function waehleXlsxDatei(e: React.ChangeEvent<HTMLInputElement>) {
+    setImportFehler(null);
+    setImportInfo(null);
+    const datei = e.target.files?.[0];
+    if (xlsxFileInputRef.current) xlsxFileInputRef.current.value = '';
+    if (!datei) return;
+    try {
+      const { pis: imported, warnings } = await parsePiXlsx(datei);
+      if (imported.length === 0) {
+        setImportFehler('Excel-Datei enthält keine PIs.');
+        return;
+      }
+      setXlsxImportPending({ pis: imported, warnings, fileName: datei.name });
+    } catch (err) {
+      setImportFehler(err instanceof Error ? err.message : 'Excel-Import fehlgeschlagen.');
+    }
+  }
+
+  function bestaetigeXlsxImport(mode: 'append' | 'replace') {
+    if (!xlsxImportPending) return;
+    try {
+      const merged = mergeImportedPis(pis, xlsxImportPending.pis, mode);
+      onChange(merged);
+      const warnTeil = xlsxImportPending.warnings.length > 0
+        ? ` ${xlsxImportPending.warnings.length} Hinweis${xlsxImportPending.warnings.length > 1 ? 'e' : ''}: ${xlsxImportPending.warnings.join(' ')}`
+        : '';
+      const aktion = mode === 'append' ? 'angehängt' : 'überschrieben';
+      setImportInfo(
+        `${xlsxImportPending.pis.length} PI${xlsxImportPending.pis.length > 1 ? 's' : ''} aus «${xlsxImportPending.fileName}» ${aktion}.${warnTeil}`,
+      );
+      setXlsxImportPending(null);
+    } catch (err) {
+      setImportFehler(err instanceof Error ? err.message : 'Import fehlgeschlagen.');
+      setXlsxImportPending(null);
+    }
+  }
+
   function importiereCsv(e: React.ChangeEvent<HTMLInputElement>) {
     setImportFehler(null);
     const datei = e.target.files?.[0];
@@ -331,6 +388,31 @@ export default function PISettings({ pis, onChange }: Props) {
             CSV Import
           </button>
           <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={importiereCsv} />
+          {/* Feature 29: Excel-Workbook (4 Sheets — RTE-freundlich) */}
+          <button
+            onClick={exportiereXlsx}
+            disabled={pis.length === 0}
+            title="Excel-Workbook mit 4 Sheets exportieren (PIs, Iterationen, Blocker-Wochen, Zeremonien)"
+            className="flex items-center gap-1 px-3 py-2 bg-green-50 text-green-700 text-sm rounded hover:bg-green-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <FileSpreadsheet size={16} />
+            Excel Export
+          </button>
+          <button
+            onClick={() => xlsxFileInputRef.current?.click()}
+            title="Excel-Workbook (.xlsx) mit 4 Sheets importieren"
+            className="flex items-center gap-1 px-3 py-2 bg-green-50 text-green-700 text-sm rounded hover:bg-green-100 transition-colors"
+          >
+            <Upload size={16} />
+            Excel Import
+          </button>
+          <input
+            ref={xlsxFileInputRef}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="hidden"
+            onChange={waehleXlsxDatei}
+          />
           {pis.length > 0 && (
             <button
               onClick={() => setLoescheAlleBestaetigung(true)}
@@ -348,6 +430,14 @@ export default function PISettings({ pis, onChange }: Props) {
         <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 text-sm rounded">
           {importFehler}
           <button onClick={() => setImportFehler(null)} className="ml-2 underline">Schliessen</button>
+        </div>
+      )}
+
+      {/* Import-Info (Erfolgsmeldung Excel) */}
+      {importInfo && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-300 text-green-800 text-sm rounded">
+          {importInfo}
+          <button onClick={() => setImportInfo(null)} className="ml-2 underline">Schliessen</button>
         </div>
       )}
 
@@ -545,6 +635,58 @@ export default function PISettings({ pis, onChange }: Props) {
           onAbbrechen={() => setLoescheAlleBestaetigung(false)}
           gefaehrlich
         />
+      )}
+
+      {/* Feature 29: Excel-Import-Modus-Dialog */}
+      {xlsxImportPending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-bund-blau">Excel-Import</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Datei: {xlsxImportPending.fileName}
+              </p>
+            </div>
+            <div className="px-6 py-4 space-y-3">
+              <p className="text-sm text-gray-700">
+                <strong>{xlsxImportPending.pis.length}</strong> PI{xlsxImportPending.pis.length > 1 ? 's' : ''} aus
+                der Datei gelesen. Wie sollen sie in den bestehenden Datenbestand übernommen werden?
+              </p>
+              <div className="rounded bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-600 space-y-1">
+                <p><strong>Anhängen:</strong> Importierte PIs werden ergänzt. Bricht ab, wenn ein Name bereits existiert.</p>
+                <p><strong>Überschreiben:</strong> PIs gleichen Namens werden ersetzt. Andere bestehende PIs bleiben unangetastet.</p>
+              </div>
+              {xlsxImportPending.warnings.length > 0 && (
+                <div className="rounded bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 space-y-1">
+                  <p className="font-semibold">{xlsxImportPending.warnings.length} Hinweis{xlsxImportPending.warnings.length > 1 ? 'e' : ''}:</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {xlsxImportPending.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={() => setXlsxImportPending(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => bestaetigeXlsxImport('append')}
+                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200 transition-colors"
+              >
+                Anhängen
+              </button>
+              <button
+                onClick={() => bestaetigeXlsxImport('replace')}
+                className="px-4 py-2 bg-bund-blau text-white text-sm rounded hover:bg-blue-900 transition-colors"
+              >
+                Überschreiben
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

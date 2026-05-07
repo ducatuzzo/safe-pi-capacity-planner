@@ -289,7 +289,7 @@ Pro PI können beliebig viele **SAFe-Zeremonien** als kalendarische Termine erfa
 
 > Zeremonien sind rein kalendarisch — sie ziehen **keine Kapazität ab** und blockieren keine Buchungen. Sie erscheinen als ◆-Marker im Planungs-Kalender (siehe Abschnitt «Kalender-Header»).
 
-#### CSV-Import/Export
+#### CSV-Import/Export (Stamm-Daten)
 
 **CSV-Format ab v1.8 (Schema 1.5):**
 
@@ -299,13 +299,51 @@ PI26-2;2026-04-27;2026-08-09;3
 PI26-3;2026-08-31;2026-12-13;3
 ```
 
-Die 4. Spalte `iterationWeeks` ist **optional** — alte CSV-Dateien mit nur 3 Spalten (`name;startStr;endStr`) werden weiterhin unterstützt (PIs werden dann ohne `iterationWeeks` angelegt; «Bearbeiten» kann es nachträglich setzen).
+Die 4. Spalte `iterationWeeks` ist **optional** — alte CSV-Dateien mit nur 3 Spalten (`name;startStr;endStr`) werden weiterhin unterstützt.
 
-**Hinweis zu komplexen Feldern:** `blockerWeeks` und `zeremonien` werden NICHT via CSV exportiert/importiert. Diese liegen ausschliesslich im JSON-Backup (Einstellungen → Backup & Restore). Der CSV-Pfad bleibt einem schlanken Tabellen-Round-Trip vorbehalten.
+**CSV transportiert nur Stammdaten** (Name, Start, Ende, iterationWeeks). Iterationen werden beim Import gleichmässig in 4 Teile aufgeteilt; `blockerWeeks` und `zeremonien` werden NICHT via CSV transportiert. Für vollständige Daten siehe Excel-Export oder JSON-Backup.
 
-**Round-Trip-Sicherheit:**
-- CSV-Export → CSV-Import: PI-Name, Start/Ende und `iterationWeeks` bleiben erhalten. Iterationen werden beim Import gleichmässig in 4 Teile aufgeteilt (alte Logik).
-- JSON-Backup-Export → Restore: vollständig (alle Felder inkl. Iterationen, Blocker-Wochen, Zeremonien).
+#### Excel-Workbook Export/Import (.xlsx) — empfohlen für RTE
+
+Speziell für den **Release Train Engineer** gibt es seit v1.8 einen Excel-Workbook-Workflow, der **alle PI-Daten** (Iterationen, Blocker-Wochen, Zeremonien) in einer einzigen Datei mit 4 Sheets transportiert.
+
+**Toolbar-Buttons:** «Excel Export» (grün) und «Excel Import» (grün) neben den CSV-Buttons.
+
+**Workbook-Struktur (4 Sheets):**
+
+| Sheet | Spalten | Inhalt |
+|---|---|---|
+| **PIs** | `name`, `startStr`, `endStr`, `iterationWeeks` | ein Datensatz pro PI |
+| **Iterationen** | `piName`, `iterName`, `startStr`, `endStr` | mehrere Zeilen pro PI (Iterationen-Detail) |
+| **Blocker-Wochen** | `piName`, `afterIterName`, `label`, `weeks` | optional, mehrere pro PI |
+| **Zeremonien** | `piName`, `type`, `title`, `date`, `startTime`, `durationMinutes`, `location`, `description`, `iterName` | optional, mehrere pro PI |
+
+**Iter-Namen-basiertes Mapping:** Querverweise (Blocker → afterIterName, Zeremonie → iterName) nutzen die **Namen** der Iterationen, nicht IDs. Das ist stabiler bei manueller Excel-Bearbeitung — der RTE kann Iterationen umordnen oder umbenennen, ohne IDs jagen zu müssen.
+
+**Beim Import:** nach Datei-Wahl erscheint ein Dialog mit:
+- Anzahl der gelesenen PIs
+- ggf. Hinweise (z.B. ungültiger iterName, Zeremonie-Datum ausserhalb PI-Zeitraum)
+- Aktion: **Anhängen** oder **Überschreiben**
+
+| Aktion | Verhalten |
+|---|---|
+| **Anhängen** | Importierte PIs werden ergänzt. Bricht ab, wenn ein PI-Name bereits existiert (Duplikat-Schutz). |
+| **Überschreiben** | PIs gleichen Namens werden ersetzt. Andere bestehende PIs bleiben unangetastet. Iterationen, Blocker und Zeremonien des überschriebenen PIs gehen verloren. |
+
+**Validierungen beim Import:**
+- Sheet «PIs» muss vorhanden sein
+- PI-Name eindeutig im Sheet
+- Datumsformat YYYY-MM-DD
+- `iterationWeeks` 1–6 (wenn gesetzt), `weeks` (Blocker) 1–12, `durationMinutes` 1–2880
+- `type` (Zeremonien) aus erlaubter Liste (`PI_PLANNING`, `DRAFT_PLAN_REVIEW`, …)
+- Querverweis-Integrität: `piName` muss im Sheet «PIs» existieren, `afterIterName`/`iterName` muss im jeweiligen PI vorkommen
+
+**Round-Trip-Sicherheit Excel:**
+- Excel-Export → Excel-Import (Modus «Überschreiben»): vollständig — alle 4 Entity-Typen und ihre Querverweise erhalten
+- Iterationen behalten ihre Namen (I1, I2, …), bekommen aber neue UUIDs (alte Allocations bleiben erhalten, weil Allocations am Mitarbeiter pro Datum hängen, nicht an Iter-IDs)
+- Zeremonien werden anhand des `iterName` neu mit der Iteration verknüpft
+
+**Ein vollständiges Backup aller App-Daten** (inklusive Mitarbeiter, Buchungen, Feiertage, etc.) erfolgt weiterhin via JSON-Backup (Einstellungen → Backup & Restore). Excel-Workbook ist auf PI-Planung fokussiert.
 
 ### Feiertage / Schulferien / Blocker
 - Je eigene Liste im Settings-Tab
@@ -476,4 +514,4 @@ A: Team-Konfiguration gilt pro Team (Pikett/Betrieb/SP/Std). Globale Parameter s
 | 1.5 | 14.04.2026 | «Alle Buchungen löschen» aus Planungs-Tab entfernt; «Abbrechen» im Admin-Gate navigiert zurück zu Planung-Tab; Admin-Bereich vollständig dokumentiert; BP-Abdeckung verifiziert |
 | 1.6 | 14.04.2026 | FIX-13: Admin-Gate sessionStorage zuverlässig geleert; FIX-14: Train-Wechsel löscht Admin-Code-Cache; FIX-15: AdminGate inline (kein Modal-Overlay auf Admin-Tab) |
 | 1.7 | 14.04.2026 | FIX-16: Train löschen – neuer «Löschen»-Button in Train-Liste mit Inline-Bestätigung und Admin-Code; default-Train und aktiver Train geschützt; Backend DELETE-Endpoint + deleteTenant() — getestet ✅ |
-| **1.8** | **06.05.2026** | **Feature 29: PI-Planung wochenbasiert (Auto-Berechnung Enddatum aus Startdatum + Wochen/Iteration + Anzahl Iter.); Blocker-Wochen mit automatischer Verschiebung der Folge-Iterationen; SAFe-Zeremonien (7 Typen mit Default-Dauer/Zeit) inkl. .ics-Export (RFC 5545); Kalender-Header von 5 auf 6 Zeilen erweitert (neue Zeremonien-Marker-Zeile, Blocker-Wochen als gestreifte Spans in der Iter-Zeile); Backup-Schema 1.4 → 1.5 mit automatischer Migration; Iter.-Wo. Spalte in PI-Tabelle.** |
+| **1.8** | **06.05.2026** | **Feature 29: PI-Planung wochenbasiert (Auto-Berechnung Enddatum aus Startdatum + Wochen/Iteration + Anzahl Iter.); Blocker-Wochen mit automatischer Verschiebung der Folge-Iterationen; SAFe-Zeremonien (7 Typen mit Default-Dauer/Zeit) inkl. .ics-Export (RFC 5545); Kalender-Header von 5 auf 6 Zeilen erweitert (neue Zeremonien-Marker-Zeile, Blocker-Wochen als gestreifte Spans in der Iter-Zeile); Backup-Schema 1.4 → 1.5 mit automatischer Migration; Iter.-Wo. Spalte in PI-Tabelle. CSV-Export PIs um `iterationWeeks` erweitert (4. Spalte, abwärtskompatibel). NEU: Excel-Workbook Export/Import (.xlsx) mit 4 Sheets (PIs, Iterationen, Blocker-Wochen, Zeremonien) — RTE-freundlicher Vollexport mit Iter-Namen-basiertem Mapping; Import-Dialog mit Modi «Anhängen» und «Überschreiben».** |

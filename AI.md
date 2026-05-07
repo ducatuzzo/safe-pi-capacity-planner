@@ -87,13 +87,21 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - **Backup-Format-Version:** `BACKUP_FORMAT_VERSION` 1.0 → 1.5 (in `BackupRestoreSettings.tsx`). Akzeptiert beide Versionen beim Import; ältere werden auto-migriert. `SavedProjectState.version` (App.tsx) ebenfalls auf `'1.5'` gesetzt.
 
 #### Export/Import-Matrix für PI-Felder
-| Feld | JSON-Backup | CSV (PISettings) | Notiz |
-|---|---|---|---|
-| `name`, `startStr`, `endStr` | ✅ | ✅ | unverändert |
-| `iterationen[]` | ✅ vollständig | 🟡 nur indirekt — beim CSV-Import gleichmässig in 4 Teile geteilt | bestehende Logik |
-| `iterationWeeks` (F29) | ✅ | ✅ ab v1.8 (4. Spalte, optional, abwärtskompatibel) | neue Spalte |
-| `blockerWeeks[]` (F29) | ✅ | ❌ — nur via JSON | komplexe Struktur |
-| `zeremonien[]` (F29) | ✅ | ❌ — nur via JSON | komplexe Struktur |
+| Feld | JSON-Backup | CSV (PISettings) | Excel (.xlsx, F29 v2) | Notiz |
+|---|---|---|---|---|
+| `name`, `startStr`, `endStr` | ✅ | ✅ | ✅ Sheet «PIs» | — |
+| `iterationen[]` | ✅ vollständig | 🟡 indirekt (Auto-Split) | ✅ Sheet «Iterationen», eigene Zeile pro Iteration | Iter-Namen sind stabile Mapping-Keys |
+| `iterationWeeks` (F29) | ✅ | ✅ ab v1.8 (4. Spalte) | ✅ Sheet «PIs» | optional |
+| `blockerWeeks[]` (F29) | ✅ | ❌ | ✅ Sheet «Blocker-Wochen» (`afterIterName` als FK) | nur via JSON oder Excel |
+| `zeremonien[]` (F29) | ✅ | ❌ | ✅ Sheet «Zeremonien» (`iterName` als FK) | nur via JSON oder Excel |
+
+**Excel-Workbook (`pi-xlsx.ts`, Feature 29 v2):**
+- Library: `xlsx` (SheetJS, MIT) — explizit freigegeben am 06.05.2026
+- Export: `downloadPiXlsx(pis)` — generiert `pi_planung_YYYY-MM-DD.xlsx` mit 4 Sheets, denormalisiert via `piName` und `iterName` (statt IDs) für RTE-Editierfreundlichkeit
+- Import: `parsePiXlsx(file): { pis, warnings }` — atomar, alle Sheets oder nichts; alle Validierungen vor `mergeImportedPis(existing, imported, mode)`
+- Mode `'append'`: Konflikt-Schutz bei doppelten PI-Namen → Fehler. Mode `'replace'`: PIs gleichen Namens werden ersetzt
+- Iterationen werden bei Import mit neuen UUIDs angelegt; Allocations bleiben erhalten (sie hängen am Mitarbeiter pro YYYY-MM-DD, nicht an Iter-IDs)
+- UI-Dialog (PISettings.tsx) zeigt nach Datei-Wahl: PI-Anzahl, Hinweise, Buttons «Anhängen» / «Überschreiben» / «Abbrechen»
 
 ### Feature 17 – Konfiguration
 - **GlobalCapacityConfig:** spPerDay (default 1), hoursPerYear (default 1600)
