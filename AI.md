@@ -1,6 +1,6 @@
 # AI.md – Technischer Kompass: SAFe PI Capacity Planner
 
-> Zuletzt synchronisiert: 22.04.2026
+> Zuletzt synchronisiert: 06.05.2026
 > Führend für: Architektur, Datenmodell, Konventionen.
 > Feature-Liste: siehe PRD.md. Status: siehe STATUS.md.
 
@@ -73,8 +73,18 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 ### Bestehende Interfaces
 - **Employee:** id, firstName, lastName, team, type (iMA|eMA), fte, capacityPercent, betriebPercent, pauschalPercent, storyPointsPerDay, allocations (Record<YYYY-MM-DD, AllocationType>)
 - **AllocationType:** NONE|FERIEN|ABWESEND|TEILZEIT|MILITAER|IPA|BETRIEB|BETRIEB_PIKETT|PIKETT
-- **PI (PIPlanning):** id, name (z.B. PI26-1), startStr, endStr, iterationen (Array von Iteration)
+- **PI (PIPlanning):** id, name (z.B. PI26-1), startStr, endStr, iterationen (Array von Iteration), iterationWeeks?, blockerWeeks?, zeremonien? *(Feature 29)*
 - **Feiertag / Schulferien / Blocker:** id, name, startStr, endStr
+
+### Feature 29 – PI-Planung erweitert (Schema 1.5)
+- **PIBlockerWeek:** id, label, afterIterationId, weeks — PI-interne Pause; verschiebt nachfolgende Iterationen automatisch nach hinten. Kein SP-Abzug. Nicht zu verwechseln mit `Blocker` (Change-Freeze).
+- **PIZeremonie:** id, type (`ZeremonieType`), title, date, startTime (HH:mm), durationMinutes, location, description, iterationId? — rein kalendarisch, kein Kapazitäts-Abzug.
+- **ZeremonieType:** `PI_PLANNING | DRAFT_PLAN_REVIEW | FINAL_PLAN_REVIEW | PRIO_MEETING | SYSTEM_DEMO | FINAL_SYSTEM_DEMO | INSPECT_ADAPT`
+- **PIPlanning erweitert:** optional `iterationWeeks?: number` (1–6, für Auto-Berechnung), `blockerWeeks?: PIBlockerWeek[]`, `zeremonien?: PIZeremonie[]`. Additiv, alle bestehenden PIs ohne diese Felder bleiben gültig.
+- **Berechnungslogik:** `calculateIterationDates({startDate, iterationWeeks, iterations, blockerWeeks})` in `src/utils/pi-calculator.ts` — pure function. Iteration-IDs werden bei Re-Berechnung beibehalten (Allocations + Zeremonie-Referenzen bleiben gültig).
+- **Schema-Migration 1.4 → 1.5:** `migratePIs()` in `src/utils/state-migration.ts` ergänzt fehlende Arrays mit Defaults `[]` und entfernt einmalig das ARTFlow-Demo-PI «PI26-2» (gated via fehlende `blockerWeeks`/`zeremonien`-Felder; neu angelegte PIs gleichen Namens bleiben erhalten). Wird sowohl bei `applyServerState()` (App.tsx) als auch beim Backup-Restore (`BackupRestoreSettings.tsx`) angewendet.
+- **ICS-Export:** `src/utils/ics-export.ts` — `generateIcs(pi, zeremonie)` und `downloadIcs(pi, zeremonie)`. RFC 5545 konform mit floating local time (kein TZ-Suffix), Sonderzeichen-Escaping, Line-Folding bei >75 Oktette. Filename: `{PI-Name}_{Zeremonien-Typ}_{Datum}.ics`. Kein npm-Paket.
+- **Backup-Format-Version:** `BACKUP_FORMAT_VERSION` 1.0 → 1.5 (in `BackupRestoreSettings.tsx`). Akzeptiert beide Versionen beim Import; ältere werden auto-migriert. `SavedProjectState.version` (App.tsx) ebenfalls auf `'1.5'` gesetzt.
 
 ### Feature 17 – Konfiguration
 - **GlobalCapacityConfig:** spPerDay (default 1), hoursPerYear (default 1600)
@@ -96,13 +106,13 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - Rate-Limiting: 3 Fehlversuche → 60s Sperre (server-seitig)
 - Admin-Funktionen: Tenant-Reset, Tenant-CRUD, Code-Änderung
 
-### AppData (vollständig, Stand 16.04.2026)
+### AppData (vollständig, Stand 06.05.2026)
 ```typescript
 interface AppData {
   feiertage: Feiertag[];
   schulferien: Schulferien[];
-  pis: PIPlanning[];
-  blocker: Blocker[];
+  pis: PIPlanning[];          // PIPlanning erweitert um optionale F29-Felder (s.o.)
+  blocker: Blocker[];          // = Change-Freeze (UNABHÄNGIG von PIBlockerWeek!)
   teamTargets: TeamTarget[];
   globalConfig: GlobalCapacityConfig;
   teamConfigs: TeamConfig[];
@@ -111,6 +121,8 @@ interface AppData {
   // customAllocationTypes?: CustomAllocationType[];
 }
 ```
+
+**Schema-Version Backup/State:** `1.5` (Feature 29). Migration von 1.0/1.4 ist additiv — bestehende Daten bleiben unverändert, neue Felder werden mit `[]` defaultet.
 
 ## Story Point Berechnung
 - 1 Arbeitstag = `globalConfig.spPerDay` SP (konfigurierbar, default 1)
@@ -167,6 +179,19 @@ Betrieb ist nur an Arbeitstagen nötig (kein Betrieb an Weihnachten = keine Lüc
 - **Hook:** `src/hooks/usePIDashboard.ts`
 - **SP in Jira:** Server-State in `AppData.piTeamTargets` (NICHT localStorage — siehe decisions/log.md 07.04.2026)
 - **Farbcodierung Auslastung:** grün <85%, orange 85–100%, rot >100%
+
+## Planungs-Kalender (Stand 06.05.2026, Feature 29)
+- **Komponenten:** `src/components/calendar/CalendarGrid.tsx`, `CalendarHeader.tsx`, `CalendarCell.tsx`
+- **Helpers:** `src/utils/calendar-helpers.ts` — `groupByMonth/KW/PI`, `groupByIterationOrBlocker` (Feature 29), `getZeremonienByDate` (Feature 29), `HeaderSpan { label, span, variant?: 'normal'|'blocker' }`
+- **Header-Zeilen (6 statt 5 seit Feature 29):**
+  1. Monat
+  2. Kalenderwoche (KW)
+  3. PI-Name
+  4. Iteration **oder** Blocker-Woche (variant='blocker' rendert mit `.bg-blocker-stripe` Utility — gestreifter Hintergrund + ❄ Label)
+  5. Zeremonien-Marker (◆ in `text-secondary-500` mit Hover-`title`-Attribut, Mehrfach-Treffer mit kleiner Anzahl als Suffix)
+  6. Tag (DD + Wochentag) — enthält weiterhin Snowflake ❄️ für Change-Freeze (`Blocker`)
+- **TOP-Offsets in Sticky-Layout:** `top-0`, `top-7`, `top-14`, `top-[84px]`, `top-[112px]`, `top-[140px]` (jede Zeile h-7 = 28px). Mitarbeiter-Ecke `rowSpan={6}`.
+- **Utility-Klasse:** `.bg-blocker-stripe` in `src/index.css` — 45° Schraffur für Blocker-Wochen-Spans (kein Tailwind-Inline-Style).
 
 ## Quelldateien (Demo-Importdaten)
 | Datei | Inhalt |
