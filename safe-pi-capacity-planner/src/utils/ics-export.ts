@@ -1,8 +1,9 @@
 // Feature 29: .ics-Export für Zeremonien (RFC 5545 konform, client-side)
 // Pure functions + ein Download-Helper. Kein Backend, kein npm-Paket.
+// Schema 1.6 (Etappe 2): RRULE für Serien-Termine, DTSTART/DTEND aus startDate+endDate.
 
-import type { PIPlanning, PIZeremonie } from '../types';
-import { ZEREMONIE_LABELS } from './pi-calculator';
+import type { PIPlanning, PIZeremonie, PIZeremonieRecurrence } from '../types';
+import { ZEREMONIE_LABELS, effectiveZeremonieEnd } from './pi-calculator';
 
 const PRODID = '-//BIT SAFe PI Capacity Planner//DE';
 const UID_DOMAIN = 'safe-pi-capacity-planner.vercel.app';
@@ -20,26 +21,35 @@ function nowUtcStamp(): string {
 }
 
 /**
- * Berechnet DTSTART/DTEND als "floating local time" (RFC 5545 §3.3.5)
- * im Format YYYYMMDDTHHMMSS – ohne TZ-Suffix, ohne UTC-Konvertierung.
- * Outlook/Apple/Google Calendar interpretieren das als Zeit im lokalen Kalender des Empfängers.
+ * Formatiert (YYYY-MM-DD, HH:mm) als "floating local time" (RFC 5545 §3.3.5)
+ * im Format YYYYMMDDTHHMMSS – ohne TZ-Suffix.
+ * Outlook/Apple/Google Calendar interpretieren das als Zeit im lokalen Kalender.
  */
-function buildDateTimes(date: string, startTime: string, durationMinutes: number): { start: string; end: string } {
-  const [y, mo, d] = date.split('-').map(Number);
-  const [h, mi] = startTime.split(':').map(Number);
-  const startMs = Date.UTC(y, mo - 1, d, h, mi, 0);
-  const endMs = startMs + durationMinutes * 60_000;
+function formatLocalDateTime(dateStr: string, timeStr: string): string {
+  return `${dateStr.replace(/-/g, '')}T${timeStr.replace(/:/g, '')}00`;
+}
 
-  const fmt = (ms: number) => {
-    const dt = new Date(ms);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return (
-      `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(dt.getUTCDate())}` +
-      `T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}${pad(dt.getUTCSeconds())}`
-    );
-  };
-
-  return { start: fmt(startMs), end: fmt(endMs) };
+/**
+ * Schema 1.6: Generiert eine `RRULE`-Property aus einer `PIZeremonieRecurrence`.
+ * RFC 5545 §3.8.5.3 / §3.3.10
+ *
+ * Regeln:
+ *  - FREQ ist immer gesetzt
+ *  - INTERVAL nur wenn > 1 (Default 1 wird weggelassen)
+ *  - COUNT XOR UNTIL (recurrence-Schema garantiert das bereits)
+ *  - UNTIL als floating local time (kein Z-Suffix), passend zu floatingem DTSTART
+ *  - UNTIL setzt den Zeitpunkt auf 23:59:59 des angegebenen Tages
+ */
+function buildRrule(r: PIZeremonieRecurrence): string {
+  const parts = [`FREQ=${r.frequency}`];
+  if (r.interval && r.interval > 1) parts.push(`INTERVAL=${r.interval}`);
+  if (r.count !== undefined) {
+    parts.push(`COUNT=${r.count}`);
+  } else if (r.until) {
+    // Floating local time UNTIL: kein Z-Suffix
+    parts.push(`UNTIL=${r.until.replace(/-/g, '')}T235959`);
+  }
+  return parts.join(';');
 }
 
 /** RFC 5545 §3.3.11: Backslashes, Kommas, Semikolons und Newlines escapen */
@@ -71,9 +81,23 @@ function foldLine(line: string): string {
 
 // ─── Hauptfunktionen ─────────────────────────────────────────────────────────
 
-/** Generiert den ICS-Inhalt als String (RFC 5545, CRLF-getrennt). */
+/**
+ * Generiert den ICS-Inhalt als String (RFC 5545, CRLF-getrennt).
+ *
+ * Schema 1.6:
+ *  - DTSTART nutzt `startDate + startTime`, DTEND nutzt `endDate + endTime`
+ *    (Schema-1.5-Daten via `effectiveZeremonieEnd()` Fallback)
+ *  - Bei `recurrence` wird zusätzlich eine `RRULE`-Property eingefügt — Outlook,
+ *    Google Calendar und Apple Calendar zeigen die Serie als einen Eintrag mit
+ *    allen Wiederholungen automatisch.
+ */
 export function generateIcs(pi: PIPlanning, zeremonie: PIZeremonie): string {
-  const { start, end } = buildDateTimes(zeremonie.date, zeremonie.startTime, zeremonie.durationMinutes);
+  const startDate = zeremonie.startDate ?? zeremonie.date;
+  const startTime = zeremonie.startTime;
+  const { endDate, endTime } = effectiveZeremonieEnd(zeremonie);
+
+  const dtstart = formatLocalDateTime(startDate, startTime);
+  const dtend = formatLocalDateTime(endDate, endTime);
 
   const properties: string[] = [
     'BEGIN:VCALENDAR',
@@ -84,10 +108,15 @@ export function generateIcs(pi: PIPlanning, zeremonie: PIZeremonie): string {
     'BEGIN:VEVENT',
     `UID:${zeremonie.id}@${UID_DOMAIN}`,
     `DTSTAMP:${nowUtcStamp()}`,
-    `DTSTART:${start}`,
-    `DTEND:${end}`,
+    `DTSTART:${dtstart}`,
+    `DTEND:${dtend}`,
     `SUMMARY:${escapeText(`${zeremonie.title} (${pi.name})`)}`,
   ];
+
+  // Schema 1.6: RRULE für Serien-Termine
+  if (zeremonie.recurrence) {
+    properties.push(`RRULE:${buildRrule(zeremonie.recurrence)}`);
+  }
 
   if (zeremonie.description) {
     properties.push(`DESCRIPTION:${escapeText(zeremonie.description)}`);
@@ -113,7 +142,9 @@ function slug(value: string): string {
 /** Dateiname gemäss Spec: {PI-Name}_{Zeremonien-Typ-Label}_{Datum}.ics */
 export function icsFilename(pi: PIPlanning, zeremonie: PIZeremonie): string {
   const typLabel = ZEREMONIE_LABELS[zeremonie.type];
-  return `${slug(pi.name)}_${slug(typLabel)}_${zeremonie.date}.ics`;
+  // Schema 1.6: startDate bevorzugen, sonst date (1.5-Fallback)
+  const dateForFilename = zeremonie.startDate ?? zeremonie.date;
+  return `${slug(pi.name)}_${slug(typLabel)}_${dateForFilename}.ics`;
 }
 
 /** Triggert einen Browser-Download des .ics-Files. */
