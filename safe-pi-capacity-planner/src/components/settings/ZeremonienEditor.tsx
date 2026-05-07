@@ -8,6 +8,7 @@ import {
   ZEREMONIE_LABELS,
   ZEREMONIE_DEFAULT_DURATION,
   ZEREMONIE_DEFAULT_START_TIME,
+  addMinutes,
 } from '../../utils/pi-calculator';
 import { downloadIcs } from '../../utils/ics-export';
 
@@ -129,13 +130,22 @@ export default function ZeremonienEditor({ pi, onPiChange }: Props) {
     const err = validiereZeremonie(form, pi);
     if (err) { setFehler(err); return; }
 
+    // Schema 1.6: startDate/endDate/endTime aus 1.5-Werten ableiten,
+    // damit neu erstellte Zeremonien sofort 1.6-konform sind (Etappe 3 stellt UI um).
+    const computedEnd = addMinutes(form.date, form.startTime, form.durationMinutes);
     const neue: PIZeremonie = {
       id: bearbeiteteId ?? crypto.randomUUID(),
       type: form.type,
       title: form.title.trim(),
+      // Schema 1.5 (legacy):
       date: form.date,
       startTime: form.startTime,
       durationMinutes: form.durationMinutes,
+      // Schema 1.6 (neu, additiv):
+      startDate: form.date,
+      endDate: computedEnd.date,
+      endTime: computedEnd.time,
+      // recurrence noch nicht über UI editierbar (kommt in Etappe 3)
       location: form.location.trim(),
       description: form.description.trim(),
       iterationId: form.iterationId || undefined,

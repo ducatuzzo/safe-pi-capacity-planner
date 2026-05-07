@@ -60,14 +60,37 @@ export interface PIBlockerWeek {
   weeks: number;             // Dauer in Wochen, Default 1
 }
 
+// Feature 29 v2 (Schema 1.6): Serien-Konfiguration für Zeremonien (Outlook-Style)
+export interface PIZeremonieRecurrence {
+  frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  interval: number;          // alle N Einheiten (Default 1)
+  /** Anzahl Wiederholungen — exklusiv mit `until` */
+  count?: number;
+  /** YYYY-MM-DD: Enddatum der Serie — exklusiv mit `count` */
+  until?: string;
+}
+
 // Feature 29: SAFe-Zeremonie innerhalb eines PI (rein kalendarisch)
+// Schema 1.5: date + startTime + durationMinutes
+// Schema 1.6 (additiv): startDate, endDate, endTime, recurrence — Migration via state-migration.ts
 export interface PIZeremonie {
   id: string;
   type: ZeremonieType;
   title: string;             // editierbar, Default = Typ-Label
-  date: string;              // YYYY-MM-DD
+  // ─── Schema 1.5 (legacy, bleibt für Backward-Compat) ───────────────────────
+  date: string;              // YYYY-MM-DD (= startDate)
   startTime: string;         // "HH:mm" (24h)
   durationMinutes: number;   // Default je nach Typ (siehe ZEREMONIE_DEFAULT_DURATION)
+  // ─── Schema 1.6 (optional, durch Migration befüllt; Etappe 3 macht UI um) ──
+  /** YYYY-MM-DD — bei 1.6 immer gesetzt (= date wenn migriert aus 1.5) */
+  startDate?: string;
+  /** YYYY-MM-DD — Ende-Datum (kann am gleichen Tag wie startDate oder später sein) */
+  endDate?: string;
+  /** "HH:mm" — Ende-Uhrzeit */
+  endTime?: string;
+  /** Optional: Serien-Konfiguration (täglich / wöchentlich / monatlich) */
+  recurrence?: PIZeremonieRecurrence;
+  // ─── Allgemein ─────────────────────────────────────────────────────────────
   location: string;          // optional, Freitext / Teams-Link
   description: string;       // optional, erscheint im .ics Body
   iterationId?: string;      // optional: Zuordnung zu Iteration

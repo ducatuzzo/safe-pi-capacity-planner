@@ -252,7 +252,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
     setPiTeamTargets(restoredPiTeamTargets);
 
     const fullState: SavedProjectState = {
-      version: '1.5',
+      version: '1.6',
       timestamp: new Date().toISOString(),
       year: new Date().getFullYear(),
       employees: state.employees,

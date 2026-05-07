@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import type { BackupFile, FullAppState } from '../../types';
-import { migrateStateToSchema15 } from '../../utils/state-migration';
+import { migrateStateToSchema16 } from '../../utils/state-migration';
 
 const APP_VERSION = '1.0.0';
-const BACKUP_FORMAT_VERSION = '1.5';
-// Akzeptierte Versionen beim Restore (alle werden auf 1.5 migriert)
-const SUPPORTED_BACKUP_VERSIONS = new Set(['1.0', '1.5']);
+const BACKUP_FORMAT_VERSION = '1.6';
+// Akzeptierte Versionen beim Restore (alle werden auf 1.6 migriert)
+const SUPPORTED_BACKUP_VERSIONS = new Set(['1.0', '1.5', '1.6']);
 
 interface Props {
   appState: FullAppState;
@@ -76,8 +76,8 @@ export default function BackupRestoreSettings({ appState, onRestore }: Props) {
         );
         if (!bestaetigt) return;
 
-        // Schema-Migration auf 1.5 (Feature 29)
-        const migrated = migrateStateToSchema15(backup.data);
+        // Schema-Migration auf 1.6 (Feature 29 v2 — Zeremonien mit Start/Ende + Serien)
+        const migrated = migrateStateToSchema16(backup.data);
 
         onRestore(migrated);
         const versionsHinweis =
