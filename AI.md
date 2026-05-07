@@ -1,6 +1,6 @@
 # AI.md – Technischer Kompass: SAFe PI Capacity Planner
 
-> Zuletzt synchronisiert: 06.05.2026
+> Zuletzt synchronisiert: 07.05.2026
 > Führend für: Architektur, Datenmodell, Konventionen.
 > Feature-Liste: siehe PRD.md. Status: siehe STATUS.md.
 
@@ -76,24 +76,38 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - **PI (PIPlanning):** id, name (z.B. PI26-1), startStr, endStr, iterationen (Array von Iteration), iterationWeeks?, blockerWeeks?, zeremonien? *(Feature 29)*
 - **Feiertag / Schulferien / Blocker:** id, name, startStr, endStr
 
-### Feature 29 – PI-Planung erweitert (Schema 1.5)
+### Feature 29 – PI-Planung erweitert (Schema 1.6, ehemals 1.5)
 - **PIBlockerWeek:** id, label, afterIterationId, weeks — PI-interne Pause; verschiebt nachfolgende Iterationen automatisch nach hinten. Kein SP-Abzug. Nicht zu verwechseln mit `Blocker` (Change-Freeze).
-- **PIZeremonie:** id, type (`ZeremonieType`), title, date, startTime (HH:mm), durationMinutes, location, description, iterationId? — rein kalendarisch, kein Kapazitäts-Abzug.
+- **PIZeremonie:** id, type, title, date+startTime+durationMinutes (Schema 1.5 legacy), startDate+startTime+endDate+endTime (Schema 1.6, primär), recurrence?, location, description, iterationId? — rein kalendarisch, kein Kapazitäts-Abzug.
+- **PIZeremonieRecurrence (NEU Schema 1.6):** frequency (`DAILY`/`WEEKLY`/`MONTHLY`), interval (1–99), count XOR until — Outlook-Style Serien-Konfiguration.
 - **ZeremonieType:** `PI_PLANNING | DRAFT_PLAN_REVIEW | FINAL_PLAN_REVIEW | PRIO_MEETING | SYSTEM_DEMO | FINAL_SYSTEM_DEMO | INSPECT_ADAPT`
 - **PIPlanning erweitert:** optional `iterationWeeks?: number` (1–6, für Auto-Berechnung), `blockerWeeks?: PIBlockerWeek[]`, `zeremonien?: PIZeremonie[]`. Additiv, alle bestehenden PIs ohne diese Felder bleiben gültig.
 - **Berechnungslogik:** `calculateIterationDates({startDate, iterationWeeks, iterations, blockerWeeks})` in `src/utils/pi-calculator.ts` — pure function. Iteration-IDs werden bei Re-Berechnung beibehalten (Allocations + Zeremonie-Referenzen bleiben gültig).
-- **Schema-Migration 1.4 → 1.5:** `migratePIs()` in `src/utils/state-migration.ts` ergänzt fehlende Arrays mit Defaults `[]` und entfernt einmalig das ARTFlow-Demo-PI «PI26-2» (gated via fehlende `blockerWeeks`/`zeremonien`-Felder; neu angelegte PIs gleichen Namens bleiben erhalten). Wird sowohl bei `applyServerState()` (App.tsx) als auch beim Backup-Restore (`BackupRestoreSettings.tsx`) angewendet.
-- **ICS-Export:** `src/utils/ics-export.ts` — `generateIcs(pi, zeremonie)` und `downloadIcs(pi, zeremonie)`. RFC 5545 konform mit floating local time (kein TZ-Suffix), Sonderzeichen-Escaping, Line-Folding bei >75 Oktette. Filename: `{PI-Name}_{Zeremonien-Typ}_{Datum}.ics`. Kein npm-Paket.
-- **Backup-Format-Version:** `BACKUP_FORMAT_VERSION` 1.0 → 1.5 (in `BackupRestoreSettings.tsx`). Akzeptiert beide Versionen beim Import; ältere werden auto-migriert. `SavedProjectState.version` (App.tsx) ebenfalls auf `'1.5'` gesetzt.
+- **Schema 1.6 Helper (pi-calculator.ts):**
+  - `addMinutes(dateStr, timeStr, minutes)` — tagesübergreifende Datum/Zeit-Arithmetik
+  - `addPeriod(dateStr, freq, interval)` — DAILY/WEEKLY/MONTHLY-Stepping (exportiert für calendar-helpers)
+  - `expandRecurrence(zeremonie): ZeremonieInstanz[]` — liefert für Serien alle Wiederholungen mit `occurrence/total`-Index. Hard-Cap bei 1000 Instanzen.
+  - `effectiveZeremonieEnd(z)` — endDate/endTime mit Schema-1.5-Fallback
+  - `ZeremonieInstanz` interface: `{ startDate, startTime, endDate, endTime, occurrence, total }`
+- **Schema-Migration 1.4 → 1.5 → 1.6:** `migratePIs()` in `src/utils/state-migration.ts` läuft beide Stages in einem Pass:
+  - 1.4 → 1.5: ergänzt fehlende Arrays mit `[]`, entfernt einmalig das ARTFlow-Demo-PI «PI26-2» (gated via fehlende `blockerWeeks`/`zeremonien`)
+  - 1.5 → 1.6 (`migrateZeremonieToSchema16`): rechnet `date + startTime + durationMinutes` → `startDate + endDate + endTime` (idempotent)
+  - Wird bei `applyServerState()` (App.tsx) und Backup-Restore (`BackupRestoreSettings.tsx`) angewendet.
+- **ICS-Export (Schema 1.6):** `src/utils/ics-export.ts` — `generateIcs(pi, zeremonie)` und `downloadIcs(pi, zeremonie)`. RFC 5545 konform: DTSTART/DTEND aus Schema 1.6 Felder (mit 1.5-Fallback via `effectiveZeremonieEnd`), `RRULE` für Serien (`FREQ=DAILY/WEEKLY/MONTHLY[;INTERVAL=N][;COUNT=N|UNTIL=YYYYMMDDTHHMMSS]`). Floating local time (kein TZ-Suffix). Outlook/Google/Apple zeigen Serien als einen Eintrag. Sonderzeichen-Escaping, Line-Folding bei >75 Oktette. Filename: `{PI-Name}_{Zeremonien-Typ}_{Datum}.ics`. Kein npm-Paket.
+- **Kalender-Marker (Schema 1.6):** `buildZeremonienIndex(pis)` in `src/utils/calendar-helpers.ts` baut `Map<dateStr, ZeremonieDateMatch[]>` einmal pro Render via `expandRecurrence()`. Mehrtägige Termine erscheinen unter jedem Tag im Bereich; Serien-Instanzen sind über `instance.total > 1` erkennbar (Symbol `◈` statt `◆`). `CalendarHeader.tsx` nutzt `useMemo` für Performance.
+- **Backup-Format-Version:** `BACKUP_FORMAT_VERSION` 1.5 → 1.6 (in `BackupRestoreSettings.tsx`). Akzeptiert `1.0`, `1.5`, `1.6` beim Import; ältere werden auto-migriert. `SavedProjectState.version` (App.tsx) auf `'1.6'`.
 
 #### Export/Import-Matrix für PI-Felder
-| Feld | JSON-Backup | CSV (PISettings) | Excel (.xlsx, F29 v2) | Notiz |
+| Feld | JSON-Backup | CSV (PISettings) | Excel (.xlsx, Schema 1.6) | Notiz |
 |---|---|---|---|---|
 | `name`, `startStr`, `endStr` | ✅ | ✅ | ✅ Sheet «PIs» | — |
-| `iterationen[]` | ✅ vollständig | 🟡 indirekt (Auto-Split) | ✅ Sheet «Iterationen», eigene Zeile pro Iteration | Iter-Namen sind stabile Mapping-Keys |
-| `iterationWeeks` (F29) | ✅ | ✅ ab v1.8 (4. Spalte) | ✅ Sheet «PIs» | optional |
-| `blockerWeeks[]` (F29) | ✅ | ❌ | ✅ Sheet «Blocker-Wochen» (`afterIterName` als FK) | nur via JSON oder Excel |
-| `zeremonien[]` (F29) | ✅ | ❌ | ✅ Sheet «Zeremonien» (`iterName` als FK) | nur via JSON oder Excel |
+| `iterationen[]` | ✅ vollständig | 🟡 indirekt (Auto-Split) | ✅ Sheet «Iterationen» | Iter-Namen sind stabile Mapping-Keys |
+| `iterationWeeks` | ✅ | ✅ (4. Spalte) | ✅ Sheet «PIs» | optional |
+| `blockerWeeks[]` | ✅ | ❌ | ✅ Sheet «Blocker-Wochen» (`afterIterName` FK) | nur via JSON oder Excel |
+| `zeremonien[]` Stamm | ✅ | ❌ | ✅ Sheet «Zeremonien» (`iterName` FK) | nur via JSON oder Excel |
+| `startDate`/`startTime`/`endDate`/`endTime` (Schema 1.6) | ✅ | ❌ | ✅ Sheet «Zeremonien» (4 Spalten) | mehrtägige Termine möglich |
+| `recurrence` (Schema 1.6) | ✅ | ❌ | ✅ 4 Spalten: `recurrenceFreq`, `recurrenceInterval`, `recurrenceCount`, `recurrenceUntil` | Outlook-Style Serien |
+| `.ics` (RFC 5545) | — | — | — | RRULE bei Serie |
 
 **Excel-Workbook (`pi-xlsx.ts`, Feature 29 v2):**
 - Library: `xlsx` (SheetJS, MIT) — explizit freigegeben am 06.05.2026

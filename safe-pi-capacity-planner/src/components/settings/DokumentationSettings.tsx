@@ -11,10 +11,10 @@ interface DokumentEintrag {
 
 const DOKUMENTE: DokumentEintrag[] = [
   {
-    dateiname: 'benutzerdokumentation_v1.8.docx',
+    dateiname: 'benutzerdokumentation_v1.9.docx',
     titel: 'Benutzerdokumentation',
-    beschreibung: 'Bedienung aller Tabs inkl. wochenbasierte PI-Planung, Blocker-Wochen, Zeremonien (.ics-Export), PI Dashboard, Einstellungen, FAQ',
-    version: 'v1.8',
+    beschreibung: 'Bedienung aller Tabs inkl. wochenbasierte PI-Planung, Blocker-Wochen, Zeremonien mit Start/Ende-Datum + Outlook-Style Terminserien (.ics mit RRULE), Excel-Workbook Export/Import, PI Dashboard, Einstellungen, FAQ',
+    version: 'v1.9',
   },
   {
     dateiname: 'installationshandbuch_v1.0.docx',

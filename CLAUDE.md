@@ -2,7 +2,7 @@
 
 > Dieses Dokument ist das primäre Referenz-Dokument für alle Claude Code Sessions in diesem Projekt.
 > Immer zuerst lesen. Ergänzend: AI.md (Architektur), STATUS.md (Stand), features/ (Specs).
-> Zuletzt synchronisiert: 06.05.2026
+> Zuletzt synchronisiert: 07.05.2026
 
 ## Projekt-Kontext
 - **Name:** SAFe PI Capacity Planner (BIT)
@@ -75,24 +75,29 @@ npm run dev:server   # nur Express Backend
 - **Orange** (`85–100 %`): Nah an der Kapazitätsgrenze
 - **Rot** (`> 100 %`): Überlastet
 
-## PI-Planung erweitert (Feature 29, Stand 06.05.2026)
+## PI-Planung erweitert (Feature 29 v2, Stand 07.05.2026)
 **Pfad:** `src/components/settings/PISettings.tsx` (Modal inline, kein separates File), `IterationEditor.tsx`, `ZeremonienEditor.tsx`
-**Helpers:** `src/utils/pi-calculator.ts`, `src/utils/state-migration.ts`, `src/utils/ics-export.ts`
-**Schema-Version:** 1.4 → **1.5** (`BACKUP_FORMAT_VERSION` und `SavedProjectState.version`)
+**Helpers:** `src/utils/pi-calculator.ts`, `src/utils/state-migration.ts`, `src/utils/ics-export.ts`, `src/utils/pi-xlsx.ts`, `src/utils/calendar-helpers.ts`
+**Schema-Version:** 1.4 → 1.5 → **1.6** (`BACKUP_FORMAT_VERSION` und `SavedProjectState.version`)
 
 ### Neue Konzepte
 - **Wochenbasierte PI-Generierung:** Modal nimmt Startdatum + `iterationWeeks` (1–6) + `iterationCount` (1–10), berechnet Enddatum + alle Iterationen automatisch via `calculateIterationDates()`.
 - **PIBlockerWeek:** PI-interne Pause (`{ id, label, afterIterationId, weeks }`). Verschiebt nachfolgende Iterationen + PI-Enddatum. **NICHT verwechseln mit `Blocker`** (Change-Freeze, Wartungsfenster).
 - **PIZeremonie + ZeremonieType:** 7 SAFe-Typen (PI_PLANNING, DRAFT_PLAN_REVIEW, FINAL_PLAN_REVIEW, PRIO_MEETING, SYSTEM_DEMO, FINAL_SYSTEM_DEMO, INSPECT_ADAPT). Default-Dauer/Zeit pro Typ in `pi-calculator.ts`. Rein kalendarisch, kein Kapazitäts-Abzug.
-- **.ics-Export:** RFC 5545 konform, client-side Blob (kein Backend, kein npm-Paket). Filename `{PI-Name}_{Typ}_{Datum}.ics`.
+- **PIZeremonieRecurrence (Schema 1.6):** Outlook-Style Terminserien — `frequency: DAILY|WEEKLY|MONTHLY`, `interval` (1–99), `count` XOR `until`. Hard-Cap 1000 Instanzen pro Serie.
+- **Start/Ende-Datum/Zeit (Schema 1.6):** mehrtägige Termine möglich (z.B. PI Planning 09:00 → Folgetag 17:00).
+- **.ics-Export mit RRULE (Schema 1.6):** RFC 5545 konform, client-side Blob (kein Backend, kein npm-Paket). Filename `{PI-Name}_{Typ}_{StartDatum}.ics`. Bei Serien zusätzlich `RRULE`-Property — Outlook/Google/Apple zeigen Serie als einen Eintrag mit allen Wiederholungen.
+- **Excel-Workbook .xlsx (Schema 1.6):** 4 Sheets, `xlsx`-Library (SheetJS). Sheet «Zeremonien» mit 14 Spalten inkl. `startDate`/`endDate`/`endTime` und 4 Recurrence-Spalten. Iter-Namen-basiertes Mapping. Import-Dialog mit «Anhängen» / «Überschreiben».
 
 ### Planungs-Kalender-Header (6 Zeilen seit F29)
-1. Monat / 2. KW / 3. PI / 4. Iteration **oder Blocker-Woche** (gestreift via `.bg-blocker-stripe`) / 5. Zeremonien-Marker (◆ in `text-secondary-500`, Hover-Tooltip) / 6. Tag
+1. Monat / 2. KW / 3. PI / 4. Iteration **oder Blocker-Woche** (gestreift via `.bg-blocker-stripe`) / 5. Zeremonien-Marker (`◆` Einzeltermin, `◈` Serien-Instanz, beide in `text-secondary-500/600`, Hover-Tooltip mit `Serie N/Total`) / 6. Tag
 
 ### Migration & Demo-Daten
-- `migratePIs()` in `state-migration.ts` ergänzt fehlende Arrays mit `[]`
-- ARTFlow-Demo-PI «PI26-2» wird **einmalig** beim ersten Migrationspass entfernt (gated via fehlende neue Felder; neu angelegte PIs gleichen Namens bleiben erhalten)
+- `migratePIs()` in `state-migration.ts` läuft 2 Stages in einem Pass:
+  - 1.0/1.4 → 1.5: ergänzt fehlende Arrays (`blockerWeeks: []`, `zeremonien: []`); ARTFlow-Demo-PI «PI26-2» wird **einmalig** entfernt (gated via fehlende neue Felder; neu angelegte PIs gleichen Namens bleiben erhalten)
+  - 1.5 → 1.6 (`migrateZeremonieToSchema16`): `date + startTime + durationMinutes` → `startDate + endDate + endTime` (idempotent)
 - Wirkt sowohl auf `applyServerState()` (App.tsx) als auch auf Backup-Restore
+- Schema 1.5 Felder (date, startTime, durationMinutes) bleiben REQUIRED für Backwards-Compat; Schema 1.6 Felder (startDate, endDate, endTime, recurrence) sind OPTIONAL und werden via Migration befüllt
 
 ## Wichtige Konventionen
 - Sprache: Deutsch (UI + Kommentare), Englisch (Variablen/Typen)
