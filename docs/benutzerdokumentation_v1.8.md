@@ -291,7 +291,21 @@ Pro PI können beliebig viele **SAFe-Zeremonien** als kalendarische Termine erfa
 
 #### CSV-Import/Export
 
-Wie bisher. Beim Import via CSV werden PIs ohne `iterationWeeks` angelegt — diese unterstützen die wochenbasierte Funktion nicht (kein Blocker-Hinzufügen). Über «Bearbeiten» kann `Wochen/Iteration` nachträglich gesetzt werden.
+**CSV-Format ab v1.8 (Schema 1.5):**
+
+```
+name;startStr;endStr;iterationWeeks
+PI26-2;2026-04-27;2026-08-09;3
+PI26-3;2026-08-31;2026-12-13;3
+```
+
+Die 4. Spalte `iterationWeeks` ist **optional** — alte CSV-Dateien mit nur 3 Spalten (`name;startStr;endStr`) werden weiterhin unterstützt (PIs werden dann ohne `iterationWeeks` angelegt; «Bearbeiten» kann es nachträglich setzen).
+
+**Hinweis zu komplexen Feldern:** `blockerWeeks` und `zeremonien` werden NICHT via CSV exportiert/importiert. Diese liegen ausschliesslich im JSON-Backup (Einstellungen → Backup & Restore). Der CSV-Pfad bleibt einem schlanken Tabellen-Round-Trip vorbehalten.
+
+**Round-Trip-Sicherheit:**
+- CSV-Export → CSV-Import: PI-Name, Start/Ende und `iterationWeeks` bleiben erhalten. Iterationen werden beim Import gleichmässig in 4 Teile aufgeteilt (alte Logik).
+- JSON-Backup-Export → Restore: vollständig (alle Felder inkl. Iterationen, Blocker-Wochen, Zeremonien).
 
 ### Feiertage / Schulferien / Blocker
 - Je eigene Liste im Settings-Tab

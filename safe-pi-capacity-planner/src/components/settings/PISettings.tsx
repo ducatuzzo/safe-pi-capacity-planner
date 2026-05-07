@@ -223,8 +223,11 @@ export default function PISettings({ pis, onChange }: Props) {
 
   function exportiereCsv() {
     const BOM = '\uFEFF';
-    const header = 'name;startStr;endStr';
-    const zeilen = pis.map(pi => `${pi.name};${pi.startStr};${pi.endStr}`);
+    // Feature 29: iterationWeeks als 4. Spalte (abw\u00E4rtskompatibel \u2014 leer wenn nicht gesetzt)
+    const header = 'name;startStr;endStr;iterationWeeks';
+    const zeilen = pis.map(pi =>
+      `${pi.name};${pi.startStr};${pi.endStr};${pi.iterationWeeks ?? ''}`
+    );
     const inhalt = BOM + [header, ...zeilen].join('\n');
     const blob = new Blob([inhalt], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -254,6 +257,7 @@ export default function PISettings({ pis, onChange }: Props) {
           name: kopf.indexOf('name'),
           start: kopf.indexOf('startstr'),
           end: kopf.indexOf('endstr'),
+          iterationWeeks: kopf.indexOf('iterationweeks'), // Feature 29, optional (-1 wenn nicht vorhanden)
         };
         const neuePis: PIPlanning[] = [];
         for (let i = 1; i < zeilen.length; i++) {
@@ -263,12 +267,28 @@ export default function PISettings({ pis, onChange }: Props) {
           const endStr = felder[idx.end]?.trim() ?? '';
           if (!name || !startStr || !endStr) throw new Error(`Zeile ${i + 1}: Name, Start und Ende sind erforderlich.`);
           if (startStr >= endStr) throw new Error(`Zeile ${i + 1}: Startdatum muss vor Enddatum liegen.`);
+
+          // Feature 29: optionale iterationWeeks-Spalte
+          let iterationWeeks: number | undefined;
+          if (idx.iterationWeeks >= 0) {
+            const raw = felder[idx.iterationWeeks]?.trim() ?? '';
+            if (raw) {
+              const parsed = parseInt(raw, 10);
+              if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 6) {
+                iterationWeeks = parsed;
+              } else {
+                throw new Error(`Zeile ${i + 1}: iterationWeeks muss zwischen 1 und 6 liegen (war: "${raw}").`);
+              }
+            }
+          }
+
           neuePis.push({
             id: crypto.randomUUID(),
             name,
             startStr,
             endStr,
             iterationen: teilePiInIterationen(startStr, endStr),
+            ...(iterationWeeks !== undefined ? { iterationWeeks } : {}),
             blockerWeeks: [],
             zeremonien: [],
           });

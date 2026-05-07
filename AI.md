@@ -86,6 +86,15 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - **ICS-Export:** `src/utils/ics-export.ts` — `generateIcs(pi, zeremonie)` und `downloadIcs(pi, zeremonie)`. RFC 5545 konform mit floating local time (kein TZ-Suffix), Sonderzeichen-Escaping, Line-Folding bei >75 Oktette. Filename: `{PI-Name}_{Zeremonien-Typ}_{Datum}.ics`. Kein npm-Paket.
 - **Backup-Format-Version:** `BACKUP_FORMAT_VERSION` 1.0 → 1.5 (in `BackupRestoreSettings.tsx`). Akzeptiert beide Versionen beim Import; ältere werden auto-migriert. `SavedProjectState.version` (App.tsx) ebenfalls auf `'1.5'` gesetzt.
 
+#### Export/Import-Matrix für PI-Felder
+| Feld | JSON-Backup | CSV (PISettings) | Notiz |
+|---|---|---|---|
+| `name`, `startStr`, `endStr` | ✅ | ✅ | unverändert |
+| `iterationen[]` | ✅ vollständig | 🟡 nur indirekt — beim CSV-Import gleichmässig in 4 Teile geteilt | bestehende Logik |
+| `iterationWeeks` (F29) | ✅ | ✅ ab v1.8 (4. Spalte, optional, abwärtskompatibel) | neue Spalte |
+| `blockerWeeks[]` (F29) | ✅ | ❌ — nur via JSON | komplexe Struktur |
+| `zeremonien[]` (F29) | ✅ | ❌ — nur via JSON | komplexe Struktur |
+
 ### Feature 17 – Konfiguration
 - **GlobalCapacityConfig:** spPerDay (default 1), hoursPerYear (default 1600)
 - **TeamConfig:** teamName, minPikett (Personen täglich, inkl. WE+Feiertage), minBetrieb (Personen pro Arbeitstag, exkl. WE+Feiertage)
