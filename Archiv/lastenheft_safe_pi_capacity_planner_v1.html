@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lastenheft – SAFe PI Capacity Planner</title>
+<style>
+  /* ── Basis ──────────────────────────────────────────────────── */
+  :root {
+    --bund-blau: #003F7F;
+    --bund-rot:  #E63312;
+    --grau-hell: #F5F5F5;
+    --grau-med:  #D5D5D5;
+    --text:      #1A1A1A;
+    --blau-hell: #E8EFF7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Frutiger, 'Noto Sans', Arial, sans-serif;
+    font-size: 11pt;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.5;
+  }
+  /* ── Druck-Seitenränder ─────────────────────────────────────── */
+  @page { size: A4; margin: 20mm 20mm 20mm 25mm; }
+  @media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    body { font-size: 10pt; }
+    header { box-shadow: none; }
+  }
+
+  /* ── Bildschirm-Layout ──────────────────────────────────────── */
+  .container { max-width: 900px; margin: 0 auto; padding: 32px 40px; }
+
+  /* ── Titelseite ─────────────────────────────────────────────── */
+  .title-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 80px;
+  }
+  .doc-label {
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--bund-blau);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .title-main {
+    font-size: 40pt;
+    font-weight: 700;
+    color: var(--bund-blau);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .title-sub {
+    font-size: 18pt;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .title-desc {
+    font-size: 12pt;
+    color: #555;
+    padding-bottom: 24px;
+    border-bottom: 4px solid var(--bund-rot);
+    margin-bottom: 48px;
+  }
+  .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 48px; }
+  .meta-table td {
+    padding: 8px 14px;
+    border: 1px solid var(--grau-med);
+    font-size: 10pt;
+  }
+  .meta-table td:first-child {
+    font-weight: 700;
+    background: var(--grau-hell);
+    width: 35%;
+    color: var(--bund-blau);
+  }
+  .footer-org { margin-top: auto; padding-top: 48px; color: #777; font-size: 9pt; }
+
+  /* ── Inhaltsverzeichnis ─────────────────────────────────────── */
+  .toc-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--grau-med);
+    font-size: 10.5pt;
+  }
+  .toc-entry.l1 { font-weight: 700; color: var(--bund-blau); padding-top: 10px; font-size: 11pt; }
+  .toc-entry.l2 { padding-left: 20px; }
+  .toc-entry.l3 { padding-left: 40px; font-size: 10pt; color: #444; }
+  .toc-num { color: var(--bund-blau); font-weight: 700; }
+
+  /* ── Überschriften ──────────────────────────────────────────── */
+  h1 {
+    font-size: 20pt;
+    font-weight: 700;
+    color: var(--bund-blau);
+    margin: 40px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 3px solid var(--bund-blau);
+  }
+  h2 {
+    font-size: 14pt;
+    font-weight: 700;
+    color: var(--bund-blau);
+    margin: 28px 0 10px;
+  }
+  h3 {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: var(--text);
+    margin: 18px 0 8px;
+  }
+  p { margin: 8px 0; line-height: 1.6; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 4px 0; line-height: 1.5; }
+
+  /* ── Tabellen allgemein ─────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 9.5pt;
+  }
+  th {
+    background: var(--bund-blau);
+    color: #fff;
+    font-weight: 700;
+    padding: 8px 10px;
+    text-align: left;
+    border: 1px solid #0055aa;
+  }
+  td {
+    padding: 7px 10px;
+    border: 1px solid var(--grau-med);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--grau-hell); }
+
+  /* ── Anforderungs-Tabelle ───────────────────────────────────── */
+  .req-table th:first-child  { width: 70px; }
+  .req-table th:nth-child(2) { width: 180px; }
+  .req-table th:last-child   { width: 70px; }
+  .req-id   { font-weight: 700; color: var(--bund-blau); background: var(--blau-hell) !important; }
+  .prio-muss { background: #FEE2E2 !important; font-weight: 700; color: #991B1B; text-align: center; }
+  .prio-soll { background: #FEF9C3 !important; font-weight: 700; color: #854D0E; text-align: center; }
+  .prio-kann { background: #DCFCE7 !important; font-weight: 700; color: #166534; text-align: center; }
+
+  /* ── Hinweis-Box ────────────────────────────────────────────── */
+  .info-box {
+    background: var(--blau-hell);
+    border-left: 4px solid var(--bund-blau);
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+
+  /* ── Drucken-Button ─────────────────────────────────────────── */
+  .print-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bund-blau);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 11pt;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .print-btn:hover { background: #002a5e; }
+
+  /* ── Header ─────────────────────────────────────────────────── */
+  .doc-header {
+    background: var(--bund-blau);
+    color: #fff;
+    padding: 10px 40px;
+    font-size: 9pt;
+    display: flex;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .doc-header span { opacity: 0.85; }
+  .divider { border: none; border-top: 2px solid var(--bund-blau); margin: 32px 0; }
+</style>
+</head>
+<body>
+
+<div class="doc-header no-print">
+  <span>Lastenheft – SAFe PI Capacity Planner</span>
+  <span>BIT – Bundesamt für Informatik und Telekommunikation | April 2026</span>
+</div>
+<button class="print-btn no-print" onclick="window.print()">🖨 Als PDF speichern</button>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- TITELSEITE -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="title-page page-break" style="page-break-before: avoid;">
+  <div class="doc-label">Bundesamt für Informatik und Telekommunikation (BIT)</div>
+  <div class="title-main">LASTENHEFT</div>
+  <div class="title-sub">SAFe PI Capacity Planner</div>
+  <div class="title-desc">Anforderungsspezifikation für Neuentwicklung</div>
+
+  <table class="meta-table">
+    <tr><td>Auftraggeber</td><td>Bundesamt für Informatik und Telekommunikation (BIT)</td></tr>
+    <tr><td>Abteilung</td><td>IT-Delivery / SAFe Agile Release Train</td></tr>
+    <tr><td>Dokumenttyp</td><td>Lastenheft (Anforderungsspezifikation)</td></tr>
+    <tr><td>Version</td><td>1.0</td></tr>
+    <tr><td>Datum</td><td>April 2026</td></tr>
+    <tr><td>Status</td><td>Freigegeben zur Ausschreibung</td></tr>
+    <tr><td>Vertraulichkeit</td><td>Intern – nicht für Dritte bestimmt</td></tr>
+  </table>
+
+  <div class="footer-org">
+    Bundesamt für Informatik und Telekommunikation (BIT)<br>
+    Monbijoustrasse 74 · 3003 Bern · Schweiz<br>
+    Schweizerische Eidgenossenschaft
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- INHALTSVERZEICHNIS -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>Inhaltsverzeichnis</h1>
+<div class="toc-entry l1"><span>1. Einleitung</span><span class="toc-num">3</span></div>
+<div class="toc-entry l2"><span>1.1 Zweck des Dokuments</span></div>
+<div class="toc-entry l2"><span>1.2 Ausgangslage</span></div>
+<div class="toc-entry l2"><span>1.3 Auftraggeber</span></div>
+<div class="toc-entry l2"><span>1.4 Geltungsbereich</span></div>
+
+<div class="toc-entry l1"><span>2. Projektziel und Systemübersicht</span><span class="toc-num">4</span></div>
+<div class="toc-entry l2"><span>2.1 Projektziel</span></div>
+<div class="toc-entry l2"><span>2.2 Kernfunktionen im Überblick</span></div>
+<div class="toc-entry l2"><span>2.3 Systemgrenzen (Out of Scope)</span></div>
+
+<div class="toc-entry l1"><span>3. Benutzergruppen</span><span class="toc-num">5</span></div>
+<div class="toc-entry l1"><span>4. Konzeptuelles Datenmodell</span><span class="toc-num">5</span></div>
+
+<div class="toc-entry l1"><span>5. Funktionale Anforderungen</span><span class="toc-num">7</span></div>
+<div class="toc-entry l2"><span>5.1 Navigation und Grundstruktur</span></div>
+<div class="toc-entry l2"><span>5.2 Mitarbeiterverwaltung</span></div>
+<div class="toc-entry l2"><span>5.3 PI-Planung und Iterationen</span></div>
+<div class="toc-entry l2"><span>5.4 Kalender-Ereignisse</span></div>
+<div class="toc-entry l2"><span>5.5 Kalender-Ansicht und Absenzbuchung</span></div>
+<div class="toc-entry l2"><span>5.6 Story-Point-Berechnung</span></div>
+<div class="toc-entry l2"><span>5.7 Dashboard</span></div>
+<div class="toc-entry l2"><span>5.8 PI Dashboard</span></div>
+<div class="toc-entry l2"><span>5.9 Export-Funktionen</span></div>
+<div class="toc-entry l2"><span>5.10 Einstellungen und Konfiguration</span></div>
+<div class="toc-entry l2"><span>5.11 Backup und Restore</span></div>
+<div class="toc-entry l2"><span>5.12 Mehrbenutzer-Unterstützung (Echtzeit)</span></div>
+<div class="toc-entry l2"><span>5.13 Mandantenfähigkeit (Multi-Train)</span></div>
+<div class="toc-entry l2"><span>5.14 Admin-Bereich</span></div>
+<div class="toc-entry l2"><span>5.15 Corporate Design Bund</span></div>
+
+<div class="toc-entry l1"><span>6. Nicht-funktionale Anforderungen</span><span class="toc-num">14</span></div>
+<div class="toc-entry l2"><span>6.1 Performance</span></div>
+<div class="toc-entry l2"><span>6.2 Browser-Kompatibilität</span></div>
+<div class="toc-entry l2"><span>6.3 Datenschutz und Datensicherheit</span></div>
+<div class="toc-entry l2"><span>6.4 Verfügbarkeit und Wartbarkeit</span></div>
+
+<div class="toc-entry l1"><span>7. Schnittstellen und Integrationen</span><span class="toc-num">15</span></div>
+<div class="toc-entry l1"><span>8. Buchungstypen und Geschäftsregeln</span><span class="toc-num">16</span></div>
+<div class="toc-entry l1"><span>9. Abnahmekriterien</span><span class="toc-num">17</span></div>
+<div class="toc-entry l1"><span>10. Roadmap – Optionale Erweiterungen</span><span class="toc-num">18</span></div>
+<div class="toc-entry l1"><span>11. Anhang: Glossar</span><span class="toc-num">19</span></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 1. EINLEITUNG -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>1. Einleitung</h1>
+
+<h2>1.1 Zweck des Dokuments</h2>
+<p>Dieses Lastenheft beschreibt die vollständigen Anforderungen an die Neuentwicklung des SAFe PI Capacity Planners als webbasierte Anwendung. Es richtet sich an externe Entwicklungsdienstleister und bildet die verbindliche Grundlage für Angebot, Vertrag und Abnahme.</p>
+<p>Das Dokument definiert, <em>was</em> das System leisten muss (funktionale Anforderungen), unter welchen Bedingungen es betrieben wird (nicht-funktionale Anforderungen) und welche Abnahmekriterien erfüllt sein müssen. Die Wahl der Technologie und Architektur liegt beim Auftragnehmer, sofern alle Anforderungen eingehalten werden.</p>
+
+<h2>1.2 Ausgangslage</h2>
+<p>Das Bundesamt für Informatik und Telekommunikation (BIT) setzt zur Software-Entwicklung das Scaled Agile Framework (SAFe) ein. Alle sechs bis acht Wochen findet ein PI Planning statt, in dem Teams ihre verfügbare Kapazität in Story Points (SP) berechnen und Aufgaben für das kommende Program Increment (PI) planen.</p>
+<p>Bisher erfolgte diese Kapazitätsplanung manuell in Excel. Dies führt zu Medienbrüchen, hohem Pflegeaufwand und fehlender Transparenz für alle Beteiligten. Eine webbasierte Lösung soll den Prozess digitalisieren, standardisieren und für mehrere Teams gleichzeitig zugänglich machen.</p>
+
+<h2>1.3 Auftraggeber</h2>
+<table>
+  <tr><td style="font-weight:700;background:var(--grau-hell);width:30%">Organisation</td><td>Bundesamt für Informatik und Telekommunikation (BIT)</td></tr>
+  <tr><td style="font-weight:700;background:var(--grau-hell)">Adresse</td><td>Monbijoustrasse 74, 3003 Bern, Schweiz</td></tr>
+  <tr><td style="font-weight:700;background:var(--grau-hell)">Kontext</td><td>Schweizerische Bundesverwaltung</td></tr>
+  <tr><td style="font-weight:700;background:var(--grau-hell)">Rahmenwerk</td><td>SAFe (Scaled Agile Framework)</td></tr>
+</table>
+
+<h2>1.4 Geltungsbereich</h2>
+<p>Dieses Lastenheft beschreibt alle Funktionen, die zum Zeitpunkt der Ausschreibung (April 2026) als Anforderungen definiert sind. Roadmap-Features (Phase 6+) werden in Kapitel 10 als optionale Erweiterungen aufgeführt und sind nicht Bestandteil der Grundbestellung.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 2. PROJEKTZIEL -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>2. Projektziel und Systemübersicht</h1>
+
+<h2>2.1 Projektziel</h2>
+<p>Der SAFe PI Capacity Planner ist eine webbasierte Mehrbenutzerlösung zur Kapazitätsplanung für SAFe PI Planning in der Bundesverwaltung. Das System ermöglicht es Teams, ihre verfügbaren Story Points pro PI und Iteration zu berechnen, indem es individuelle Mitarbeiterabsenzen, Feiertage, Schulferien, Betriebsaufgaben und Pikett-Verpflichtungen berücksichtigt.</p>
+
+<h2>2.2 Kernfunktionen im Überblick</h2>
+<ul>
+  <li>Verwaltung von Mitarbeiterstammdaten (CRUD, CSV-Import/-Export)</li>
+  <li>Visuelle Absenzbuchung via Drag-and-Drop im Kalender</li>
+  <li>Automatische Berechnung verfügbarer Story Points pro Mitarbeiter, Team und Iteration</li>
+  <li>Dashboard mit KPI-Karten, Diagrammen und automatischer Lückenerkennung (Betrieb, Pikett)</li>
+  <li>PI Dashboard: Vergleich geplante SP (Jira) vs. berechnete SP (App)</li>
+  <li>Echtzeit-Synchronisation für mehrere gleichzeitige Benutzer</li>
+  <li>Mandantenfähigkeit: mehrere Agile Release Trains (ART) isoliert verwaltbar</li>
+  <li>Vollständige Export-Funktionen (PDF, PNG, JSON-Backup)</li>
+  <li>Corporate Design Bund (Bundesblau, Bundesrot, Swiss Design System)</li>
+</ul>
+
+<h2>2.3 Systemgrenzen (Out of Scope)</h2>
+<p>Folgende Bereiche sind explizit nicht Bestandteil dieser Ausschreibung:</p>
+<ul>
+  <li>Mobile App (nativer iOS/Android-Client)</li>
+  <li>SSO / Active Directory / LDAP Integration</li>
+  <li>SAP-Integration</li>
+  <li>Automatische Feiertagsberechnung (manuelle Pflege via CSV)</li>
+  <li>Jira REST API Integration (manuelle SP-Eingabe, keine automatische Synchronisation)</li>
+</ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 3. BENUTZERGRUPPEN -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h1>3. Benutzergruppen</h1>
+<table>
+  <thead><tr><th>Rolle</th><th>Beschreibung</th><th>Hauptaufgaben</th></tr></thead>
+  <tbody>
+    <tr><td>Scrum Master / Chapter Lead</td><td>Primärnutzer der Anwendung</td><td>Absenzen erfassen, Kapazität berechnen, Dashboard auswerten</td></tr>
+    <tr><td>IT-Manager / Train Engineer</td><td>Überblick über alle Teams</td><td>PI-Planung konfigurieren, Zielwerte setzen, Berichte exportieren</td></tr>
+    <tr><td>Product Owner</td><td>Jira-Daten pflegen</td><td>SP aus Jira pro Team und Iteration manuell erfassen</td></tr>
+    <tr><td>Train-Administrator</td><td>Systemverwaltung</td><td>Trains verwalten, Daten zurücksetzen, Admin-Code verwalten</td></tr>
+  </tbody>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 4. DATENMODELL -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>4. Konzeptuelles Datenmodell</h1>
+<p>Das folgende Modell beschreibt die zentralen Entitäten und ihre Beziehungen. Die konkrete technische Umsetzung (Datenbankschema, ORM, etc.) obliegt dem Auftragnehmer.</p>
+
+<table>
+  <thead><tr><th>Entität</th><th>Beschreibung</th><th>Schlüsselattribute</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Mitarbeiter</strong></td><td>Stammdaten einer Person</td><td>Vorname, Name, Team, Typ (intern/extern), FTE, Kapazitätsprozent, Betriebsprozent, Pauschalprozent, SP/Tag</td></tr>
+    <tr><td><strong>Buchung</strong></td><td>Absenzeintrag eines Mitarbeiters für einen Tag</td><td>Mitarbeiter-Referenz, Datum, Buchungstyp</td></tr>
+    <tr><td><strong>Buchungstyp</strong></td><td>Kategorie der Buchung</td><td>FERIEN, ABWESEND, TEILZEIT, MILITAER, IPA, BETRIEB, BETRIEB_PIKETT, PIKETT</td></tr>
+    <tr><td><strong>PI-Planung</strong></td><td>Program Increment Zeitrahmen</td><td>Name (z.B. PI26-1), Startdatum, Enddatum</td></tr>
+    <tr><td><strong>Iteration</strong></td><td>Sprint innerhalb eines PI</td><td>Name, Startdatum, Enddatum, PI-Referenz</td></tr>
+    <tr><td><strong>Feiertag</strong></td><td>Gesetzlicher Feiertag</td><td>Name, Startdatum, Enddatum</td></tr>
+    <tr><td><strong>Schulferien</strong></td><td>Schulferienperiode</td><td>Name, Startdatum, Enddatum</td></tr>
+    <tr><td><strong>Blocker / Change-Freeze</strong></td><td>Gesperrter Zeitraum</td><td>Name, Startdatum, Enddatum</td></tr>
+    <tr><td><strong>Team</strong></td><td>Organisationseinheit</td><td>Name, Mindestbesetzung Betrieb, Mindestbesetzung Pikett</td></tr>
+    <tr><td><strong>PI-Teamziel</strong></td><td>Soll-SP aus Jira pro PI und Team</td><td>PI-Referenz, Team, SP in Jira</td></tr>
+    <tr><td><strong>Globale Konfiguration</strong></td><td>Systemweite Parameter</td><td>SP pro Tag (Standard: 1), Stunden pro Jahr (Standard: 1600)</td></tr>
+    <tr><td><strong>Train (Mandant)</strong></td><td>Isolierter Agile Release Train</td><td>Name, Erstellungsdatum, Admin-Code (gehasht)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 5. FUNKTIONALE ANFORDERUNGEN -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>5. Funktionale Anforderungen</h1>
+<div class="info-box">
+  <strong>Prioritäten:</strong> <span style="color:#991B1B;font-weight:700">MUSS</span> = zwingend für Abnahme &nbsp;|&nbsp;
+  <span style="color:#854D0E;font-weight:700">SOLL</span> = erwartet, Abweichung begründungspflichtig &nbsp;|&nbsp;
+  <span style="color:#166534;font-weight:700">KANN</span> = optional
+</div>
+
+<h2>5.1 Navigation und Grundstruktur</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-01.1</td><td>Navigations-Tabs</td><td>Die Anwendung verfügt über folgende Hauptbereiche, zugänglich via Tab-Navigation: Planung, Kapazität, Dashboard, PI Dashboard, Einstellungen, Admin.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.2</td><td>Train-Auswahl (Splash Screen)</td><td>Beim Start wird ein Auswahl-Bildschirm angezeigt, auf dem der Benutzer seinen Agile Release Train (Mandanten) wählt.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.3</td><td>Aktiver Train im Header</td><td>Der Name des aktiven Trains wird im Anwendungs-Header angezeigt. Ein Wechsel-Button ermöglicht die Rückkehr zur Train-Auswahl.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.4</td><td>Verbindungsindikator</td><td>Ein visueller Indikator im Header zeigt den Verbindungsstatus zur Echtzeit-Synchronisation (verbunden/getrennt) an.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.5</td><td>Bundeslogo</td><td>Das offizielle Schweizer Bundeslogo wird im Anwendungs-Header angezeigt.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.2 Mitarbeiterverwaltung</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-02.1</td><td>Mitarbeiter CRUD</td><td>Vollständige CRUD-Operationen für Mitarbeiterstammdaten: Vorname, Name, Team, Typ (intern/extern), FTE, Kapazitätsprozent, Betriebsprozent, Pauschalprozent, SP/Tag.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.2</td><td>CSV-Import</td><td>Mitarbeiterstammdaten können als CSV-Datei importiert werden. Formatfehler werden erkannt und dem Benutzer gemeldet.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.3</td><td>CSV-Export</td><td>Mitarbeiterstammdaten können als CSV-Datei exportiert werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.4</td><td>Validierung Kapazitätswerte</td><td>Das System prüft, dass Betriebsprozent + Pauschalprozent ≤ Kapazitätsprozent. Ungültige Einträge werden markiert und gemeldet.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.5</td><td>Filter und Suche</td><td>Mitarbeiterliste kann nach Team, Typ (intern/extern) und Freitext (Name) gefiltert werden.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+
+<h2>5.3 PI-Planung und Iterationen</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-03.1</td><td>PI-Planung CRUD</td><td>Verwaltung von PI-Planungen mit Name, Startdatum und Enddatum.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-03.2</td><td>Iterationen pro PI</td><td>Zu jedem PI können Iterationen (Sprints) mit Name, Startdatum und Enddatum angelegt werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-03.3</td><td>CSV-Import/-Export</td><td>PI-Planungen und Iterationen können als CSV importiert und exportiert werden.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-03.4</td><td>Validierung</td><td>Überlappende Iterationen innerhalb eines PI werden abgelehnt. Datumsinkonsistenzen werden gemeldet.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="page-break">
+<h2>5.4 Kalender-Ereignisse</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-04.1</td><td>Gesetzliche Feiertage</td><td>CRUD + CSV-Import/-Export für gesetzliche Feiertage (Datum, Name).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-04.2</td><td>Schulferienperioden</td><td>CRUD + CSV-Import/-Export für Schulferienperioden (Zeitraum, Name).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-04.3</td><td>Blocker / Change-Freeze</td><td>CRUD + CSV-Import/-Export für gesperrte Zeiträume. Change-Freeze-Tage werden mit einem Schneeflocken-Symbol (❄) im Kalender dargestellt.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-04.4</td><td>Keine SP-Auswirkung von Blockern</td><td>Blocker-Tage gelten als normale Arbeitstage – kein Story-Point-Abzug. Nur visuelle Markierung.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.5 Kalender-Ansicht und Absenzbuchung</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-05.1</td><td>Kalender-Grid</td><td>Tabellarische Ansicht: Zeilen = Mitarbeiter, Spalten = Tage im gewählten Zeitraum (PI/Iteration). Wochenenden und Feiertage sind visuell unterscheidbar.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.2</td><td>Drag-Buchung</td><td>Absenzen werden via Maus-Drag über mehrere Tage gebucht. Die Buchung wird für alle überstrichenen Tage gleichzeitig angelegt (Interpolation).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.3</td><td>Buchungstypen und Farbcodes</td><td>Unterstützte Typen: FERIEN (Orange), ABWESEND (Dunkelgrau), TEILZEIT (Hellgelb), MILITAER (Hellgrün), IPA (Lila), BETRIEB (Hellblau), BETRIEB_PIKETT (Violett), PIKETT (Rosa). Wochenenden grau, Feiertage dunkelgrau, Schulferien hellgrau.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.4</td><td>Buchung aufheben</td><td>Bestehende Buchungen können durch erneutes Klicken/Ziehen aufgehoben werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.5</td><td>Filter</td><td>Die Kalender-Ansicht kann nach Team, PI und Iteration gefiltert werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.6</td><td>Sticky Header</td><td>Spalten-Header (Datum/Woche) und Zeilen-Header (Mitarbeitername) bleiben beim Scrollen fixiert.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-05.7</td><td>Legende</td><td>Eine Farbcode-Legende erklärt alle Buchungstypen sichtbar in der Oberfläche.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.6 Story-Point-Berechnung</h2>
+<div class="info-box">
+  <strong>Berechnungslogik (verbindlich):</strong><br>
+  1 Arbeitstag = <em>spPerDay</em> SP (konfigurierbar, Standard: 1) &nbsp;|&nbsp;
+  TEILZEIT = 0,5 × spPerDay &nbsp;|&nbsp;
+  FERIEN / ABWESEND / MILITAER / IPA / BETRIEB / PIKETT = 0 SP<br>
+  FTE-Faktor: 80% FTE → 0,8 × Basis-SP &nbsp;|&nbsp;
+  Betriebsanteil-Abzug: betriebPercent × verfügbare SP &nbsp;|&nbsp;
+  Pauschale-Abzug: pauschalPercent × verfügbare SP<br>
+  Wochenenden und gesetzliche Feiertage zählen nicht als Arbeitstage. Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
+</div>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-06.1</td><td>SP-Berechnung pro Mitarbeiter</td><td>Das System berechnet die verfügbaren Story Points pro Mitarbeiter für jede Iteration unter Berücksichtigung aller Absenzen, FTE, Betriebsanteil und Pauschale.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.2</td><td>Team-Aggregation</td><td>Die SP werden pro Team und Iteration aggregiert und dargestellt.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.3</td><td>PI-Aggregation</td><td>Die SP werden pro Team über alle Iterationen eines PI summiert.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.4</td><td>Globale Parameter konfigurierbar</td><td>SP/Tag und Stunden/Jahr sind in den Einstellungen konfigurierbar.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="page-break">
+<h2>5.7 Dashboard</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-07.1</td><td>KPI-Karten</td><td>Anzeige von Kennzahlen: Gesamtkapazität (SP), gebuchte Kapazität (SP), freie Kapazität (SP), Anzahl Mitarbeiter.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.2</td><td>Balkendiagramm</td><td>Grafische Darstellung der SP-Kapazität pro Iteration (Soll vs. Ist).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.3</td><td>Absenz-Übersichtstabelle</td><td>Tabellarische Übersicht aller Absenzen pro Mitarbeiter und Buchungstyp für den gewählten Zeitraum.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.4</td><td>Betrieb-Lückenerkennung</td><td>Tage, an denen die BETRIEB-Buchungen eines Teams unter der konfigurierten Mindestbesetzung liegen, werden rot markiert.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.5</td><td>Pikett-Lückenerkennung</td><td>Tage (inkl. Wochenenden und Feiertage), an denen die Pikett-Besetzung unter dem Minimum liegt, werden rot markiert.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.6</td><td>Filter</td><td>Dashboard-Daten können nach Team, PI und Iteration gefiltert werden.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.8 PI Dashboard</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-08.1</td><td>SP-Vergleich</td><td>Das PI Dashboard zeigt pro PI, Team und Iteration gegenübergestellt: geplante SP (aus Jira, manuell erfasst) und berechnete verfügbare SP (aus der Anwendung).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.2</td><td>Manuelle Jira-SP Eingabe</td><td>Product Owner können die geplanten SP aus Jira direkt in der Anwendung erfassen. Kein API-Zugriff erforderlich.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.3</td><td>Farbkodierung Auslastung</td><td>Auslastung &lt; 85%: grün | 85–100%: orange | &gt; 100%: rot.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.4</td><td>Export</td><td>Das PI Dashboard kann als PDF und als PNG exportiert werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.5</td><td>Server-seitige Datenhaltung</td><td>Die Jira-SP Werte werden server-seitig gespeichert (nicht im Browser-LocalStorage) und sind für alle Benutzer des gleichen Trains sichtbar.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.9 Export-Funktionen</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-09.1</td><td>Kalender-Export PDF</td><td>Die Planungsansicht (Kalender-Grid) kann als PDF exportiert werden. Der Export enthält das Bundeslogo im Header.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-09.2</td><td>Kalender-Export PNG</td><td>Die Planungsansicht kann als PNG-Bild exportiert werden (für Confluence-Integration).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-09.3</td><td>PI Dashboard Export PDF/PNG</td><td>Das PI Dashboard kann als PDF und PNG exportiert werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-09.4</td><td>Dokumentation Download</td><td>Die Benutzerdokumentation ist direkt aus der Anwendung als Datei herunterladbar.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="page-break">
+<h2>5.10 Einstellungen und Konfiguration</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-10.1</td><td>Team-Konfiguration</td><td>Pro Team konfigurierbar: Mindestanzahl BETRIEB-Buchungen pro Arbeitstag, Mindestanzahl PIKETT-Buchungen pro Tag (inkl. Wochenende).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-10.2</td><td>Globale Parameter</td><td>Konfigurierbar: SP pro Tag (Standardwert), Arbeitsstunden pro Jahr.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-10.3</td><td>Team-Zielwerte</td><td>Soll-SP pro Team konfigurierbar. CSV-Import/-Export.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-10.4</td><td>Buchungstyp-Farben</td><td>Farben der Buchungstypen im Kalender sind via Color-Picker individuell anpassbar. Reset auf Standardwerte möglich.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-10.5</td><td>CSV Farbkonfiguration</td><td>Farbkonfiguration kann als CSV exportiert und importiert werden.</td><td class="prio-kann">KANN</td></tr>
+    <tr><td class="req-id">F-10.6</td><td>Navigierbare Abschnitte</td><td>Die Einstellungsseite ist in benannte Abschnitte unterteilt. Klick auf einen Abschnitt scrollt die Seite automatisch dorthin.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+
+<h2>5.11 Backup und Restore</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-11.1</td><td>Vollständiger JSON-Export</td><td>Der gesamte Anwendungszustand (Mitarbeiter, Buchungen, PIs, Feiertage, Schulferien, Blocker, Konfiguration, Jira-SP-Werte) kann als JSON-Datei exportiert werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-11.2</td><td>Vollständiger JSON-Import</td><td>Ein zuvor exportiertes Backup kann vollständig wiederhergestellt werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-11.3</td><td>Schema-Versionierung</td><td>Das JSON-Backup-Format enthält eine Versionsnummer. Das System kann Backups älterer Versionen migrieren.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.12 Mehrbenutzer-Unterstützung (Echtzeit)</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-12.1</td><td>Echtzeit-Synchronisation</td><td>Änderungen eines Benutzers (Buchungen, Konfigurationen) werden ohne Seiten-Reload in Echtzeit an alle anderen Benutzer des gleichen Trains übertragen.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-12.2</td><td>Row-Locking</td><td>Solange ein Benutzer eine Mitarbeiterzeile bearbeitet, wird diese für andere Benutzer gesperrt (visuelles Feedback). Die Sperre wird automatisch aufgehoben.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-12.3</td><td>Verbindungsstatus</td><td>Benutzer sehen jederzeit, ob die Verbindung zur Echtzeit-Synchronisation aktiv ist.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.13 Mandantenfähigkeit (Multi-Train)</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-13.1</td><td>Mehrere Trains</td><td>Das System unterstützt mehrere voneinander vollständig isolierte Agile Release Trains (Mandanten).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-13.2</td><td>Vollständige Datenisolation</td><td>Mitarbeiter, Buchungen, Konfigurationen und alle anderen Daten sind strikt pro Train isoliert. Ein Benutzer eines Trains hat keinen Zugriff auf Daten anderer Trains.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-13.3</td><td>Train-Auswahl</td><td>Beim Öffnen der Anwendung wählt der Benutzer seinen Train. Die Auswahl bestimmt den vollständigen Anwendungskontext.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-13.4</td><td>Train-Verwaltung</td><td>Trains können im Admin-Bereich erstellt, umbenannt und gelöscht werden.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.14 Admin-Bereich</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-14.1</td><td>Code-Schutz</td><td>Der Admin-Bereich ist durch einen 6-stelligen Code geschützt. Der Code wird session-basiert gecacht (15 Minuten).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.2</td><td>Rate-Limiting</td><td>Nach 3 Fehlversuchen wird der Admin-Bereich für 60 Sekunden gesperrt. Die Sperre wird server-seitig durchgesetzt.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.3</td><td>Train-CRUD</td><td>Im Admin-Bereich können Trains erstellt, umbenannt und gelöscht werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.4</td><td>Daten-Reset</td><td>Alle Daten eines Trains können zurückgesetzt werden (nach Bestätigung).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.5</td><td>Admin-Code ändern</td><td>Der Admin-Code eines Trains kann geändert werden.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>5.15 Corporate Design Bund</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-15.1</td><td>Bundesblau als Primärfarbe</td><td>Primärfarbe der Anwendung ist Bundesblau (#003F7F) gemäss CD Bund Manual.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.2</td><td>Bundesrot als Akzentfarbe</td><td>Akzentfarbe ist Bundesrot (#E63312) gemäss CD Bund Manual.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.3</td><td>Schriftart</td><td>Verwendung von Frutiger als Primärschrift. Fallback: NotoSans (selbst-gehostet), Arial.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.4</td><td>Bundeslogo</td><td>Das offizielle Schweizer Bundeslogo wird im Anwendungs-Header und in Exporten verwendet.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.5</td><td>Swiss Design System</td><td>Farbdefinitionen folgen dem Swiss Design System CSS-Variablen-Schema (--color-primary-*, --color-secondary-*).</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-15.6</td><td>Keine externen Fonts via CDN</td><td>Alle Schriftarten werden lokal (selbst-gehostet) eingebunden. Kein Abruf von externen Font-Diensten.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 6. NICHT-FUNKTIONALE ANFORDERUNGEN -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>6. Nicht-funktionale Anforderungen</h1>
+
+<h2>6.1 Performance</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-P1</td><td>Ladezeit</td><td>Die Anwendung ist bei normaler Internetverbindung (≥ 10 Mbit/s) innerhalb von 3 Sekunden vollständig geladen und bedienbar.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-P2</td><td>Drag-Reaktionszeit</td><td>Drag-Buchungen im Kalender reagieren mit einer Latenz von &lt; 100 ms (lokal) und &lt; 300 ms (nach Echtzeit-Sync).</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-P3</td><td>Echtzeit-Sync-Latenz</td><td>Änderungen werden innerhalb von 500 ms an alle verbundenen Benutzer übertragen.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-P4</td><td>Gleichzeitige Benutzer</td><td>Das System ist für bis zu 20 gleichzeitig aktive Benutzer pro Train ausgelegt.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>6.2 Browser-Kompatibilität</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-B1</td><td>Unterstützte Browser</td><td>Korrekte Funktionsweise in den jeweils aktuellen Versionen von: Google Chrome, Mozilla Firefox, Microsoft Edge, Apple Safari.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-B2</td><td>Desktop-Optimierung</td><td>Die Anwendung ist für Desktop-Bildschirme (≥ 1280px Breite) optimiert. Mobile-Unterstützung ist nicht erforderlich.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>6.3 Datenschutz und Datensicherheit</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-S1</td><td>Keine externen Dienste</td><td>Die Anwendung lädt im Browser keine Ressourcen von externen Diensten (keine CDN-Fonts, kein Analytics, keine Tracking-Skripte).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S2</td><td>HTTPS</td><td>Die Anwendung wird ausschliesslich über HTTPS betrieben.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S3</td><td>Kein LocalStorage für Kerndaten</td><td>Anwendungsdaten (Mitarbeiter, Buchungen, Konfigurationen) werden server-seitig gespeichert. Kein Einsatz von browser-seitigem LocalStorage für geschäftliche Daten.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S4</td><td>Infrastruktur Schweiz / EU</td><td>Die Serverinfrastruktur muss sich in der Schweiz oder in einem EU/EWR-Land mit angemessenem Datenschutzniveau befinden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S5</td><td>Admin-Code Sicherheit</td><td>Admin-Codes werden nie im Klartext gespeichert (Hashing). Rate-Limiting verhindert Brute-Force-Angriffe (3 Versuche, 60s Sperre).</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>6.4 Verfügbarkeit und Wartbarkeit</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-V1</td><td>Verfügbarkeit</td><td>Ziel-Verfügbarkeit: ≥ 99% (gemessen auf Monatsbasis, geplante Wartungsfenster ausgenommen).</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-V2</td><td>Backup als Notfallmassnahme</td><td>Die JSON-Backup/-Restore-Funktion ermöglicht vollständige Wiederherstellung aller Daten ohne direkten Datenbankzugriff.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-V3</td><td>Technische Dokumentation</td><td>Der Auftragnehmer liefert ein Installationshandbuch (Deployment, Konfiguration, Umgebungsvariablen) und eine Benutzerdokumentation.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-V4</td><td>Quellcode-Übergabe</td><td>Der vollständige Quellcode wird dem Auftraggeber übergeben und muss ohne proprietäre Build-Umgebungen kompilierbar sein.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 7. SCHNITTSTELLEN -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>7. Schnittstellen und Integrationen</h1>
+<table>
+  <thead><tr><th>Schnittstelle</th><th>Typ</th><th>Beschreibung</th><th>Priorität</th></tr></thead>
+  <tbody>
+    <tr><td>CSV-Import/-Export</td><td>Datei</td><td>Import und Export von Stammdaten (Mitarbeiter, PI-Planung, Feiertage, Schulferien, Blocker, Zielwerte) im CSV-Format.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>JSON Backup/Restore</td><td>Datei</td><td>Vollständiger Export und Import des Systemzustands als JSON-Datei.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>PDF/PNG Export</td><td>Datei</td><td>Export von Kalenderansicht und PI Dashboard als PDF und PNG.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>Echtzeit-Sync</td><td>WebSocket</td><td>Bidirektionale Echtzeit-Kommunikation zwischen Frontend und Backend für Multiuser-Unterstützung.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>Jira (manuell)</td><td>Manuell</td><td>SP aus Jira werden manuell durch den Product Owner in der Anwendung erfasst. Keine API-Integration in dieser Phase.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>Jira REST API</td><td>REST API</td><td>Automatische Synchronisation der SP aus Jira via REST API. (Roadmap, nicht Teil der Grundbestellung)</td><td class="prio-kann">KANN</td></tr>
+    <tr><td>aGov OIDC</td><td>OIDC / OAuth2</td><td>Single Sign-On via aGov Identity Provider der Bundesverwaltung. (Roadmap, nicht Teil der Grundbestellung)</td><td class="prio-kann">KANN</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 8. BUCHUNGSTYPEN & GESCHÄFTSREGELN -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>8. Buchungstypen und Geschäftsregeln</h1>
+
+<h2>8.1 Buchungstypen</h2>
+<table>
+  <thead><tr><th>Typ</th><th>Bezeichnung</th><th>SP-Auswirkung</th><th>Kalenderfarbe (Standard)</th></tr></thead>
+  <tbody>
+    <tr><td><strong>FERIEN</strong></td><td>Ferien / Frei</td><td>0 SP</td><td>Orange (#FB923C)</td></tr>
+    <tr><td><strong>ABWESEND</strong></td><td>Abwesenheit (Sonstiges)</td><td>0 SP</td><td>Dunkelgrau (#6B7280)</td></tr>
+    <tr><td><strong>TEILZEIT</strong></td><td>Teilzeit (halber Tag abwesend)</td><td>0,5 × spPerDay</td><td>Hellgelb (#FDE68A)</td></tr>
+    <tr><td><strong>MILITAER</strong></td><td>Militärdienst</td><td>0 SP</td><td>Hellgrün (#84CC16)</td></tr>
+    <tr><td><strong>IPA</strong></td><td>Individuelle Praktische Arbeit</td><td>0 SP</td><td>Lila (#A78BFA)</td></tr>
+    <tr><td><strong>BETRIEB</strong></td><td>Betriebsdienst</td><td>0 SP</td><td>Hellblau (#60A5FA)</td></tr>
+    <tr><td><strong>BETRIEB_PIKETT</strong></td><td>Betrieb und Pikett gleichzeitig</td><td>0 SP</td><td>Violett (#7C3AED)</td></tr>
+    <tr><td><strong>PIKETT</strong></td><td>Pikettdienst (Rufbereitschaft)</td><td>0 SP</td><td>Rosa (#F9A8D4)</td></tr>
+  </tbody>
+</table>
+
+<h2>8.2 Lückenerkennung</h2>
+<h3>Betrieb-Lücke</h3>
+<div class="info-box">Eine Betrieb-Lücke wird gemeldet, wenn an einem <strong>Arbeitstag</strong> (kein Wochenende, kein gesetzlicher Feiertag) die Anzahl der Mitarbeiter mit Buchungstyp BETRIEB oder BETRIEB_PIKETT in einem Team kleiner ist als die konfigurierte Mindestbesetzung (<em>teamConfig.minBetrieb</em>).</div>
+
+<h3>Pikett-Lücke</h3>
+<div class="info-box">Eine Pikett-Lücke wird gemeldet, wenn an einem <strong>beliebigen Tag</strong> innerhalb des PI-Zeitraums (einschliesslich Wochenenden und gesetzlicher Feiertage) die Anzahl der Mitarbeiter mit Buchungstyp PIKETT oder BETRIEB_PIKETT in einem Team kleiner ist als die konfigurierte Mindestbesetzung (<em>teamConfig.minPikett</em>).<br><br>
+<strong>Wichtig:</strong> Pikett gilt auch an Wochenenden und Feiertagen, da Störungen jederzeit auftreten können. Betrieb gilt ausschliesslich an regulären Arbeitstagen.</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 9. ABNAHMEKRITERIEN -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>9. Abnahmekriterien</h1>
+<p>Die Abnahme der Lieferung erfolgt anhand der folgenden messbaren Kriterien. Alle Kriterien mit Priorität MUSS müssen ohne Abweichung erfüllt sein.</p>
+<table>
+  <thead><tr><th style="width:60px">ID</th><th>Kriterium</th><th>Messmethode</th><th style="width:70px">Prio</th></tr></thead>
+  <tbody>
+    <tr><td>AK-01</td><td>Kapazitätsplanung für ein vollständiges PI (6 Iterationen) in unter 30 Minuten abschliessbar</td><td>Zeitnahme durch Testnutzer</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-02</td><td>SP-Berechnung stimmt mit manueller Excel-Rechnung überein (0% Abweichung)</td><td>Vergleich mit Referenz-Berechnung</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-03</td><td>Pikett-Lücken werden korrekt erkannt und rot markiert</td><td>Testfall mit definierter Lücke</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-04</td><td>Betrieb-Lücken werden korrekt erkannt und rot markiert</td><td>Testfall mit definierter Lücke</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-05</td><td>Zwei Trains sind vollständig isoliert – kein Datenaustausch möglich</td><td>Penetrationstest mit 2 Browsersitzungen</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-06</td><td>Backup kann vollständig wiederhergestellt werden</td><td>Export + Restore + Vergleich</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-07</td><td>Gleichzeitige Buchungen von 2 Benutzern werden korrekt synchronisiert</td><td>Paralleltest mit 2 Browsern</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-08</td><td>Corporate Design Bund eingehalten (Farben, Schrift, Logo)</td><td>Visueller Vergleich CD Bund Manual</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-09</td><td>Admin-Bereich nach 3 Fehlversuchen für 60 Sekunden gesperrt</td><td>Testfall Rate-Limiting</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-10</td><td>CSV-Import von Mitarbeiterstammdaten funktioniert ohne Datenverlust</td><td>Import + Vergleich mit Quelldaten</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-11</td><td>Ladezeit &lt; 3 Sekunden im Testumfeld (Standard-DSL)</td><td>Browser DevTools Network-Messung</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td>AK-12</td><td>Technische Dokumentation vollständig und aktuell</td><td>Review durch Auftraggeber</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 10. ROADMAP -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>10. Roadmap – Optionale Erweiterungen</h1>
+<p>Die folgenden Funktionen sind nicht Bestandteil der Grundbestellung, sollen aber bei der Systemarchitektur berücksichtigt werden, damit eine spätere Erweiterung ohne grundlegende Umbauten möglich ist.</p>
+<table>
+  <thead><tr><th style="width:60px">ID</th><th style="width:200px">Feature</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td>R-01</td><td>TOTP 2FA</td><td>Zwei-Faktor-Authentifizierung via Google Authenticator / Microsoft Authenticator (TOTP-Standard, RFC 6238)</td></tr>
+    <tr><td>R-02</td><td>aGov OIDC-Integration</td><td>Single Sign-On via den Identity Provider der Schweizer Bundesverwaltung (aGov, OpenID Connect)</td></tr>
+    <tr><td>R-03</td><td>Jira REST API Integration</td><td>Automatische Synchronisation der geplanten Story Points direkt aus Jira (ersetzt manuelle Eingabe durch PO)</td></tr>
+    <tr><td>R-04</td><td>Mobile-Optimierung</td><td>Responsive Design für mobile Endgeräte (min. 375px Breite), Touch-optimierte Drag-Buchung</td></tr>
+    <tr><td>R-05</td><td>Audit-Log</td><td>Protokollierung aller Admin-Aktionen mit Zeitstempel und Benutzerzuordnung</td></tr>
+    <tr><td>R-06</td><td>Rollen und Berechtigungen</td><td>Differenzierte Rollen: Admin (voller Zugriff), Planer (Buchungen + Konfiguration), Read-Only (nur Lesen)</td></tr>
+    <tr><td>R-07</td><td>Custom Allocation Types</td><td>Konfigurierbare Buchungstypen pro Team: eigene Kategorien mit individuellen Farben und SP-Gewichtungen</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- 11. GLOSSAR -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="page-break">
+<h1>11. Anhang: Glossar</h1>
+<table>
+  <thead><tr><th style="width:180px">Begriff</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td><strong>ART</strong></td><td>Agile Release Train – Organisationseinheit im SAFe-Framework, bestehend aus mehreren Scrum-Teams</td></tr>
+    <tr><td><strong>BIT</strong></td><td>Bundesamt für Informatik und Telekommunikation – IT-Dienstleister der Schweizer Bundesverwaltung</td></tr>
+    <tr><td><strong>Betrieb</strong></td><td>Betriebsdienst – Mitarbeiter im Betrieb sind für den operativen Betrieb von IT-Systemen zuständig und nicht für Entwicklungsaufgaben verfügbar</td></tr>
+    <tr><td><strong>FTE</strong></td><td>Full-Time Equivalent – Beschäftigungsgrad (1,0 = 100%, 0,8 = 80% Pensum)</td></tr>
+    <tr><td><strong>IPA</strong></td><td>Individuelle Praktische Arbeit – Abschlussarbeit in der Berufsausbildung (Schweiz)</td></tr>
+    <tr><td><strong>Iteration</strong></td><td>Sprint – Zeitbox von ca. 2 Wochen innerhalb eines PI</td></tr>
+    <tr><td><strong>Kapazitätsprozent</strong></td><td>Anteil der Arbeitszeit eines Mitarbeiters, der für Entwicklungsaufgaben verfügbar ist</td></tr>
+    <tr><td><strong>Pikett</strong></td><td>Rufbereitschaft – Mitarbeiter im Pikett sind ausserhalb der regulären Arbeitszeit erreichbar und können bei Störungen eingreifen</td></tr>
+    <tr><td><strong>PI</strong></td><td>Program Increment – Planungszyklus im SAFe-Framework, typischerweise 8–12 Wochen</td></tr>
+    <tr><td><strong>PI Planning</strong></td><td>SAFe PI Planning Event – mehrtägige Planungsveranstaltung zu Beginn jedes PI</td></tr>
+    <tr><td><strong>SAFe</strong></td><td>Scaled Agile Framework – Framework für die Skalierung agiler Methoden in grossen Organisationen</td></tr>
+    <tr><td><strong>SP</strong></td><td>Story Points – relatives Mass für den Aufwand einer Entwicklungsaufgabe</td></tr>
+    <tr><td><strong>Swiss DS</strong></td><td>Swiss Design System – offizielles Design System der Schweizer Bundesverwaltung</td></tr>
+    <tr><td><strong>Train</strong></td><td>Im Kontext dieser Anwendung: ein Mandant, der einem Agile Release Train entspricht</td></tr>
+  </tbody>
+</table>
+
+<hr class="divider" style="margin-top:60px">
+<p style="text-align:center;color:#999;font-size:9pt;margin-top:16px">
+  © Bundesamt für Informatik und Telekommunikation (BIT) – Internes Dokument<br>
+  Lastenheft SAFe PI Capacity Planner – Version 1.0 – April 2026
+</p>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

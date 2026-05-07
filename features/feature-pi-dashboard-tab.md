@@ -24,7 +24,7 @@ Neuer Tab "PI Dashboard" der einen direkten Vergleich zwischen Jira-committierte
 - [x] Klick auf Zelle öffnet Inline-Input (Zahl, 0.5-Schritte)
 - [x] Enter oder Blur speichert den Wert
 - [x] Escape bricht ab (Originalwert bleibt)
-- [x] Persistenz via localStorage (Key: `pi-dashboard-sp-jira-v1`)
+- [x] Persistenz via **Server-State** (`AppData.piTeamTargets`) — synchronisiert via Socket.io für alle verbundenen Benutzer (entschieden 07.04.2026, decisions/log.md)
 - [x] Wert 0 oder leer wird als "–" angezeigt
 
 ### Berechnungen
@@ -66,16 +66,19 @@ Neuer Tab "PI Dashboard" der einen direkten Vergleich zwischen Jira-committierte
 - `calendar-helpers.ts` – `getWorkingDays()` für Betriebstage
 - Kein neues npm-Paket
 
-### localStorage-Schema
-```json
-{
-  "pi-dashboard-sp-jira-v1": {
-    "${piId}::${iterationId}::${team}": 42.5
-  }
+### Server-State-Schema (`AppData.piTeamTargets`)
+```typescript
+interface PITeamTarget {
+  piId: string;
+  teamName: string;
+  spJira: number;   // editierbar durch PO, 0.5-Schritte
 }
+// spNetto wird berechnet, nicht gespeichert
 ```
 
+> ⚠️ **Veraltete Implementierung (nicht mehr gültig):** Die ursprüngliche Spec sah localStorage (Key: `pi-dashboard-sp-jira-v1`) vor. Diese wurde am 07.04.2026 durch Server-State ersetzt. Siehe decisions/log.md.
+
 ## Nicht in Scope
-- Kein Server-Sync der SP-Jira-Werte (lokale Planung)
+- ~~Kein Server-Sync der SP-Jira-Werte~~ (aufgehoben 07.04.2026 — Server-Sync ist jetzt implementiert)
 - Kein CSV-Export der Tabelle (Phase 2)
 - Keine Jira-API-Integration (Phase 2)

@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lastenheft – SAFe PI Capacity Planner</title>
+<style>
+  :root {
+    --bund-blau: #003F7F;
+    --bund-rot:  #E63312;
+    --grau-hell: #F5F5F5;
+    --grau-med:  #D5D5D5;
+    --text:      #1A1A1A;
+    --blau-hell: #E8EFF7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Frutiger, 'Noto Sans', Arial, sans-serif;
+    font-size: 11pt;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.5;
+  }
+  @page { size: A4; margin: 20mm 20mm 20mm 25mm; }
+  @media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+    body { font-size: 10pt; }
+    header { box-shadow: none; }
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 32px 40px; }
+
+  /* Titelseite */
+  .title-page { min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 80px; }
+  .doc-label { font-size: 9pt; font-weight: 700; letter-spacing: 3px; color: var(--bund-blau); text-transform: uppercase; margin-bottom: 16px; }
+  .title-main { font-size: 40pt; font-weight: 700; color: var(--bund-blau); line-height: 1.1; margin-bottom: 8px; }
+  .title-sub { font-size: 18pt; font-weight: 400; color: var(--text); margin-bottom: 4px; }
+  .title-desc { font-size: 12pt; color: #555; padding-bottom: 24px; border-bottom: 4px solid var(--bund-rot); margin-bottom: 48px; }
+  .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 48px; }
+  .meta-table td { padding: 8px 14px; border: 1px solid var(--grau-med); font-size: 10pt; }
+  .meta-table td:first-child { font-weight: 700; background: var(--grau-hell); width: 35%; color: var(--bund-blau); }
+  .footer-org { margin-top: auto; padding-top: 48px; color: #777; font-size: 9pt; }
+
+  /* Inhaltsverzeichnis */
+  .toc-entry { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px dotted var(--grau-med); font-size: 10.5pt; }
+  .toc-entry.l1 { font-weight: 700; color: var(--bund-blau); padding-top: 10px; font-size: 11pt; }
+  .toc-entry.l2 { padding-left: 20px; }
+  .toc-entry.l3 { padding-left: 40px; font-size: 10pt; color: #444; }
+  .toc-num { color: var(--bund-blau); font-weight: 700; }
+
+  /* Überschriften */
+  h1 { font-size: 20pt; font-weight: 700; color: var(--bund-blau); margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 3px solid var(--bund-blau); }
+  h2 { font-size: 14pt; font-weight: 700; color: var(--bund-blau); margin: 28px 0 10px; }
+  h3 { font-size: 11.5pt; font-weight: 700; color: var(--text); margin: 18px 0 8px; }
+  p { margin: 8px 0; line-height: 1.6; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 4px 0; line-height: 1.5; }
+
+  /* Tabellen */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 9.5pt; }
+  th { background: var(--bund-blau); color: #fff; font-weight: 700; padding: 8px 10px; text-align: left; border: 1px solid #0055aa; }
+  td { padding: 7px 10px; border: 1px solid var(--grau-med); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--grau-hell); }
+
+  /* Anforderungs-Tabelle */
+  .req-table th:first-child  { width: 70px; }
+  .req-table th:nth-child(2) { width: 180px; }
+  .req-table th:last-child   { width: 70px; }
+  .req-id   { font-weight: 700; color: var(--bund-blau); background: var(--blau-hell) !important; }
+  .prio-muss { background: #FEE2E2 !important; font-weight: 700; color: #991B1B; text-align: center; }
+  .prio-soll { background: #FEF9C3 !important; font-weight: 700; color: #854D0E; text-align: center; }
+  .prio-kann { background: #DCFCE7 !important; font-weight: 700; color: #166534; text-align: center; }
+
+  /* ADR */
+  .adr-box { border: 1px solid var(--grau-med); border-left: 5px solid var(--bund-blau); margin: 16px 0; padding: 0; }
+  .adr-header { background: var(--bund-blau); color: #fff; padding: 8px 14px; font-weight: 700; font-size: 10pt; }
+  .adr-body { padding: 12px 14px; }
+  .adr-row { display: grid; grid-template-columns: 130px 1fr; gap: 4px 12px; margin: 4px 0; font-size: 9.5pt; }
+  .adr-label { font-weight: 700; color: var(--bund-blau); }
+  .adr-status-ok { display: inline-block; background: #D1FAE5; color: #065F46; font-weight: 700; padding: 1px 8px; border-radius: 3px; font-size: 8.5pt; }
+  .adr-status-risk { display: inline-block; background: #FEF9C3; color: #854D0E; font-weight: 700; padding: 1px 8px; border-radius: 3px; font-size: 8.5pt; }
+
+  /* Info-Box */
+  .info-box { background: var(--blau-hell); border-left: 4px solid var(--bund-blau); padding: 12px 16px; margin: 12px 0; font-size: 10pt; }
+  .warn-box { background: #FEF9C3; border-left: 4px solid #D97706; padding: 12px 16px; margin: 12px 0; font-size: 10pt; }
+
+  /* Architektur-Komponenten */
+  .arch-comp { display: grid; grid-template-columns: 140px 120px 1fr 90px; gap: 0; margin: 12px 0 20px; border: 1px solid var(--grau-med); }
+  .arch-comp-header { background: var(--bund-blau); color: #fff; font-weight: 700; padding: 7px 10px; font-size: 9.5pt; border-right: 1px solid #0055aa; }
+  .arch-comp-cell { padding: 7px 10px; border-top: 1px solid var(--grau-med); border-right: 1px solid var(--grau-med); font-size: 9.5pt; vertical-align: top; }
+  .arch-comp-cell:nth-child(4n) { border-right: none; }
+
+  /* Code */
+  code { font-family: 'Courier New', monospace; font-size: 8.5pt; background: #F1F5F9; padding: 1px 5px; border-radius: 3px; }
+  pre { font-family: 'Courier New', monospace; font-size: 8.5pt; background: #1E293B; color: #E2E8F0; padding: 14px 16px; margin: 10px 0; border-radius: 4px; overflow-x: auto; line-height: 1.6; }
+  pre .comment { color: #94A3B8; }
+  pre .key { color: #7DD3FC; }
+  pre .val { color: #86EFAC; }
+
+  /* Status-Badge */
+  .badge-ok   { display:inline-block; background:#D1FAE5; color:#065F46; font-weight:700; padding:2px 8px; border-radius:3px; font-size:8pt; }
+  .badge-warn { display:inline-block; background:#FEF9C3; color:#854D0E; font-weight:700; padding:2px 8px; border-radius:3px; font-size:8pt; }
+  .badge-no   { display:inline-block; background:#FEE2E2; color:#991B1B; font-weight:700; padding:2px 8px; border-radius:3px; font-size:8pt; }
+
+  /* Drucken-Button */
+  .print-btn { position: fixed; top: 20px; right: 20px; background: var(--bund-blau); color: #fff; border: none; padding: 10px 20px; font-size: 11pt; font-weight: 700; border-radius: 4px; cursor: pointer; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .print-btn:hover { background: #002a5e; }
+
+  /* Header */
+  .doc-header { background: var(--bund-blau); color: #fff; padding: 10px 40px; font-size: 9pt; display: flex; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .doc-header span { opacity: 0.85; }
+  .divider { border: none; border-top: 2px solid var(--bund-blau); margin: 32px 0; }
+</style>
+</head>
+<body>
+
+<div class="doc-header no-print">
+  <span>Lastenheft – SAFe PI Capacity Planner v2.0</span>
+  <span>BIT – Bundesamt für Informatik und Telekommunikation | April 2026</span>
+</div>
+<button class="print-btn no-print" onclick="window.print()">🖨 Als PDF speichern</button>
+
+<div class="container">
+
+<!-- TITELSEITE -->
+<div class="title-page page-break" style="page-break-before: avoid;">
+  <div class="doc-label">Bundesamt für Informatik und Telekommunikation (BIT)</div>
+  <div class="title-main">LASTENHEFT</div>
+  <div class="title-sub">SAFe PI Capacity Planner</div>
+  <div class="title-desc">Anforderungsspezifikation für Neuentwicklung – Version 2.0</div>
+
+  <table class="meta-table">
+    <tr><td>Auftraggeber</td><td>Bundesamt für Informatik und Telekommunikation (BIT)</td></tr>
+    <tr><td>Abteilung</td><td>IT-Delivery / SAFe Agile Release Train</td></tr>
+    <tr><td>Dokumenttyp</td><td>Lastenheft (Anforderungsspezifikation)</td></tr>
+    <tr><td>Version</td><td>2.0</td></tr>
+    <tr><td>Datum</td><td>April 2026</td></tr>
+    <tr><td>Status</td><td>Freigegeben zur Ausschreibung</td></tr>
+    <tr><td>Vertraulichkeit</td><td>Intern – nicht für Dritte bestimmt</td></tr>
+    <tr><td>Änderungen zu v1.0</td><td>Neu: Architektur-Übersicht, ADRs, vollständige API-Spezifikation, Deployment-Environments, erweitertes Sicherheitskonzept</td></tr>
+  </table>
+
+  <div class="footer-org">
+    Bundesamt für Informatik und Telekommunikation (BIT)<br>
+    Monbijoustrasse 74 · 3003 Bern · Schweiz<br>
+    Schweizerische Eidgenossenschaft
+  </div>
+</div>
+
+<!-- INHALTSVERZEICHNIS -->
+<div class="page-break">
+<h1>Inhaltsverzeichnis</h1>
+<div class="toc-entry l1"><span>1. Einleitung</span><span class="toc-num">3</span></div>
+<div class="toc-entry l2"><span>1.1 Zweck des Dokuments</span></div>
+<div class="toc-entry l2"><span>1.2 Ausgangslage</span></div>
+<div class="toc-entry l2"><span>1.3 Auftraggeber</span></div>
+<div class="toc-entry l2"><span>1.4 Geltungsbereich</span></div>
+
+<div class="toc-entry l1"><span>2. Projektziel und Systemübersicht</span><span class="toc-num">4</span></div>
+<div class="toc-entry l2"><span>2.1 Projektziel</span></div>
+<div class="toc-entry l2"><span>2.2 Kernfunktionen im Überblick</span></div>
+<div class="toc-entry l2"><span>2.3 Systemgrenzen (Out of Scope)</span></div>
+
+<div class="toc-entry l1"><span>3. Architektur-Übersicht</span><span class="toc-num">5</span></div>
+<div class="toc-entry l2"><span>3.1 Systemarchitektur</span></div>
+<div class="toc-entry l2"><span>3.2 Architektur-Komponenten</span></div>
+<div class="toc-entry l2"><span>3.3 Deployment-Environments</span></div>
+<div class="toc-entry l2"><span>3.4 Datenfluss</span></div>
+
+<div class="toc-entry l1"><span>4. Architectural Decision Records (ADR)</span><span class="toc-num">7</span></div>
+
+<div class="toc-entry l1"><span>5. Benutzergruppen</span><span class="toc-num">9</span></div>
+<div class="toc-entry l1"><span>6. Konzeptuelles Datenmodell</span><span class="toc-num">9</span></div>
+
+<div class="toc-entry l1"><span>7. Funktionale Anforderungen</span><span class="toc-num">11</span></div>
+<div class="toc-entry l2"><span>7.1 Navigation und Grundstruktur</span></div>
+<div class="toc-entry l2"><span>7.2 Mitarbeiterverwaltung</span></div>
+<div class="toc-entry l2"><span>7.3 PI-Planung und Iterationen</span></div>
+<div class="toc-entry l2"><span>7.4 Kalender-Ereignisse</span></div>
+<div class="toc-entry l2"><span>7.5 Kalender-Ansicht und Absenzbuchung</span></div>
+<div class="toc-entry l2"><span>7.6 Story-Point-Berechnung</span></div>
+<div class="toc-entry l2"><span>7.7 Dashboard</span></div>
+<div class="toc-entry l2"><span>7.8 PI Dashboard</span></div>
+<div class="toc-entry l2"><span>7.9 Export-Funktionen</span></div>
+<div class="toc-entry l2"><span>7.10 Einstellungen und Konfiguration</span></div>
+<div class="toc-entry l2"><span>7.11 Backup und Restore</span></div>
+<div class="toc-entry l2"><span>7.12 Mehrbenutzer-Unterstützung (Echtzeit)</span></div>
+<div class="toc-entry l2"><span>7.13 Mandantenfähigkeit (Multi-Train)</span></div>
+<div class="toc-entry l2"><span>7.14 Admin-Bereich</span></div>
+<div class="toc-entry l2"><span>7.15 Corporate Design Bund</span></div>
+
+<div class="toc-entry l1"><span>8. Nicht-funktionale Anforderungen</span><span class="toc-num">18</span></div>
+
+<div class="toc-entry l1"><span>9. Schnittstellen und API-Spezifikation</span><span class="toc-num">19</span></div>
+<div class="toc-entry l2"><span>9.1 REST-API</span></div>
+<div class="toc-entry l2"><span>9.2 WebSocket-Events (Socket.io)</span></div>
+<div class="toc-entry l2"><span>9.3 Datei-Schnittstellen</span></div>
+
+<div class="toc-entry l1"><span>10. Buchungstypen und Geschäftsregeln</span><span class="toc-num">22</span></div>
+<div class="toc-entry l1"><span>11. Sicherheitskonzept</span><span class="toc-num">23</span></div>
+<div class="toc-entry l1"><span>12. Abnahmekriterien</span><span class="toc-num">24</span></div>
+<div class="toc-entry l1"><span>13. Roadmap – Optionale Erweiterungen</span><span class="toc-num">25</span></div>
+<div class="toc-entry l1"><span>14. Anhang: Glossar</span><span class="toc-num">25</span></div>
+</div>
+
+<!-- 1. EINLEITUNG -->
+<div class="page-break">
+<h1>1. Einleitung</h1>
+
+<h2>1.1 Zweck des Dokuments</h2>
+<p>Dieses Lastenheft beschreibt die vollständigen Anforderungen an die Neuentwicklung des SAFe PI Capacity Planners als webbasierte Anwendung. Es richtet sich an externe Entwicklungsdienstleister und bildet die verbindliche Grundlage für Angebot, Vertrag und Abnahme.</p>
+<p>Das Dokument definiert, <em>was</em> das System leisten muss (funktionale Anforderungen), <em>wie</em> es strukturiert sein soll (Architektur und ADRs), unter welchen Bedingungen es betrieben wird (nicht-funktionale Anforderungen) und welche Abnahmekriterien erfüllt sein müssen. Die Wahl konkreter Implementierungsdetails liegt beim Auftragnehmer, sofern alle Anforderungen eingehalten werden.</p>
+
+<h2>1.2 Ausgangslage</h2>
+<p>Das Bundesamt für Informatik und Telekommunikation (BIT) setzt zur Software-Entwicklung das Scaled Agile Framework (SAFe) ein. Alle sechs bis acht Wochen findet ein PI Planning statt, in dem Teams ihre verfügbare Kapazität in Story Points (SP) berechnen und Aufgaben für das kommende Program Increment (PI) planen.</p>
+<p>Bisher erfolgte diese Kapazitätsplanung manuell in Excel. Dies führt zu Medienbrüchen, hohem Pflegeaufwand und fehlender Transparenz für alle Beteiligten. Eine webbasierte Lösung soll den Prozess digitalisieren, standardisieren und für mehrere Teams gleichzeitig zugänglich machen.</p>
+<p>Eine erste Version des SAFe PI Capacity Planners wurde als Proof of Concept realisiert (React/Express/TypeScript, Deployment auf Vercel + Railway, Features 01–23 implementiert). Dieses Lastenheft beschreibt die Anforderungen für eine produktionsreife Neuentwicklung auf Basis der gewonnenen Erkenntnisse.</p>
+
+<h2>1.3 Auftraggeber</h2>
+<table>
+  <tr><td style="font-weight:700;background:var(--grau-hell);width:30%">Organisation</td><td>Bundesamt für Informatik und Telekommunikation (BIT)</td></tr>
+  <tr><td style="font-weight:700;background:var(--grau-hell)">Adresse</td><td>Monbijoustrasse 74, 3003 Bern, Schweiz</td></tr>
+  <tr><td style="font-weight:700;background:var(--grau-hell)">Kontext</td><td>Schweizerische Bundesverwaltung</td></tr>
+  <tr><td style="font-weight:700;background:var(--grau-hell)">Rahmenwerk</td><td>SAFe (Scaled Agile Framework)</td></tr>
+</table>
+
+<h2>1.4 Geltungsbereich</h2>
+<p>Dieses Lastenheft beschreibt alle Funktionen, die zum Zeitpunkt der Ausschreibung (April 2026) als Anforderungen definiert sind. Roadmap-Features (Phase 6+) werden in Kapitel 13 als optionale Erweiterungen aufgeführt und sind nicht Bestandteil der Grundbestellung.</p>
+</div>
+
+<!-- 2. PROJEKTZIEL -->
+<div class="page-break">
+<h1>2. Projektziel und Systemübersicht</h1>
+
+<h2>2.1 Projektziel</h2>
+<p>Der SAFe PI Capacity Planner ist eine webbasierte Mehrbenutzerlösung zur Kapazitätsplanung für SAFe PI Planning in der Bundesverwaltung. Das System ermöglicht es Teams, ihre verfügbaren Story Points pro PI und Iteration zu berechnen, indem es individuelle Mitarbeiterabsenzen, Feiertage, Schulferien, Betriebsaufgaben und Pikett-Verpflichtungen berücksichtigt.</p>
+
+<h2>2.2 Kernfunktionen im Überblick</h2>
+<ul>
+  <li>Verwaltung von Mitarbeiterstammdaten (CRUD, CSV-Import/-Export)</li>
+  <li>Visuelle Absenzbuchung via Drag-and-Drop im Kalender</li>
+  <li>Automatische Berechnung verfügbarer Story Points pro Mitarbeiter, Team und Iteration</li>
+  <li>Dashboard mit KPI-Karten, Diagrammen und automatischer Lückenerkennung (Betrieb, Pikett)</li>
+  <li>PI Dashboard: Vergleich geplante SP (Jira) vs. berechnete SP (App)</li>
+  <li>Echtzeit-Synchronisation für mehrere gleichzeitige Benutzer via WebSocket</li>
+  <li>Mandantenfähigkeit: mehrere Agile Release Trains (ART) isoliert verwaltbar</li>
+  <li>Vollständige Export-Funktionen (PDF, PNG, JSON-Backup)</li>
+  <li>Corporate Design Bund (Bundesblau, Bundesrot, Swiss Design System)</li>
+</ul>
+
+<h2>2.3 Systemgrenzen (Out of Scope)</h2>
+<p>Folgende Bereiche sind explizit nicht Bestandteil dieser Ausschreibung:</p>
+<ul>
+  <li>Mobile App (nativer iOS/Android-Client)</li>
+  <li>SSO / Active Directory / LDAP Integration</li>
+  <li>SAP-Integration</li>
+  <li>Automatische Feiertagsberechnung (manuelle Pflege via CSV)</li>
+  <li>Jira REST API Integration (manuelle SP-Eingabe, keine automatische Synchronisation)</li>
+  <li>Custom Allocation Types (individuelle Buchungstypen – Roadmap)</li>
+  <li>Rollen und Berechtigungen (Admin / Planer / Read-Only – Roadmap)</li>
+</ul>
+</div>
+
+<!-- 3. ARCHITEKTUR -->
+<div class="page-break">
+<h1>3. Architektur-Übersicht</h1>
+
+<h2>3.1 Systemarchitektur</h2>
+<p>Die Applikation folgt einer klassischen Fullstack-Architektur mit getrenntem Frontend und Backend. Beide Komponenten sind stateless und containerisierbar. Die Datenhaltung erfolgt server-seitig als JSON-basierter Dateispeicher (kein externes Datenbanksystem erforderlich).</p>
+
+<div class="info-box">
+  <strong>Architekturprinzip:</strong> Der Server ist die einzige Source of Truth. Der Client hält keinen persistenten State — alle Daten werden beim Start via REST geladen und bei Änderungen via WebSocket synchronisiert.
+</div>
+
+<pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                         Browser (Client)                        │
+│                                                                 │
+│   React 19 + TypeScript + Tailwind CSS + Recharts              │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│   │ Planung  │  │Dashboard │  │PI Dash   │  │Settings  │     │
+│   │(Kalender)│  │(KPIs,    │  │(Jira vs  │  │(CRUD,    │     │
+│   │Drag-Book │  │Charts,   │  │App-SP)   │  │CSV, Conf)│     │
+│   │          │  │Lücken)   │  │          │  │          │     │
+│   └──────────┘  └──────────┘  └──────────┘  └──────────┘     │
+│                                                                 │
+│   REST (initial load)          WebSocket (Echtzeit-Sync)       │
+└──────────────┬───────────────────────────┬───────────────────-─┘
+               │ HTTP/REST                 │ WebSocket (Socket.io)
+               ▼                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Node.js Backend (Express 5)                │
+│                                                                 │
+│   ┌──────────────────┐   ┌──────────────────────────────────┐  │
+│   │  REST API        │   │  Socket.io Event Broker          │  │
+│   │  /api/tenants/*  │   │  Rooms pro Tenant                │  │
+│   │  /api/state      │   │  allocation:change               │  │
+│   │  /api/admin      │   │  settings:change                 │  │
+│   └──────────────────┘   │  lock:row / unlock:row           │  │
+│                          └──────────────────────────────────┘  │
+│                                                                 │
+│   ┌──────────────────┐   ┌──────────────────────────────────┐  │
+│   │  TenantManager   │   │  StateManager (pro Tenant)       │  │
+│   │  tenants.json    │   │  state_{tenantId}.json           │  │
+│   │  Admin-Code Hash │   │  In-Memory + File-Persistence    │  │
+│   └──────────────────┘   └──────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+               │
+               │ Filesystem (JSON-Files)
+               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Persistenz (JSON-Dateisystem)                 │
+│                                                                 │
+│   data/tenants.json              ← Tenant-Registry             │
+│   data/state_{tenantId}.json     ← State pro Train             │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+
+<h2>3.2 Architektur-Komponenten</h2>
+<table>
+  <thead><tr><th>Komponente</th><th>Typ</th><th>Beschreibung</th><th>Technologie</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Web-Frontend</strong></td><td>Single Page Application</td><td>Stateless, vollständige UI, Kalender-Grid mit Drag-Booking, Echtzeit-Sync via Socket.io Client</td><td>React 19, TypeScript, Vite, Tailwind CSS</td></tr>
+    <tr><td><strong>Backend API</strong></td><td>REST + WebSocket Server</td><td>Stateless HTTP-Handler für CRUD-Operationen; WebSocket-Broker für Echtzeit-Events pro Tenant-Room</td><td>Node.js, Express 5, Socket.io, TypeScript</td></tr>
+    <tr><td><strong>TenantManager</strong></td><td>Business-Logic Modul</td><td>Verwaltung der Tenant-Registry, Admin-Code-Hashing (bcryptjs), State-Isolation pro Train</td><td>TypeScript-Modul im Backend</td></tr>
+    <tr><td><strong>StateManager</strong></td><td>Persistenz-Modul</td><td>In-Memory State-Cache mit File-Persistence; liest/schreibt <code>state_{tenantId}.json</code></td><td>TypeScript-Modul im Backend</td></tr>
+    <tr><td><strong>Datenpersistenz</strong></td><td>Filesystem (JSON)</td><td>Kein externes Datenbank-System. Alle Daten als versionierte JSON-Dateien im Backend-Filesystem</td><td>Node.js fs-Modul</td></tr>
+    <tr><td><strong>Diagramme</strong></td><td>Frontend-Bibliothek</td><td>Balkendiagramme für SP-Kapazität im Dashboard und PI Dashboard</td><td>Recharts</td></tr>
+    <tr><td><strong>PDF/PNG-Export</strong></td><td>Frontend-Bibliothek</td><td>Client-seitiger Export via DOM-Rendering; inkl. Bundeslogo-Header</td><td>jsPDF + html2canvas</td></tr>
+  </tbody>
+</table>
+
+<h2>3.3 Deployment-Environments</h2>
+<table>
+  <thead><tr><th>Environment</th><th>Zweck</th><th>Frontend</th><th>Backend</th><th>Deployment</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Lokal (DEV)</strong></td><td>Entwicklung</td><td>Vite Dev-Server Port 5173</td><td>Express Port 3001</td><td><code>npm run dev</code> – Vite-Proxy leitet /api/* an :3001 weiter</td></tr>
+    <tr><td><strong>Produktion</strong></td><td>Betrieb</td><td>Vercel (CDN, Auto-Deploy via GitHub)</td><td>Railway (Node.js, persistentes Filesystem)</td><td>GitHub Push → automatisches Build &amp; Deploy</td></tr>
+  </tbody>
+</table>
+
+<div class="warn-box">
+  <strong>Hinweis zu Filesystem-Persistenz:</strong> Die JSON-basierte Datenhaltung erfordert ein persistentes Filesystem auf dem Backend-Host. PaaS-Plattformen mit ephemerem Filesystem (z.B. Heroku dynos ohne Add-on) sind nicht geeignet. Railway und ähnliche Anbieter mit persistentem Volume sind kompatibel. Alternativ kann die Persistenzschicht durch eine Datenbank (PostgreSQL, SQLite) ersetzt werden, ohne die API-Schnittstellen zu verändern.
+</div>
+
+<h2>3.4 Datenfluss</h2>
+<table>
+  <thead><tr><th>Vorgang</th><th>Weg</th><th>Protokoll</th></tr></thead>
+  <tbody>
+    <tr><td>App-Start</td><td>Client → <code>GET /api/state?tenantId=X</code> → vollständiger AppData-State</td><td>HTTP/REST</td></tr>
+    <tr><td>Absenz-Buchung</td><td>Client → Socket.io <code>allocation:change</code> → Server patcht State → broadcast an alle Clients im Room</td><td>WebSocket</td></tr>
+    <tr><td>Settings-Änderung</td><td>Client → Socket.io <code>settings:change</code> → Server patcht State → broadcast</td><td>WebSocket</td></tr>
+    <tr><td>Backup-Export</td><td>Client → <code>GET /api/state?tenantId=X</code> → JSON-Download im Browser</td><td>HTTP/REST</td></tr>
+    <tr><td>Backup-Import</td><td>Client → <code>POST /api/state?tenantId=X</code> → Server ersetzt State → <code>state:full</code> broadcast</td><td>HTTP + WebSocket</td></tr>
+    <tr><td>Train-Wechsel</td><td>Client → Socket.io <code>tenant:join</code> → Server joingt neuen Room → <code>state:full</code></td><td>WebSocket</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 4. ADRs -->
+<div class="page-break">
+<h1>4. Architectural Decision Records (ADR)</h1>
+<p>Die folgenden ADRs dokumentieren die wesentlichen Architekturentscheide des Projekts mit Begründung und Konsequenzen. Sie sind verbindliche Orientierung für die Neuentwicklung.</p>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-001: JSON-Dateisystem statt relationale Datenbank</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Alle Anwendungsdaten werden als JSON-Dateien im Backend-Filesystem gespeichert. Kein SQL-ORM, keine externe Datenbank.</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Einfacheres Deployment (kein DB-Setup), kein Schema-Management, vollständige Daten-Portabilität via JSON-Backup. Für die Zielnutzerzahl (&lt; 20 gleichzeitig) ausreichend performant.</span></div>
+    <div class="adr-row"><span class="adr-label">Konsequenzen:</span><span>Kein Locking bei konkurrierenden Schreibzugriffen (Last-Write-Wins, akzeptiert). Backup = vollständiges JSON-Snapshot. Persistentes Filesystem auf dem Host erforderlich.</span></div>
+    <div class="adr-row"><span class="adr-label">Alternative:</span><span>PostgreSQL oder SQLite möglich – Persistenzschicht ist intern hinter StateManager-Interface abstrahiert und kann ohne API-Änderung ausgetauscht werden.</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-002: Server als einzige Source of Truth (Multiuser)</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Der Server hält den vollständigen AppData-State in Memory (mit File-Persistenz). Clients sind zustandslos und erhalten bei Verbindung den vollständigen State via REST.</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Konsistente Datensicht für alle gleichzeitigen Benutzer. Kein Merge-Konflikt-Management nötig. Einfache Reconnect-Logik (Client holt State neu).</span></div>
+    <div class="adr-row"><span class="adr-label">Konsequenzen:</span><span>Kein localStorage für Kerndaten. Socket.io für Echtzeit-Broadcast. Bei Server-Neustart: State wird aus JSON-Datei wiederhergestellt.</span></div>
+    <div class="adr-row"><span class="adr-label">Verbote:</span><span>LocalStorage darf ausschliesslich für UI-Präferenzen (z.B. Filter-Zustand) verwendet werden – nie für Geschäftsdaten.</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-003: Blocker-Tage sind keine Absenzen (Geschäftsregel)</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Change-Freeze / Blocker-Tage zählen als normale Arbeitstage. Kein SP-Abzug. Nur visuelle Markierung im Kalender (Schneeflocken-Symbol ❄).</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Ein Freeze-Tag blockiert Deployments, nicht die Entwicklungskapazität. Mitarbeiter arbeiten weiterhin an Story Points.</span></div>
+    <div class="adr-row"><span class="adr-label">Konsequenzen:</span><span>SP-Berechnungsfunktion ignoriert Blocker-Einträge. Kalender-Renderer zeigt Schneeflocken-Overlay.</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-004: Tenant-Isolation via Backend-Rooms und getrennte State-Dateien</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Jeder Agile Release Train (Mandant) erhält eine eigene State-Datei (<code>state_{tenantId}.json</code>) und einen eigenen Socket.io-Room. Daten verschiedener Trains sind auf Serverebene vollständig isoliert.</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>BIT betreibt mehrere Trains (PS-NET, PS-INT etc.) die unabhängig planen müssen. Datenlecks zwischen Trains sind inakzeptabel.</span></div>
+    <div class="adr-row"><span class="adr-label">Konsequenzen:</span><span>TenantGate-Splash beim App-Start. Header zeigt aktiven Train. Socket.io-Events werden nur innerhalb des jeweiligen Rooms gebrodcastet.</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-005: Pikett-Lücken gelten 7×24, Betrieb-Lücken nur an Arbeitstagen</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Die Lücken-Erkennung unterscheidet zwei Regelsets: Betrieb-Lücken werden nur an Werktagen (kein Wochenende, kein gesetzlicher Feiertag) gemeldet. Pikett-Lücken gelten jeden Tag, einschliesslich Wochenenden und Feiertagen.</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Betriebsdienste fallen an Weihnachten nicht an – keine Lücke. Pikett-Dienst (Störungsbereitschaft) gilt 365 Tage/Jahr.</span></div>
+    <div class="adr-row"><span class="adr-label">Konsequenzen:</span><span>Betrieb-Checker: <code>isWorkday(date) && count &lt; minBetrieb</code>. Pikett-Checker: <code>count &lt; minPikett</code> (kein Tages-Filter).</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-006: Admin-Code mit bcrypt-Hash und server-seitigem Rate-Limiting</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Admin-Codes werden als bcryptjs-Hash in der Tenant-Registry gespeichert. Rate-Limiting: max. 3 Fehlversuche, dann 60 Sekunden Sperre (server-seitig, in-memory Map pro Tenant).</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Kein Plaintext-Passwort in der Konfiguration. Brute-Force-Schutz ohne externe Auth-Infrastruktur.</span></div>
+    <div class="adr-row"><span class="adr-label">Einschränkungen:</span><span>Kein echter 2FA. Code wird 15 Minuten im sessionStorage gecacht. Ausreichend für internen Pilotbetrieb.</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span> <span class="adr-status-risk">TOTP als Roadmap-Feature R-01</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-007: Swiss Design System CSS-Variablen-Architektur (BIT Skin)</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Farbdefinitionen folgen dem Swiss Design System CSS-Custom-Properties-Schema (<code>--color-primary-*</code>, <code>--color-secondary-*</code>). BIT-Skin: Bundesblau als <code>--color-primary-700</code>, Bundesrot als <code>--color-secondary-500</code>.</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Zukunftssicherheit für Swiss-DS-Updates. Austauschbare Themes ohne Code-Änderungen. NotoSans als Frutiger-Fallback (Open Source, selbst-gehostet).</span></div>
+    <div class="adr-row"><span class="adr-label">Konsequenzen:</span><span>Keine externen Fonts via CDN. Alle Schriftarten lokal gehostet. Dynamische Hex-Farben (Buchungstypen) als inline styles (Tailwind JIT unterstützt keine Laufzeit-Hex-Werte).</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+
+<div class="adr-box">
+  <div class="adr-header">ADR-008: SP/Tag und Std/Jahr als globale Parameter (nicht pro Team)</div>
+  <div class="adr-body">
+    <div class="adr-row"><span class="adr-label">Entscheidung:</span><span>Story Points pro Tag und Arbeitsstunden pro Jahr sind systemweite Konstanten, konfigurierbar in den globalen Einstellungen. Individuelle Abweichungen werden über FTE-Faktor und Employee-spezifisches <code>storyPointsPerDay</code> abgebildet.</span></div>
+    <div class="adr-row"><span class="adr-label">Begründung:</span><span>Organisationsweite Standards sind einheitlich. Pro-Team-Konfiguration würde zu inkonsistenten Vergleichen zwischen Teams führen.</span></div>
+    <div class="adr-row"><span class="adr-label">Status:</span><span><span class="adr-status-ok">AKZEPTIERT</span></span></div>
+  </div>
+</div>
+</div>
+
+<!-- 5. BENUTZERGRUPPEN -->
+<h1>5. Benutzergruppen</h1>
+<table>
+  <thead><tr><th>Rolle</th><th>Beschreibung</th><th>Hauptaufgaben</th></tr></thead>
+  <tbody>
+    <tr><td>Scrum Master / Chapter Lead</td><td>Primärnutzer der Anwendung</td><td>Absenzen erfassen, Kapazität berechnen, Dashboard auswerten</td></tr>
+    <tr><td>IT-Manager / Train Engineer</td><td>Überblick über alle Teams</td><td>PI-Planung konfigurieren, Zielwerte setzen, Berichte exportieren</td></tr>
+    <tr><td>Product Owner</td><td>Jira-Daten pflegen</td><td>SP aus Jira pro Team und Iteration manuell erfassen</td></tr>
+    <tr><td>Train-Administrator</td><td>Systemverwaltung</td><td>Trains verwalten, Daten zurücksetzen, Admin-Code verwalten</td></tr>
+  </tbody>
+</table>
+
+<!-- 6. DATENMODELL -->
+<div class="page-break">
+<h1>6. Konzeptuelles Datenmodell</h1>
+<p>Das folgende Modell beschreibt die zentralen Entitäten und ihre Beziehungen. Die konkrete technische Umsetzung (Datenbankschema, ORM, etc.) obliegt dem Auftragnehmer. Das Referenz-Interface in TypeScript ist verbindlich für die Backup-Kompatibilität.</p>
+
+<table>
+  <thead><tr><th>Entität</th><th>Beschreibung</th><th>Schlüsselattribute</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Mitarbeiter</strong></td><td>Stammdaten einer Person</td><td>Vorname, Name, Team, Typ (intern/extern), FTE (0.0–1.0), Kapazitätsprozent, Betriebsprozent, Pauschalprozent, SP/Tag, Buchungen (Record&lt;Datum, Buchungstyp&gt;)</td></tr>
+    <tr><td><strong>Buchungstyp</strong></td><td>Kategorie der Absenz</td><td>Enum: NONE | FERIEN | ABWESEND | TEILZEIT | MILITAER | IPA | BETRIEB | BETRIEB_PIKETT | PIKETT</td></tr>
+    <tr><td><strong>PI-Planung</strong></td><td>Program Increment Zeitrahmen</td><td>id, Name (z.B. PI26-1), Startdatum (YYYY-MM-DD), Enddatum, Iterationen[]</td></tr>
+    <tr><td><strong>Iteration</strong></td><td>Sprint innerhalb eines PI</td><td>id, Name, Startdatum, Enddatum (muss innerhalb PI liegen)</td></tr>
+    <tr><td><strong>Feiertag</strong></td><td>Gesetzlicher Feiertag</td><td>id, Name, Startdatum, Enddatum</td></tr>
+    <tr><td><strong>Schulferien</strong></td><td>Schulferienperiode (nur visuell)</td><td>id, Name, Startdatum, Enddatum</td></tr>
+    <tr><td><strong>Blocker</strong></td><td>Change-Freeze / Gesperrter Zeitraum</td><td>id, Name, Startdatum, Enddatum (kein SP-Abzug – ADR-003)</td></tr>
+    <tr><td><strong>TeamConfig</strong></td><td>Team-spezifische Mindestbesetzung</td><td>teamName, minPikett (täglich, inkl. WE), minBetrieb (Arbeitstage)</td></tr>
+    <tr><td><strong>PITeamTarget</strong></td><td>Soll-SP aus Jira pro PI und Team</td><td>piId, teamName, spJira (manuell editierbar)</td></tr>
+    <tr><td><strong>GlobalConfig</strong></td><td>Systemweite Parameter</td><td>spPerDay (Standard: 1), hoursPerYear (Standard: 1600)</td></tr>
+    <tr><td><strong>FarbConfig</strong></td><td>Anpassbare Buchungstyp-Farben</td><td>Record&lt;Buchungstyp, {bg: hex, text: hex}&gt; + Kalenderfarben</td></tr>
+    <tr><td><strong>Train (Mandant)</strong></td><td>Isolierter Agile Release Train</td><td>id (kebab-case), Name, createdAt, adminCodeHash (bcrypt)</td></tr>
+  </tbody>
+</table>
+
+<h3>AppData – vollständiges State-Interface (verbindlich für Backup-Format)</h3>
+<pre>
+<span class="comment">// Verbindliches TypeScript-Interface für JSON-Backup-Format</span>
+<span class="key">interface</span> AppData {
+  feiertage:      DateRangeDefinition[];
+  schulferien:    DateRangeDefinition[];
+  pis:            PIPlanning[];          <span class="comment">// inkl. iterationen[]</span>
+  blocker:        DateRangeDefinition[];
+  teamTargets:    TeamTarget[];          <span class="comment">// Legacy, durch teamConfigs abgelöst</span>
+  globalConfig:   GlobalCapacityConfig;
+  teamConfigs:    TeamConfig[];
+  piTeamTargets:  PITeamTarget[];
+  farbConfig?:    FarbConfig;            <span class="comment">// optional, Default aus Konstanten</span>
+}
+
+<span class="key">interface</span> BackupFile {
+  schemaVersion:  string;    <span class="comment">// z.B. "1.3" – IMMER erhöhen bei Model-Änderungen</span>
+  exportedAt:     string;    <span class="comment">// ISO-8601 Zeitstempel</span>
+  tenantId?:      string;    <span class="comment">// optional für Tenant-aware Backups</span>
+  appData:        AppData;
+}
+</pre>
+
+<div class="warn-box">
+  <strong>Kritische Regel:</strong> Die <code>schemaVersion</code> muss bei jeder Änderung am AppData-Interface erhöht werden. Alte Backups müssen via Migrations-Funktionen geladen werden können (Vorwärtskompatibilität). Backups ohne <code>schemaVersion</code> werden als Version 1.0 behandelt.
+</div>
+</div>
+
+<!-- 7. FUNKTIONALE ANFORDERUNGEN -->
+<div class="page-break">
+<h1>7. Funktionale Anforderungen</h1>
+<div class="info-box">
+  <strong>Prioritäten:</strong> <span style="color:#991B1B;font-weight:700">MUSS</span> = zwingend für Abnahme &nbsp;|&nbsp;
+  <span style="color:#854D0E;font-weight:700">SOLL</span> = erwartet, Abweichung begründungspflichtig &nbsp;|&nbsp;
+  <span style="color:#166534;font-weight:700">KANN</span> = optional
+</div>
+
+<h2>7.1 Navigation und Grundstruktur</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-01.1</td><td>Navigations-Tabs</td><td>Die Anwendung verfügt über folgende Hauptbereiche, zugänglich via Tab-Navigation: Planung, Kapazität, Dashboard, PI Dashboard, Einstellungen, Admin.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.2</td><td>Train-Auswahl (Splash Screen)</td><td>Beim Start wird ein Auswahl-Bildschirm angezeigt, auf dem der Benutzer seinen Agile Release Train (Mandanten) wählt. Die Auswahl wird in sessionStorage gecacht.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.3</td><td>Aktiver Train im Header</td><td>Der Name des aktiven Trains wird im Anwendungs-Header angezeigt. Ein Wechsel-Button ermöglicht die Rückkehr zur Train-Auswahl.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.4</td><td>Verbindungsindikator</td><td>Ein visueller Indikator im Header zeigt den Verbindungsstatus zur Echtzeit-Synchronisation (verbunden = grün / getrennt = rot) an.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.5</td><td>Bundeslogo</td><td>Das offizielle Schweizer Bundeslogo (SVG, weiss auf transparent) wird im Anwendungs-Header angezeigt.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-01.6</td><td>Durchgehende Filterleiste</td><td>Eine Filterleiste (Team, PI, Iteration, Zeitraum) ist in allen Tabs sichtbar und wirkt gleichzeitig auf Kalender, Kapazitäts-Tab und Dashboard.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.2 Mitarbeiterverwaltung</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-02.1</td><td>Mitarbeiter CRUD</td><td>Vollständige CRUD-Operationen für Mitarbeiterstammdaten: Vorname, Name, Team, Typ (intern/extern), FTE (0.0–1.0), Kapazitätsprozent, Betriebsprozent, Pauschalprozent, SP/Tag.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.2</td><td>CSV-Import</td><td>Mitarbeiterstammdaten können als CSV importiert werden (Semikolon-getrennt, UTF-8 mit BOM). Formatfehler und Validierungsverstösse werden erkannt und gemeldet. Ungültige Zeilen werden trotzdem importiert (mit Warnung), nicht abgebrochen.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.3</td><td>CSV-Export</td><td>Mitarbeiterstammdaten können als CSV exportiert werden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.4</td><td>Validierung Kapazitätswerte</td><td>Das System prüft: Betriebsprozent + Pauschalprozent ≤ Kapazitätsprozent. Ungültige Einträge werden markiert und gemeldet.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-02.5</td><td>Filter und Suche</td><td>Mitarbeiterliste kann nach Team (Dropdown), Typ (intern/extern) und Freitext (Name) gefiltert werden. CSV-Export und "Alle löschen" operieren immer auf dem vollständigen Datensatz (kein Datenverlust durch aktiven Filter).</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+
+<h2>7.3 PI-Planung und Iterationen</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-03.1</td><td>PI-Planung CRUD</td><td>Verwaltung von PI-Planungen mit Name, Startdatum, Enddatum. Iterationen sind pro PI einzeln verwaltbar.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-03.2</td><td>Iterationen pro PI</td><td>Zu jedem PI können Iterationen mit Name, Startdatum und Enddatum angelegt werden. Iterationen müssen innerhalb des PI-Zeitraums liegen.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-03.3</td><td>CSV-Import/-Export</td><td>PI-Planungen können als CSV importiert und exportiert werden. Bei Import ohne Iterationen: optionale gleichmässige Aufteilung in 4 Iterationen.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-03.4</td><td>Validierung</td><td>Überlappende Iterationen innerhalb eines PI werden abgelehnt. Datumsinkonsistenzen werden gemeldet. Datumsformat: YYYY-MM-DD (ISO 8601).</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.4 Kalender-Ereignisse</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-04.1</td><td>Gesetzliche Feiertage</td><td>CRUD + CSV-Import/-Export für gesetzliche Feiertage (Datum, Name). Feiertage zählen nicht als Arbeitstage (kein SP).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-04.2</td><td>Schulferienperioden</td><td>CRUD + CSV-Import/-Export für Schulferienperioden. Schulferien beeinflussen SP-Berechnung nicht – nur visuelle Markierung im Kalender.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-04.3</td><td>Blocker / Change-Freeze</td><td>CRUD + CSV-Import/-Export für gesperrte Zeiträume. Darstellung mit Schneeflocken-Symbol (❄). Kein SP-Abzug (gemäss ADR-003).</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.5 Kalender-Ansicht und Absenzbuchung</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-05.1</td><td>Kalender-Grid</td><td>Tabellarische Ansicht: Zeilen = Mitarbeiter, Spalten = Tage. Header-Zeilen: Monat, Kalenderwoche, PI-Name, Iterations-Name, Tagesdatum + Wochentag.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.2</td><td>Drag-Buchung</td><td>Absenzen werden via Maus-Drag über mehrere Tage gebucht (Interpolation). Einzelklick bucht einen Tag. Klick auf belegte Zelle löscht Buchung. Kein Touch-Support erforderlich.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.3</td><td>Buchungstypen und Farbcodes</td><td>Alle 8 Buchungstypen mit Standardfarben (konfigurierbar, s. F-10.4). Buchstaben-Kürzel in Zellen: F/A/T/M/I/B/BP/P. Wochenenden buchbar nur mit PIKETT oder BETRIEB_PIKETT.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.4</td><td>Sticky Header und Spalten</td><td>Mitarbeiter-Spalte links bleibt beim horizontalen Scrollen fixiert. Header-Zeilen bleiben beim vertikalen Scrollen fixiert.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-05.5</td><td>Legende</td><td>Farbcode-Legende unterhalb des Kalenders. Aktiv gewählter Buchungstyp ist hervorgehoben.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-05.6</td><td>Row-Locking (Multiuser)</td><td>Solange ein Benutzer eine Mitarbeiterzeile per Drag bearbeitet, wird diese für andere Benutzer visuell gesperrt. Sperre läuft nach 30 Sekunden automatisch ab.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="page-break">
+<h2>7.6 Story-Point-Berechnung</h2>
+<div class="info-box">
+  <strong>Berechnungslogik (verbindlich – Pure Functions, keine Seiteneffekte):</strong><br>
+  Für jeden Arbeitstag im Zeitraum (kein Wochenende, kein gesetzlicher Feiertag):<br>
+  <code>sp_tag = NONE→spPerDay | TEILZEIT→0.5×spPerDay | alle anderen→0</code><br>
+  <code>sp_netto = sp_tag × fte × (1 − betriebPercent/100) × (1 − pauschalPercent/100)</code><br>
+  Blocker-Tage zählen als normale Arbeitstage (kein Abzug). Schulferien ohne Auswirkung auf SP.
+</div>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-06.1</td><td>SP pro Mitarbeiter</td><td>Berechnung verfügbarer SP pro Mitarbeiter für beliebigen Zeitraum (Tag, Iteration, PI) gemäss Berechnungsformel.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.2</td><td>Team-Aggregation</td><td>SP werden pro Team und Iteration aggregiert. Kapazitäts-Tab zeigt Tabelle: Mitarbeiter | Team | Arbeitstage | Absenztage | SP verfügbar.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.3</td><td>PI-Aggregation</td><td>SP werden über alle Iterationen eines PI summiert.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.4</td><td>Globale Parameter konfigurierbar</td><td>SP/Tag (Default: 1) und Stunden/Jahr (Default: 1600) sind in den Einstellungen konfigurierbar und wirken sofort auf alle Berechnungen.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-06.5</td><td>Lücken-Erkennung</td><td>Betrieb-Lücken (Arbeitstage, minBetrieb) und Pikett-Lücken (alle Tage, minPikett) werden pro Team erkannt und gemeldet (gemäss ADR-005).</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.7 Dashboard</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-07.1</td><td>KPI-Karten</td><td>Anzeige von Kennzahlen: Gesamtkapazität (SP), Anzahl Mitarbeiter, Anzahl Pikett-Lücken, Anzahl Betrieb-Lücken.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.2</td><td>Balkendiagramm</td><td>Verfügbare SP pro Team pro Iteration als Recharts-BarChart. Tooltip bei Hover. Teamfarben konsistent mit Kalender-Legende.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.3</td><td>Absenz-Übersichtstabelle</td><td>Tabellarische Übersicht aller Absenzen pro Mitarbeiter und Buchungstyp (Ferientage, Abwesend, Militär, IPA, Betrieb, Pikett) für den gewählten Zeitraum.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-07.4</td><td>Lücken-Anzeige</td><td>Pikett- und Betrieb-Lücken als kompakte Liste mit KW und Anzahl betroffener Tage. Kein Lücke → grünes Checkmark.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.8 PI Dashboard</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-08.1</td><td>SP-Vergleich</td><td>Pro PI, Team und Iteration: geplante SP (Jira, manuell) vs. berechnete SP (App). Spalten: Betriebstage | SP Jira | Berechnet SP | Verfügbar SP Netto | Auslastung %.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.2</td><td>Manuelle Jira-SP Eingabe</td><td>Inline-Edit via Klick auf Zelle. Enter/Blur speichert. Escape bricht ab. Werte werden server-seitig in AppData.piTeamTargets gespeichert (nicht localStorage).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.3</td><td>Farbkodierung Auslastung</td><td>Auslastung &lt; 85%: grün | 85–100%: orange | &gt; 100%: rot. Gilt für Iterations-Zeilen und PI-Total-Zeile.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-08.4</td><td>Export PDF/PNG</td><td>PI Dashboard kann als PDF und als PNG exportiert werden (inkl. Bundeslogo-Header).</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.9 Export-Funktionen</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-09.1</td><td>Dashboard-Export PDF/PNG</td><td>Dashboard-Ansicht als PDF (jsPDF + html2canvas) und PNG exportierbar. Dateiname: <code>safe-pi-planner_YYYY-MM-DD.pdf</code>. Bundeslogo im Header. Weisser Hintergrund, keine Scrollbars.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-09.2</td><td>PI Dashboard Export</td><td>PI Dashboard als PDF und PNG exportierbar.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-09.3</td><td>Dokumentation Download</td><td>Benutzerdokumentation ist direkt aus der Anwendung als .docx herunterladbar.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+
+<h2>7.10 Einstellungen und Konfiguration</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-10.1</td><td>Team-Konfiguration</td><td>Pro Team konfigurierbar: minBetrieb (Personen an Arbeitstagen), minPikett (Personen täglich inkl. WE). Teamnamen werden automatisch aus Mitarbeiterstamm abgeleitet.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-10.2</td><td>Globale Parameter</td><td>SP/Tag und Stunden/Jahr konfigurierbar mit Sofortauswirkung auf alle SP-Berechnungen.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-10.3</td><td>Team-Zielwerte CSV</td><td>Team-Konfiguration kann als CSV exportiert und importiert werden (Semikolon-getrennt).</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-10.4</td><td>Buchungstyp-Farben</td><td>Farben aller Buchungstypen und Kalenderelemente via Color-Picker anpassbar. Reset auf Standardwerte möglich.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">F-10.5</td><td>Navigierbare Abschnitte</td><td>Einstellungsseite mit Sidebar-Navigation: Klick → smooth scroll zur Sektion.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+
+<h2>7.11 Backup und Restore</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-11.1</td><td>Vollständiger JSON-Export</td><td>Kompletter AppData-State als JSON-Datei (inkl. Mitarbeiter, Buchungen, PIs, Feiertage, Konfigurationen, Jira-SP-Werte). Dateiname mit Zeitstempel.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-11.2</td><td>Vollständiger JSON-Import</td><td>Backup vollständig wiederherstellbar. Import broadcastet neuen State via Socket.io an alle verbundenen Clients (state:full). Alles-oder-nichts – kein partieller Import.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-11.3</td><td>Schema-Versionierung und Migration</td><td>Backup enthält <code>schemaVersion</code>. System migriert ältere Versionen (fehlende Felder → Defaults, deprecated Felder → neue Struktur). Keine Breaking Changes ohne Migration.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.12 Mehrbenutzer-Unterstützung (Echtzeit)</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-12.1</td><td>Echtzeit-Synchronisation</td><td>Änderungen eines Benutzers (Buchungen, Settings) werden ohne Seiten-Reload in Echtzeit an alle anderen Benutzer des gleichen Trains übertragen.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-12.2</td><td>Row-Locking</td><td>Während Drag-Buchung: Zeile für andere Benutzer visuell gesperrt. Automatische Aufhebung nach 30 Sekunden (Timeout) oder bei Drag-Ende.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-12.3</td><td>Verbindungsstatus</td><td>Visueller Indikator im Header (grün = verbunden, rot = getrennt). Automatisches Reconnect.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.13 Mandantenfähigkeit (Multi-Train)</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-13.1</td><td>Mehrere Trains</td><td>Das System unterstützt mehrere vollständig isolierte Agile Release Trains (Mandanten).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-13.2</td><td>Vollständige Datenisolation</td><td>Alle Daten (Mitarbeiter, Buchungen, Konfigurationen) sind strikt pro Train isoliert. Ein Benutzer eines Trains hat keinen Zugriff auf Daten anderer Trains.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-13.3</td><td>Train-Auswahl</td><td>TenantGate: Splash-Screen beim App-Start. Auswahl in sessionStorage. Header zeigt aktiven Train + "Train wechseln"-Button.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-13.4</td><td>Train-ID Format</td><td>Train-IDs: lowercase alphanumerisch + Bindestrich, 2–20 Zeichen (Regex: <code>/^[a-z0-9-]{2,20}$/</code>).</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.14 Admin-Bereich</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-14.1</td><td>Code-Schutz</td><td>Admin-Bereich geschützt durch 6-stelligen Code. OTP-Style Eingabe (6 einzelne Felder). Code-Cache: 15 Minuten in sessionStorage.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.2</td><td>Rate-Limiting</td><td>Nach 3 Fehlversuchen: 60 Sekunden Sperre. Server-seitig durchgesetzt (in-memory Map pro Tenant). Nicht aushebelbar via Client-Manipulation.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.3</td><td>Train-CRUD</td><td>Trains erstellen (Name + Admin-Code), umbenennen, löschen (mit Datenverlust-Warnung).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.4</td><td>Daten-Reset</td><td>Alle Daten eines Trains zurücksetzen (Bestätigung: Eingabe "LÖSCHEN" + Admin-Code). State:full-Broadcast nach Reset.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-14.5</td><td>Admin-Code ändern</td><td>Admin-Code änderbar (alter Code + neuer Code 2× zur Verifikation). Nur der Code des eigenen Trains änderbar.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>7.15 Corporate Design Bund</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">F-15.1</td><td>Bundesblau als Primärfarbe</td><td>Primärfarbe: Bundesblau <code>#003F7F</code> gemäss CD Bund Manual. Alle Buttons, Header, aktive Tabs.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.2</td><td>Bundesrot als Akzentfarbe</td><td>Akzentfarbe: Bundesrot <code>#E63312</code> für Warnungen und Heute-Markierung.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.3</td><td>Schriftart</td><td>Frutiger als Primärschrift (auf BIT-Geräten systemseitig installiert). Fallback: NotoSans (selbst-gehostet), Arial. Keine externen Font-CDNs.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.4</td><td>Bundeslogo</td><td>SVG-Logo (weiss auf transparent) im Header und in allen Exporten (PDF, PNG).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">F-15.5</td><td>Swiss Design System</td><td>Farbdefinitionen via CSS Custom Properties (<code>--color-primary-*</code>, <code>--color-secondary-*</code>) gemäss Swiss DS Architektur.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 8. NFR -->
+<div class="page-break">
+<h1>8. Nicht-funktionale Anforderungen</h1>
+
+<h2>8.1 Performance</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-P1</td><td>Ladezeit</td><td>Vollständig geladen und bedienbar bei ≥ 10 Mbit/s in unter 3 Sekunden.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-P2</td><td>Drag-Reaktionszeit</td><td>Drag-Buchungen reagieren mit &lt; 100 ms (lokal). Nach Echtzeit-Sync: &lt; 300 ms.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-P3</td><td>Echtzeit-Sync-Latenz</td><td>Änderungen werden innerhalb von 500 ms an alle verbundenen Benutzer übertragen.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-P4</td><td>Gleichzeitige Benutzer</td><td>Ausgelegt für bis zu 20 gleichzeitig aktive Benutzer pro Train.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-P5</td><td>Kalender-Skalierung</td><td>Kalender-Grid mit bis zu 30 Mitarbeitern und 90 Tagen (2700 Zellen) ohne spürbare Verzögerung renderbar.</td><td class="prio-soll">SOLL</td></tr>
+  </tbody>
+</table>
+
+<h2>8.2 Browser-Kompatibilität</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-B1</td><td>Unterstützte Browser</td><td>Korrekte Funktionsweise in aktuellen Versionen von: Google Chrome, Mozilla Firefox, Microsoft Edge, Apple Safari.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-B2</td><td>Desktop-Optimierung</td><td>Optimiert für Desktops ≥ 1280px Breite. Mobile-Unterstützung nicht erforderlich.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>8.3 Datenschutz und Datensicherheit</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-S1</td><td>Keine externen Ressourcen</td><td>Keine Ressourcen von externen Diensten im Browser (keine CDN-Fonts, kein Analytics, kein Tracking).</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S2</td><td>HTTPS</td><td>Ausschliesslich HTTPS-Betrieb.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S3</td><td>Kein LocalStorage für Kerndaten</td><td>Geschäftsdaten server-seitig gespeichert. LocalStorage nur für UI-Präferenzen erlaubt.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S4</td><td>Infrastruktur</td><td>Serverinfrastruktur in der Schweiz oder EU/EWR mit angemessenem Datenschutzniveau.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-S5</td><td>Admin-Code Sicherheit</td><td>Admin-Codes nie im Klartext gespeichert (bcrypt-Hash). Rate-Limiting: 3 Versuche → 60s Sperre.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+
+<h2>8.4 Verfügbarkeit und Wartbarkeit</h2>
+<table class="req-table">
+  <thead><tr><th>ID</th><th>Titel</th><th>Beschreibung</th><th>Prio</th></tr></thead>
+  <tbody>
+    <tr><td class="req-id">NFR-V1</td><td>Verfügbarkeit</td><td>Ziel-Verfügbarkeit ≥ 99% (monatlich, geplante Wartungsfenster ausgenommen).</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-V2</td><td>Backup als Notfallmassnahme</td><td>JSON-Backup/-Restore ermöglicht vollständige Datenwiederherstellung ohne direkten Server-Zugriff.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-V3</td><td>TypeScript ohne <code>any</code></td><td>Vollständige TypeScript-Typisierung. Kein <code>any</code>-Typ im Produktionscode.</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td class="req-id">NFR-V4</td><td>Technische Dokumentation</td><td>Lieferumfang: Installationshandbuch (Deployment, Konfiguration, Umgebungsvariablen) und Benutzerdokumentation.</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td class="req-id">NFR-V5</td><td>Quellcode-Übergabe</td><td>Vollständiger Quellcode wird übergeben. Kompilierbar ohne proprietäre Build-Umgebungen.</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 9. SCHNITTSTELLEN & API -->
+<div class="page-break">
+<h1>9. Schnittstellen und API-Spezifikation</h1>
+<p>Die folgenden Schnittstellen sind verbindlich für die Neuentwicklung. Der Auftragnehmer kann interne Implementierungsdetails wählen, muss aber die hier definierten Endpunkte und Event-Namen einhalten (Kompatibilität mit bestehenden Backup-Dateien und möglichen Integrationen).</p>
+
+<h2>9.1 REST-API</h2>
+<div class="info-box">Alle Endpunkte liefern JSON. Fehler: <code>{"error": "Beschreibung"}</code> mit passendem HTTP-Statuscode. Tenant-spezifische Endpunkte erfordern <code>tenantId</code> als Query-Parameter oder im Pfad.</div>
+
+<h3>Tenant-Management</h3>
+<table>
+  <thead><tr><th style="width:60px">Methode</th><th style="width:220px">Endpunkt</th><th>Beschreibung</th><th style="width:80px">Auth</th></tr></thead>
+  <tbody>
+    <tr><td><code>GET</code></td><td><code>/api/tenants</code></td><td>Liste aller Trains (id, name, createdAt). Kein Admin-Code erforderlich.</td><td>–</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/tenants</code></td><td>Neuen Train anlegen. Body: <code>{id, name, adminCode}</code>. Validierung: id-Format, Code min. 6 Zeichen.</td><td>Admin-Code</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/tenants/:id</code></td><td>Einzelnen Train lesen (Metadaten, kein State).</td><td>–</td></tr>
+    <tr><td><code>PATCH</code></td><td><code>/api/tenants/:id</code></td><td>Train umbenennen oder Admin-Code ändern. Body: <code>{adminCode, name?, newAdminCode?}</code>.</td><td>Admin-Code</td></tr>
+    <tr><td><code>DELETE</code></td><td><code>/api/tenants/:id</code></td><td>Train und alle Daten löschen. Body: <code>{adminCode}</code>. Broadcast <code>tenant:deleted</code>.</td><td>Admin-Code</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/tenants/:id/reset</code></td><td>State des Trains auf leeren Initialzustand zurücksetzen. Body: <code>{adminCode}</code>. Broadcast <code>state:full</code>.</td><td>Admin-Code</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/tenants/:id/verify</code></td><td>Admin-Code verifizieren (für Client-seitiges Cache-Setup). Body: <code>{adminCode}</code>. Response: <code>{valid: bool}</code>.</td><td>–</td></tr>
+  </tbody>
+</table>
+
+<h3>State-Management</h3>
+<table>
+  <thead><tr><th style="width:60px">Methode</th><th style="width:220px">Endpunkt</th><th>Beschreibung</th><th style="width:80px">Auth</th></tr></thead>
+  <tbody>
+    <tr><td><code>GET</code></td><td><code>/api/state?tenantId=X</code></td><td>Vollständigen AppData-State des Trains laden (für initialen Client-Load und Backup-Export).</td><td>–</td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/state?tenantId=X</code></td><td>Vollständigen State ersetzen (Backup-Restore). Body: <code>BackupFile</code>. Broadcast <code>state:full</code> nach Erfolg.</td><td>–</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/state</code></td><td>Legacy-Endpunkt ohne tenantId → leitet auf Default-Tenant weiter (Rückwärtskompatibilität).</td><td>–</td></tr>
+  </tbody>
+</table>
+
+<h3>HTTP-Statuscodes</h3>
+<table>
+  <thead><tr><th>Code</th><th>Bedeutung</th></tr></thead>
+  <tbody>
+    <tr><td><code>200</code></td><td>Erfolg</td></tr>
+    <tr><td><code>400</code></td><td>Ungültige Eingabe (Validierungsfehler, fehlendes Pflichtfeld)</td></tr>
+    <tr><td><code>401</code></td><td>Falscher Admin-Code</td></tr>
+    <tr><td><code>404</code></td><td>Tenant nicht gefunden</td></tr>
+    <tr><td><code>429</code></td><td>Rate-Limit erreicht (3 Fehlversuche → 60s Sperre)</td></tr>
+    <tr><td><code>500</code></td><td>Interner Serverfehler</td></tr>
+  </tbody>
+</table>
+
+<h2>9.2 WebSocket-Events (Socket.io)</h2>
+<div class="info-box">Alle Events sind auf den Tenant-Room <code>tenant:{tenantId}</code> beschränkt. Ein Client joined beim Verbindungsaufbau genau einen Room via <code>tenant:join</code>. Events anderer Trains sind nicht sichtbar.</div>
+
+<h3>Client → Server</h3>
+<table>
+  <thead><tr><th style="width:200px">Event</th><th>Payload</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><code>tenant:join</code></td><td><code>{ tenantId: string }</code></td><td>Client joingt den Tenant-Room. Server antwortet mit <code>state:full</code>.</td></tr>
+    <tr><td><code>allocation:change</code></td><td><code>{ employeeId, dateStr, allocationType }</code></td><td>Einzelne Buchungsänderung. Server patcht State, broadcastet an Room.</td></tr>
+    <tr><td><code>settings:change</code></td><td><code>{ type: 'employees'|'pis'|'feiertage'|'schulferien'|'blocker'|'teamConfigs'|'globalConfig'|'piTeamTargets'|'farbConfig', data: unknown }</code></td><td>Settings-Änderung beliebigen Typs. Server patcht State, broadcastet.</td></tr>
+    <tr><td><code>lock:row</code></td><td><code>{ employeeId: string, userName?: string }</code></td><td>Zeile für Drag-Buchung sperren.</td></tr>
+    <tr><td><code>unlock:row</code></td><td><code>{ employeeId: string }</code></td><td>Zeilen-Sperre aufheben (nach Drag-Ende).</td></tr>
+  </tbody>
+</table>
+
+<h3>Server → Client (Broadcast an Room)</h3>
+<table>
+  <thead><tr><th style="width:200px">Event</th><th>Payload</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><code>state:full</code></td><td><code>SavedProjectState</code></td><td>Vollständiger State – gesendet bei: Verbindungsaufbau, Backup-Restore, Train-Reset.</td></tr>
+    <tr><td><code>allocation:change</code></td><td><code>{ employeeId, dateStr, allocationType }</code></td><td>Buchungsänderung – broadcast an alle Clients ausser Sender.</td></tr>
+    <tr><td><code>settings:change</code></td><td><code>{ type, data }</code></td><td>Settings-Änderung – broadcast an alle Clients ausser Sender.</td></tr>
+    <tr><td><code>lock:row</code></td><td><code>{ employeeId, userName? }</code></td><td>Zeilen-Sperre – broadcast an alle Clients ausser Sender.</td></tr>
+    <tr><td><code>unlock:row</code></td><td><code>{ employeeId }</code></td><td>Zeilen-Freigabe – broadcast an alle Clients ausser Sender.</td></tr>
+    <tr><td><code>tenant:deleted</code></td><td><code>{ tenantId }</code></td><td>Train wurde gelöscht – Clients werden aufgefordert, zur Train-Auswahl zurückzukehren.</td></tr>
+  </tbody>
+</table>
+
+<h3>Loop-Verhinderung</h3>
+<div class="info-box">Eingehende Events (vom Server) dürfen keinen neuen ausgehenden Event auslösen. Client-seitig: Zustandsänderungen durch eingehende Events werden direkt via <code>setState</code> angewendet, ohne dass der <code>useEffect</code>-Hook einen neuen Emit auslöst. Empfohlenes Muster: <code>isRemoteUpdate</code>-Flag oder separate Setter für lokale vs. remote Änderungen.</div>
+
+<h2>9.3 Datei-Schnittstellen</h2>
+<table>
+  <thead><tr><th>Schnittstelle</th><th>Format</th><th>Trennzeichen</th><th>Encoding</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td>Mitarbeiter-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Header: <code>vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProzent;spProTag</code></td></tr>
+    <tr><td>PI-Planung-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Header: <code>name;startStr;endStr</code>. Iterationen separat oder via Auto-Split.</td></tr>
+    <tr><td>Feiertage-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Header: <code>name;startStr;endStr</code>. Datumsformat: YYYY-MM-DD.</td></tr>
+    <tr><td>Schulferien-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Header: <code>name;startStr;endStr</code></td></tr>
+    <tr><td>Blocker-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Header: <code>name;startStr;endStr</code></td></tr>
+    <tr><td>Team-Config-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Header: <code>teamName;minPikett;minBetrieb</code></td></tr>
+    <tr><td>Farb-Config-CSV</td><td>CSV</td><td>Semikolon</td><td>UTF-8 BOM</td><td>Buchungstyp-Farbkonfiguration (bg-Hex, text-Hex pro Typ)</td></tr>
+    <tr><td>JSON-Backup</td><td>JSON</td><td>–</td><td>UTF-8</td><td>Schema: <code>BackupFile</code> (s. Kapitel 6). Dateiname: <code>backup_{tenantId}_YYYY-MM-DD.json</code></td></tr>
+    <tr><td>PDF-Export</td><td>PDF (A4)</td><td>–</td><td>–</td><td>Bundeslogo-Header, weisser Hintergrund, Scale 2x. Dateiname: <code>safe-pi-planner_YYYY-MM-DD.pdf</code></td></tr>
+    <tr><td>PNG-Export</td><td>PNG</td><td>–</td><td>–</td><td>2x-Auflösung für Confluence. Dateiname: <code>safe-pi-planner_YYYY-MM-DD.png</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 10. BUCHUNGSTYPEN -->
+<div class="page-break">
+<h1>10. Buchungstypen und Geschäftsregeln</h1>
+
+<h2>10.1 Buchungstypen</h2>
+<table>
+  <thead><tr><th>Typ</th><th>Bezeichnung</th><th>Kürzel</th><th>SP-Auswirkung</th><th>Standardfarbe (Hintergrund)</th><th>Buchbar an WE/Feiertag?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>NONE</strong></td><td>Kein Eintrag</td><td>–</td><td>spPerDay</td><td>Weiss (#FFFFFF)</td><td>Nein (kein SP-Effekt)</td></tr>
+    <tr><td><strong>FERIEN</strong></td><td>Ferien / Frei</td><td>F</td><td>0 SP</td><td>Orange (#FB923C)</td><td>Nein</td></tr>
+    <tr><td><strong>ABWESEND</strong></td><td>Abwesenheit (Sonstiges)</td><td>A</td><td>0 SP</td><td>Dunkelgrau (#6B7280)</td><td>Nein</td></tr>
+    <tr><td><strong>TEILZEIT</strong></td><td>Teilzeit (halber Tag)</td><td>T</td><td>0,5 × spPerDay</td><td>Hellgelb (#FDE68A)</td><td>Nein</td></tr>
+    <tr><td><strong>MILITAER</strong></td><td>Militärdienst</td><td>M</td><td>0 SP</td><td>Hellgrün (#84CC16)</td><td>Nein</td></tr>
+    <tr><td><strong>IPA</strong></td><td>Individuelle Praktische Arbeit</td><td>I</td><td>0 SP</td><td>Lila (#A78BFA)</td><td>Nein</td></tr>
+    <tr><td><strong>BETRIEB</strong></td><td>Betriebsdienst</td><td>B</td><td>0 SP</td><td>Hellblau (#60A5FA)</td><td>Nein</td></tr>
+    <tr><td><strong>BETRIEB_PIKETT</strong></td><td>Betrieb und Pikett kombiniert</td><td>BP</td><td>0 SP</td><td>Violett (#7C3AED)</td><td>Ja</td></tr>
+    <tr><td><strong>PIKETT</strong></td><td>Pikettdienst (Rufbereitschaft)</td><td>P</td><td>0 SP</td><td>Rosa (#F9A8D4)</td><td>Ja</td></tr>
+  </tbody>
+</table>
+
+<h2>10.2 Lückenerkennung (verbindliche Geschäftsregeln)</h2>
+
+<h3>Betrieb-Lücke (gemäss ADR-005)</h3>
+<div class="info-box">Eine Betrieb-Lücke wird gemeldet, wenn an einem <strong>Arbeitstag</strong> (kein Wochenende, kein gesetzlicher Feiertag) die Anzahl der Mitarbeiter mit Buchungstyp BETRIEB oder BETRIEB_PIKETT in einem Team kleiner ist als die konfigurierte Mindestbesetzung (<em>teamConfig.minBetrieb</em>).</div>
+
+<h3>Pikett-Lücke (gemäss ADR-005)</h3>
+<div class="info-box">Eine Pikett-Lücke wird gemeldet, wenn an einem <strong>beliebigen Tag</strong> innerhalb des PI-Zeitraums (einschliesslich Wochenenden und gesetzlicher Feiertage) die Anzahl der Mitarbeiter mit Buchungstyp PIKETT oder BETRIEB_PIKETT in einem Team kleiner ist als die konfigurierte Mindestbesetzung (<em>teamConfig.minPikett</em>). Pikett gilt 7 × 24, da Störungen jederzeit auftreten können.</div>
+
+<h2>10.3 Kalender-Zellen Darstellung</h2>
+<table>
+  <thead><tr><th>Zell-Zustand</th><th>Hintergrund</th><th>Text/Akzent</th><th>Besonderheit</th></tr></thead>
+  <tbody>
+    <tr><td>Normal/leer</td><td>#FFFFFF</td><td>#1A1A1A</td><td>–</td></tr>
+    <tr><td>Wochenende</td><td>#F3F4F6</td><td>#9CA3AF</td><td>Nicht buchbar (ausser PIKETT/BETRIEB_PIKETT)</td></tr>
+    <tr><td>Gesetzlicher Feiertag</td><td>#D1D5DB</td><td>#6B7280</td><td>Tooltip (Name des Feiertags)</td></tr>
+    <tr><td>Schulferien</td><td>#E5E7EB</td><td>#6B7280</td><td>Tooltip (Name der Ferienperiode)</td></tr>
+    <tr><td>Blocker / Change-Freeze</td><td>#BFDBFE</td><td>#1E40AF</td><td>❄ Symbol + Tooltip</td></tr>
+    <tr><td>Heute (Spalte)</td><td>–</td><td>#E63312 fett</td><td>Gesamte Spalte hervorgehoben</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 11. SICHERHEITSKONZEPT -->
+<div class="page-break">
+<h1>11. Sicherheitskonzept</h1>
+
+<p>Das Sicherheitskonzept ist auf den internen Pilotbetrieb innerhalb der BIT-Netzwerkinfrastruktur ausgerichtet. Eine vollständige enterprise-grade Authentifizierung (OIDC, TOTP) ist als Roadmap-Feature definiert.</p>
+
+<h2>11.1 Aktuelles Sicherheitsniveau</h2>
+<table>
+  <thead><tr><th>Eigenschaft</th><th>Status</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td>Datenisolation pro Tenant</td><td><span class="badge-ok">ERFÜLLT</span></td><td>Getrennte JSON-Dateien pro Train. Socket.io-Room-Isolation.</td></tr>
+    <tr><td>Admin-Code Hashing</td><td><span class="badge-ok">ERFÜLLT</span></td><td>bcryptjs-Hash. Kein Plaintext in Konfiguration oder Logs.</td></tr>
+    <tr><td>Rate-Limiting</td><td><span class="badge-ok">ERFÜLLT</span></td><td>3 Fehlversuche → 60s Sperre. Server-seitig durchgesetzt.</td></tr>
+    <tr><td>HTTPS</td><td><span class="badge-ok">ERFÜLLT</span></td><td>TLS-Terminierung auf Deployment-Ebene (Vercel/Railway).</td></tr>
+    <tr><td>Keine externen Ressourcen</td><td><span class="badge-ok">ERFÜLLT</span></td><td>Fonts lokal gehostet. Kein CDN, kein Analytics.</td></tr>
+    <tr><td>Kein LocalStorage für Kerndaten</td><td><span class="badge-ok">ERFÜLLT</span></td><td>Alle Geschäftsdaten server-seitig.</td></tr>
+    <tr><td>Session-Sicherheit Admin-Code</td><td><span class="badge-warn">EINGESCHRÄNKT</span></td><td>Code 15min in sessionStorage gecacht. Kein echter Token.</td></tr>
+    <tr><td>Multi-Faktor-Authentifizierung</td><td><span class="badge-no">NICHT VORHANDEN</span></td><td>Kein 2FA. Geplant als TOTP (Roadmap R-01).</td></tr>
+    <tr><td>Audit-Log</td><td><span class="badge-no">NICHT VORHANDEN</span></td><td>Keine Protokollierung von Admin-Aktionen. Geplant (Roadmap R-05).</td></tr>
+    <tr><td>Rollen und Berechtigungen</td><td><span class="badge-no">NICHT VORHANDEN</span></td><td>Kein Rollenkonzept. Alle Benutzer eines Trains haben gleiche Rechte. Geplant (Roadmap R-06).</td></tr>
+    <tr><td>Benutzerauthentifizierung</td><td><span class="badge-no">NICHT VORHANDEN</span></td><td>Kein Login. Jeder mit URL kann auf den Train zugreifen. Geplant via aGov OIDC (Roadmap R-02).</td></tr>
+  </tbody>
+</table>
+
+<div class="warn-box">
+  <strong>Hinweis Betreiber:</strong> Die Anwendung besitzt in der aktuellen Version keine Benutzerauthentifizierung. Jede Person mit Kenntnis der URL kann den Train-Inhalt lesen und verändern. Für den internen Betrieb wird empfohlen, den Zugang via Netzwerk-Zugangskontrolle (z.B. VPN oder IP-Whitelist auf Infrastruktur-Ebene) zu beschränken.
+</div>
+
+<h2>11.2 Sicherheitsanforderungen Neuentwicklung</h2>
+<ul>
+  <li>Admin-Codes via bcrypt (Kostenfaktor ≥ 10) hashen.</li>
+  <li>Rate-Limiting ist server-seitig implementiert – nicht via Client-Logik aushebelbar.</li>
+  <li>Keine sensitiven Daten in URL-Parametern, Browser-History oder Logs.</li>
+  <li>CORS korrekt konfiguriert (nur eigene Domain als Origin).</li>
+  <li>Socket.io CORS-Origin muss zur Deployment-Domain passen (kein Wildcard in Produktion).</li>
+  <li>Tenant-IDs in Pfaden validieren (Regex-Check) – keine Path-Traversal-Angriffe möglich.</li>
+</ul>
+</div>
+
+<!-- 12. ABNAHMEKRITERIEN -->
+<div class="page-break">
+<h1>12. Abnahmekriterien</h1>
+<p>Die Abnahme erfolgt anhand der folgenden messbaren Kriterien. Alle Kriterien mit Priorität MUSS müssen ohne Abweichung erfüllt sein.</p>
+<table>
+  <thead><tr><th style="width:60px">ID</th><th>Kriterium</th><th>Messmethode</th><th style="width:70px">Prio</th></tr></thead>
+  <tbody>
+    <tr><td>AK-01</td><td>Kapazitätsplanung für ein vollständiges PI (4–6 Iterationen) in unter 30 Minuten abschliessbar</td><td>Zeitnahme durch Testnutzer</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-02</td><td>SP-Berechnung stimmt mit manueller Excel-Rechnung überein (0% Abweichung bei gleichen Eingaben)</td><td>Vergleich mit Referenz-Berechnung anhand definierter Testdaten</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-03</td><td>Pikett-Lücken werden an Wochenenden und Feiertagen korrekt erkannt und gemeldet</td><td>Testfall: definierte Lücke an einem Sonntag</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-04</td><td>Betrieb-Lücken werden nur an Arbeitstagen gemeldet (keine Lücke an Weihnachten)</td><td>Testfall: Weihnachtstag ohne Betrieb-Buchung</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-05</td><td>Zwei Trains sind vollständig datenisoliert – kein Datenaustausch möglich</td><td>Paralleltest mit 2 Browsersitzungen, verschiedene Trains</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-06</td><td>JSON-Backup vollständig wiederherstellbar (Export → Restore → Vergleich)</td><td>Export + Restore + automatischer Vergleich der State-Objekte</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-07</td><td>Gleichzeitige Buchungen von 2 Benutzern werden korrekt synchronisiert</td><td>Paralleltest mit 2 Browsern im gleichen Train</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-08</td><td>Row-Locking: Zeile eines aktiv buchenden Users ist für anderen User gesperrt</td><td>Paralleltest Drag-Buchung</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-09</td><td>Corporate Design Bund eingehalten (Farben, Schrift, Logo)</td><td>Visueller Vergleich mit CD Bund Manual</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-10</td><td>Admin-Bereich nach 3 Fehlversuchen für 60 Sekunden gesperrt</td><td>Testfall Rate-Limiting</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-11</td><td>CSV-Import von Mitarbeiterstammdaten ohne Datenverlust</td><td>Import Referenz-CSV + Vergleich</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-12</td><td>PI Dashboard zeigt korrekte Auslastung (Jira-SP / verfügbare SP) mit richtiger Farbkodierung</td><td>Testfall mit definierten Eingabewerten</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-13</td><td>Ladezeit &lt; 3 Sekunden im Testumfeld</td><td>Browser DevTools Network-Messung (3G-gedrosseltes Netz ausgenommen)</td><td class="prio-soll">SOLL</td></tr>
+    <tr><td>AK-14</td><td>Technische Dokumentation vollständig und aktuell</td><td>Review durch Auftraggeber</td><td class="prio-muss">MUSS</td></tr>
+    <tr><td>AK-15</td><td>Backup älterer Schema-Versionen wird ohne Fehler geladen (Migrations-Test)</td><td>Import eines Backup v1.0 in aktuelle Applikation</td><td class="prio-muss">MUSS</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 13. ROADMAP -->
+<div class="page-break">
+<h1>13. Roadmap – Optionale Erweiterungen</h1>
+<p>Die folgenden Funktionen sind nicht Bestandteil der Grundbestellung, sollen aber bei der Systemarchitektur berücksichtigt werden, damit eine spätere Erweiterung ohne grundlegende Umbauten möglich ist.</p>
+<table>
+  <thead><tr><th style="width:60px">ID</th><th style="width:200px">Feature</th><th>Beschreibung</th><th style="width:70px">Aufwand</th></tr></thead>
+  <tbody>
+    <tr><td>R-01</td><td>TOTP 2FA</td><td>Zwei-Faktor-Authentifizierung via Google Authenticator / Microsoft Authenticator (TOTP-Standard, RFC 6238) für Admin-Zugang.</td><td>Mittel</td></tr>
+    <tr><td>R-02</td><td>aGov OIDC-Integration</td><td>Single Sign-On via den Identity Provider der Schweizer Bundesverwaltung (aGov, OpenID Connect / OAuth2 Authorization Code Flow mit PKCE).</td><td>Hoch</td></tr>
+    <tr><td>R-03</td><td>Jira REST API Integration</td><td>Automatische Synchronisation der geplanten Story Points direkt aus Jira via REST API (ersetzt manuelle Eingabe durch PO).</td><td>Mittel</td></tr>
+    <tr><td>R-04</td><td>Mobile-Optimierung</td><td>Responsive Design für mobile Endgeräte (min. 375px), Touch-optimierte Drag-Buchung.</td><td>Mittel</td></tr>
+    <tr><td>R-05</td><td>Audit-Log</td><td>Protokollierung aller Admin-Aktionen mit Zeitstempel und Benutzerzuordnung. Integration Splunk/Loki für Log-Forwarding.</td><td>Gering</td></tr>
+    <tr><td>R-06</td><td>Rollen und Berechtigungen</td><td>Differenzierte Rollen: Admin (voller Zugriff), Planer (Buchungen + Konfiguration), Read-Only (nur Lesen).</td><td>Hoch</td></tr>
+    <tr><td>R-07</td><td>Custom Allocation Types</td><td>Konfigurierbare Buchungstypen pro Team: eigene Kategorien mit individuellen Farben, Kürzeln und SP-Gewichtungen.</td><td>Mittel</td></tr>
+    <tr><td>R-08</td><td>PostgreSQL-Migration</td><td>Ersatz der JSON-Dateipersistenz durch PostgreSQL (Crunchy Operator auf RHOS oder managed PostgreSQL). StateManager-Interface bleibt erhalten.</td><td>Mittel</td></tr>
+    <tr><td>R-09</td><td>OpenShift / RHOS Deployment</td><td>Containerisierung beider Komponenten (Frontend, Backend) für Deployment auf BIT OpenShift Plattform (SZ Primus), inkl. ArgoCD/Tekton GitOps-Pipeline.</td><td>Hoch</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- 14. GLOSSAR -->
+<div class="page-break">
+<h1>14. Anhang: Glossar</h1>
+<table>
+  <thead><tr><th style="width:180px">Begriff</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td><strong>ART</strong></td><td>Agile Release Train – Organisationseinheit im SAFe-Framework, bestehend aus mehreren Scrum-Teams</td></tr>
+    <tr><td><strong>BIT</strong></td><td>Bundesamt für Informatik und Telekommunikation – IT-Dienstleister der Schweizer Bundesverwaltung</td></tr>
+    <tr><td><strong>Betrieb</strong></td><td>Betriebsdienst – Mitarbeiter im Betrieb sind für den operativen Betrieb von IT-Systemen zuständig und nicht für Entwicklungsaufgaben verfügbar</td></tr>
+    <tr><td><strong>Blocker / Change-Freeze</strong></td><td>Zeitraum, in dem keine Deployments erlaubt sind. Zählt als normaler Arbeitstag (kein SP-Abzug).</td></tr>
+    <tr><td><strong>FTE</strong></td><td>Full-Time Equivalent – Beschäftigungsgrad (1,0 = 100%, 0,8 = 80% Pensum)</td></tr>
+    <tr><td><strong>IPA</strong></td><td>Individuelle Praktische Arbeit – Abschlussarbeit in der Berufsausbildung (Schweiz)</td></tr>
+    <tr><td><strong>Iteration</strong></td><td>Sprint – Zeitbox von ca. 2–3 Wochen innerhalb eines PI</td></tr>
+    <tr><td><strong>Kapazitätsprozent</strong></td><td>Anteil der Arbeitszeit eines Mitarbeiters, der für Entwicklungsaufgaben verfügbar ist</td></tr>
+    <tr><td><strong>Mandant / Tenant</strong></td><td>Isolierte Dateneinheit im System. Entspricht einem Agile Release Train.</td></tr>
+    <tr><td><strong>Pikett</strong></td><td>Rufbereitschaft – Mitarbeiter im Pikett sind ausserhalb der regulären Arbeitszeit erreichbar und können bei IT-Störungen eingreifen</td></tr>
+    <tr><td><strong>PI</strong></td><td>Program Increment – Planungszyklus im SAFe-Framework, typischerweise 8–12 Wochen</td></tr>
+    <tr><td><strong>PI Planning</strong></td><td>SAFe PI Planning Event – mehrtägige Planungsveranstaltung zu Beginn jedes PI</td></tr>
+    <tr><td><strong>RHOS</strong></td><td>Red Hat OpenShift – Container-Plattform, genutzt von BIT (SZ Primus)</td></tr>
+    <tr><td><strong>SAFe</strong></td><td>Scaled Agile Framework – Framework für die Skalierung agiler Methoden in grossen Organisationen</td></tr>
+    <tr><td><strong>SP</strong></td><td>Story Points – relatives Mass für den Aufwand einer Entwicklungsaufgabe</td></tr>
+    <tr><td><strong>Swiss DS</strong></td><td>Swiss Design System – offizielles Design System der Schweizer Bundesverwaltung</td></tr>
+    <tr><td><strong>TenantGate</strong></td><td>Splash-Screen beim App-Start zur Auswahl des aktiven Trains</td></tr>
+    <tr><td><strong>Train</strong></td><td>Im Kontext dieser Anwendung: ein Mandant, der einem Agile Release Train entspricht</td></tr>
+    <tr><td><strong>WebSocket / Socket.io</strong></td><td>Protokoll für bidirektionale Echtzeit-Kommunikation zwischen Client und Server</td></tr>
+  </tbody>
+</table>
+
+<hr class="divider" style="margin-top:60px">
+<p style="text-align:center;color:#999;font-size:9pt;margin-top:16px">
+  © Bundesamt für Informatik und Telekommunikation (BIT) – Internes Dokument<br>
+  Lastenheft SAFe PI Capacity Planner – Version 2.0 – April 2026
+</p>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

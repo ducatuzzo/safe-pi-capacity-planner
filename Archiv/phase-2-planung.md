@@ -5,6 +5,7 @@
 > Aktuelle Feature-Liste: siehe PRD.md
 > Aktuelle Statusübersicht: siehe STATUS.md
 > Archiviert am: 16.04.2026
+> Verschoben ins Archiv: 29.04.2026
 
 ---
 

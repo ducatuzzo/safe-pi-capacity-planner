@@ -1,0 +1,24 @@
+# Node
+node_modules/
+*.log
+npm-debug.log*
+
+# Claude Code Worktrees & lokale Settings
+.claude/worktrees/
+.claude/settings.local.json
+
+# Server-State (per-Tenant JSON-Dateien)
+safe-pi-capacity-planner/data/state_*.json
+
+# Build-Output
+safe-pi-capacity-planner/dist/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Office Lock-Files
+~$*
+.~lock.*#
