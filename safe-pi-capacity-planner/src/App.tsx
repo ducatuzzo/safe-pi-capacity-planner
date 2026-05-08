@@ -86,8 +86,10 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
   const userName = useRef(getSessionUserName());
 
   const applyServerState = useCallback((state: SavedProjectState) => {
-    // Feature 29 v2: wenn der State des Demo-Trains komplett leer ist, fallback auf Demo-Daten
-    // (greift bei frischer Installation oder nach Reset; user-erstellte Daten werden nie überschrieben)
+    // Feature 29 v2: wenn der State des Demo-Trains komplett leer ist, Demo-Daten als Fallback
+    // setzen UND direkt auf den Server pushen, damit sie persistiert werden.
+    // Nach erstem Push ist der Server-State nicht mehr leer → Fallback greift nicht mehr →
+    // user-erstellte Änderungen werden nicht überschrieben.
     const istKomplettLeer =
       state.employees.length === 0 &&
       (state.appData.pis?.length ?? 0) === 0 &&
@@ -96,16 +98,48 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
       (state.appData.blocker?.length ?? 0) === 0;
     const istDemoTrain = tenantId === 'default';
 
-    setEmployees(state.employees);
     if (istKomplettLeer && istDemoTrain) {
-      // Schema-1.6-Migration läuft auch auf Demo-Daten (idempotent)
-      setPis(migratePIs(DEMO_PIS));
+      // Demo-Daten setzen (Schema-1.6-Migration ist idempotent)
+      const migratedDemoPis = migratePIs(DEMO_PIS);
+      setEmployees([]);
+      setPis(migratedDemoPis);
       setFeiertage(DEMO_FEIERTAGE);
-    } else {
-      // Schema-Migration auf 1.6 (Feature 29 v2): blockerWeeks/zeremonien defaulten, Zeremonien-Felder ergänzen
-      setPis(migratePIs(state.appData.pis as PIPlanning[]));
-      setFeiertage(state.appData.feiertage);
+      setSchulferien([]);
+      setBlocker([]);
+      setGlobalConfig(SEED_GLOBAL_CONFIG);
+      setTeamConfigs(SEED_TEAM_CONFIGS);
+      setPiTeamTargets([]);
+
+      // Demo-Daten an Server pushen, damit sie persistent sind (überlebt Browser-Refresh)
+      const demoState: SavedProjectState = {
+        version: '1.6',
+        timestamp: new Date().toISOString(),
+        year: new Date().getFullYear(),
+        employees: [],
+        appData: {
+          feiertage: DEMO_FEIERTAGE,
+          schulferien: [],
+          pis: migratedDemoPis,
+          blocker: [],
+          teamZielwerte: [],
+          globalConfig: SEED_GLOBAL_CONFIG,
+          teamConfigs: SEED_TEAM_CONFIGS,
+          piTeamTargets: [],
+        },
+      };
+      const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
+      fetch(`${backendUrl}/api/tenants/${tenantId}/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(demoState),
+      }).catch(err => console.error('[Demo-Seed] POST state fehlgeschlagen:', err));
+      return;
     }
+
+    setEmployees(state.employees);
+    // Schema-Migration auf 1.6 (Feature 29 v2): blockerWeeks/zeremonien defaulten, Zeremonien-Felder ergänzen
+    setPis(migratePIs(state.appData.pis as PIPlanning[]));
+    setFeiertage(state.appData.feiertage);
     setSchulferien(state.appData.schulferien);
     setBlocker(state.appData.blocker);
     setGlobalConfig(state.appData.globalConfig ?? SEED_GLOBAL_CONFIG);
