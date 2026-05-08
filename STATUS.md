@@ -1,10 +1,20 @@
-# STATUS.md – Stand: 06.05.2026
+# STATUS.md – Stand: 07.05.2026
 
 > Feature-Nummerierung folgt PRD.md (verbindlich). Dieses Dokument trackt nur den Implementierungsstatus.
 
-## Stand: 2026-05-06
+## Stand: 2026-05-07
 
-### Zuletzt erledigt (Session 06.05.2026)
+### Zuletzt erledigt (Session 07.05.2026 — UI-Reorganisation v2.0)
+- **PI-Planung Timeline-View:** Iterationen + Blocker + Zeremonien chronologisch in EINER Tabelle (statt zwei getrennten Bereichen). 3 Modals (Iter / Blocker / Zeremonie) im `IterationEditor.tsx` (komplett neu). `ZeremonienEditor.tsx` als Legacy nicht mehr von PISettings importiert.
+- **CSV-Pfad entfernt** aus `PISettings.tsx` (Excel-Workbook ist alleiniger Bulk-Pfad)
+- **«Alle PIs löschen»** verschoben zu `AdminView.tsx` (neue Sektion in «Gefährliche Aktionen»)
+- **Demo-Daten** für Demo-Train (`src/data/seed-demo.ts` NEU) mit Server-Persistenz via POST in `applyServerState` — überlebt Browser-Refresh
+- `.gitignore`-Bugfix für `src/data/`
+- **Benutzerdokumentation v2.0** (NEU + .docx) + AI.md + CLAUDE.md + decisions/log.md aktualisiert
+- TypeScript-Check `tsc --noEmit` grün — alle Commits gepusht (`416df81`, `9a5c801` und Doku-Commit)
+
+### Zuletzt erledigt (Session 06.05.2026 — Feature 29 v1 + v2)
+- **Feature 29: PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen** ✅ implementiert
 - **Feature 29: PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen** ✅ implementiert
   - Schritt 1 ✅ types.ts erweitert (PIBlockerWeek, PIZeremonie, ZeremonieType), pi-calculator.ts (calculateIterationDates, ZEREMONIE_DEFAULTS), state-migration.ts (Schema 1.4 → 1.5)
   - Schritt 2 ✅ PI-Erstellung Modal: wochenbasiert, Auto-Berechnung Enddatum, Iter.-Wo. Spalte
@@ -83,7 +93,7 @@
 ### Phase 5b — PI-Planung Vertiefung
 | Nr. | Feature | Status |
 |-----|---------|--------|
-| 29 | PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen (.ics) | ✅ impl / ⏳ deploy |
+| 29 | PI-Planung wochenbasiert + Zeremonien + Blocker-Wochen (.ics) | ✅ deployed (v2.0 UI-Reorganisation 07.05.2026) |
 
 ### Eigenständige Features
 | Feature | Status |

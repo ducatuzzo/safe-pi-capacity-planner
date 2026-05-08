@@ -2,7 +2,7 @@
 
 > Dieses Dokument ist das primäre Referenz-Dokument für alle Claude Code Sessions in diesem Projekt.
 > Immer zuerst lesen. Ergänzend: AI.md (Architektur), STATUS.md (Stand), features/ (Specs).
-> Zuletzt synchronisiert: 07.05.2026
+> Zuletzt synchronisiert: 07.05.2026 (UI-Reorganisation Timeline + Demo-Daten)
 
 ## Projekt-Kontext
 - **Name:** SAFe PI Capacity Planner (BIT)
@@ -98,6 +98,13 @@ npm run dev:server   # nur Express Backend
   - 1.5 → 1.6 (`migrateZeremonieToSchema16`): `date + startTime + durationMinutes` → `startDate + endDate + endTime` (idempotent)
 - Wirkt sowohl auf `applyServerState()` (App.tsx) als auch auf Backup-Restore
 - Schema 1.5 Felder (date, startTime, durationMinutes) bleiben REQUIRED für Backwards-Compat; Schema 1.6 Felder (startDate, endDate, endTime, recurrence) sind OPTIONAL und werden via Migration befüllt
+
+### UI-Reorganisation v2.0 (07.05.2026)
+- **Timeline-View:** `IterationEditor.tsx` zeigt Iter + Blocker + Zeremonien chronologisch in EINER Tabelle (3 Modals). `ZeremonienEditor.tsx` nicht mehr aus PISettings importiert (Legacy).
+- **CSV-Pfad entfernt** aus `PISettings.tsx`. Excel-Workbook ist einziger Bulk-Pfad.
+- **«Alle PIs löschen»** wurde von `PISettings.tsx` zu `AdminView.tsx` verschoben (neue Sektion in «Gefährliche Aktionen»).
+- **Demo-Daten** für Demo-Train: `src/data/seed-demo.ts` (NEU) mit `DEMO_PIS` + `DEMO_FEIERTAGE`. `applyServerState` setzt Demo-Daten bei komplett leerem State des Demo-Trains UND pusht via POST `/api/tenants/default/state` an Server (überlebt Browser-Refresh).
+- **`.gitignore`-Bugfix:** `safe-pi-capacity-planner/.gitignore` `data/` → `/data/` (nicht src/data/ ignorieren).
 
 ## Wichtige Konventionen
 - Sprache: Deutsch (UI + Kommentare), Englisch (Variablen/Typen)

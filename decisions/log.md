@@ -200,3 +200,45 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 - Automatische Verschiebung von Zeremonien bei Blocker-Einfügung (Spec Section 7: out of scope)
 - ICS mit TZID (Europe/Zurich) — floating local time einfacher und für interne BIT-Termine ausreichend
 
+## 2026-05-07: F29 v2 UI-Reorganisation (v2.0) + Demo-Daten persistent
+**Entscheidung:** Nach User-Feedback wurde die PI-Planungs-UI fundamental überarbeitet. Vier zusammengehörige Änderungen.
+
+**1. Timeline-View statt zwei getrennten Bereichen.**
+- Vorher: pro PI zwei getrennte Tabellen — Iterationen-Editor (mit Inline-Blockern) und ZeremonienEditor (separate Tabelle darunter)
+- Nachher: EINE chronologisch sortierte Tabelle mit Iterationen + Blocker-Wochen + Zeremonien
+- Begründung: User möchte „keine separate darstellung in unterem fenster" — Termine sollen visuell dort eingeschoben werden, wo sie zeitlich liegen
+- `IterationEditor.tsx` neu mit `buildTimeline(pi)` und `TimelineItem` Union-Type. Sortier-Schlüssel `<startDate>_<typeSuffix>` (Iter=`1`, Blocker=`2`, Zeremonie=`3` bei gleichem Datum).
+- `ZeremonienEditor.tsx` als Komponente nicht mehr von PISettings importiert. Datei bleibt im Repo (Legacy, kann später entfernt werden) — Modal-Logic wurde nach IterationEditor migriert.
+
+**2. CSV-Import/Export entfernt aus PI-Planung.**
+- `exportiereCsv`, `importiereCsv`, `teilePiInIterationen`, CSV-Buttons + `fileInputRef` in `PISettings.tsx` weg
+- Begründung: User-Feedback „nicht mehr notwendig" — Excel-Workbook (`pi-xlsx.ts`) deckt alle Bulk-Anwendungsfälle vollständig ab und ist komfortabler für den RTE
+- Andere CSV-Pfade (Mitarbeiter, Feiertage, Schulferien, Blocker, Team-Konfiguration) bleiben unverändert
+
+**3. «Alle PIs löschen» verschoben aus PI-Toolbar nach Admin.**
+- Vorher: Toolbar-Button «Alle löschen» direkt in der PI-Settings-Toolbar mit Bestätigungsdialog
+- Nachher: neue Sektion in `AdminView.tsx` (zwischen «Alle Daten löschen» und «Admin-Code ändern»), mit derselben „LÖSCHEN"-Bestätigungseingabe wie die anderen gefährlichen Aktionen
+- Begründung: User-Feedback — Massenlöschungen gehören in den Admin-Bereich, nicht in die normale Bedienoberfläche
+- `App.tsx` reicht `onClearAllPis={() => handlePisChange([])}` an `AdminView` durch
+
+**4. Demo-Daten für Demo-Train + Server-Persistenz.**
+- `src/data/seed-demo.ts` (NEU): `DEMO_PIS` mit PI26-2 (5 Iterationen, 2 Blocker-Wochen «Pfingsten» + «Sommerpause», 3 Zeremonien — mehrtägiges PI Planning + wöchentliche System-Demo-Serie + Inspect & Adapt) + `DEMO_FEIERTAGE` (5 Schweizer Feiertage 2026)
+- `applyServerState` (App.tsx) erkennt komplett leeren State des Demo-Trains (`tenantId === 'default'` UND alle Stamm-Arrays leer) → setzt Demo-Daten lokal **UND POSTet sie sofort an `/api/tenants/default/state`** → überlebt Browser-Refresh
+- Begründung: Erste Implementierung setzte Demo-Daten nur lokal — beim nächsten Refresh war der Server-State noch leer → Demo-Daten verschwanden. Persistenz auf Server ist die saubere Lösung.
+- User-Daten werden niemals überschrieben: sobald irgendeine Stamm-Tabelle nicht-leer ist, greift der Fallback nicht.
+
+**`.gitignore`-Bugfix:** `safe-pi-capacity-planner/.gitignore` hatte `data/` (zu unspezifisch — ignorierte auch `src/data/`). Geändert zu `/data/` (nur Wurzel-data/), damit `seed-demo.ts` versionsiert werden kann.
+
+**Doku-Updates:**
+- `docs/benutzerdokumentation_v2.0.md` (NEU, basierend auf v1.9): Sektion „Timeline" ersetzt frühere getrennte Sektionen «Iterationen-Bereich» / «Blocker-Wochen einfügen» / «Zeremonien-Bereich». CSV-Sektion entfernt. Excel-Sektion umformuliert («einziger Bulk-Pfad»). Admin-Sektion erweitert um «Alle PIs löschen». FAQ erweitert um Demo-Daten + PI-Bulk-Import-Frage.
+- `AI.md`: neuer Abschnitt «UI-Reorganisation v2.0»
+- `CLAUDE.md`: Datum + neuer Abschnitt im PI-Planung-Block
+- `DokumentationSettings.tsx`: Verlinkung v1.9 → v2.0
+- v2.0.docx via `scripts/md-to-docx.js` regeneriert
+
+**Alternativ geprüft & verworfen:**
+- `ZeremonienEditor.tsx` komplett löschen — Datei behalten als Legacy für mögliche zukünftige Wiederverwendung; Risiko reduziert
+- Demo-Daten beim Server-Init seitens Backend (server.ts) — Frontend-seitig einfacher und tenantId-spezifisch
+- Sofort-Push der Demo-Daten als Hintergrund-Effekt nach Mount (useEffect) — direkter POST in `applyServerState` ist atomarer
+- Eine Composite-Komponente `PiTimelineEditor` als komplett neue Datei — Refactor in `IterationEditor` ist weniger Disruption
+

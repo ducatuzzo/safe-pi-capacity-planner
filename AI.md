@@ -1,6 +1,6 @@
 # AI.md – Technischer Kompass: SAFe PI Capacity Planner
 
-> Zuletzt synchronisiert: 07.05.2026
+> Zuletzt synchronisiert: 07.05.2026 (UI-Reorganisation Timeline + Demo-Daten)
 > Führend für: Architektur, Datenmodell, Konventionen.
 > Feature-Liste: siehe PRD.md. Status: siehe STATUS.md.
 
@@ -96,6 +96,14 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - **ICS-Export (Schema 1.6):** `src/utils/ics-export.ts` — `generateIcs(pi, zeremonie)` und `downloadIcs(pi, zeremonie)`. RFC 5545 konform: DTSTART/DTEND aus Schema 1.6 Felder (mit 1.5-Fallback via `effectiveZeremonieEnd`), `RRULE` für Serien (`FREQ=DAILY/WEEKLY/MONTHLY[;INTERVAL=N][;COUNT=N|UNTIL=YYYYMMDDTHHMMSS]`). Floating local time (kein TZ-Suffix). Outlook/Google/Apple zeigen Serien als einen Eintrag. Sonderzeichen-Escaping, Line-Folding bei >75 Oktette. Filename: `{PI-Name}_{Zeremonien-Typ}_{Datum}.ics`. Kein npm-Paket.
 - **Kalender-Marker (Schema 1.6):** `buildZeremonienIndex(pis)` in `src/utils/calendar-helpers.ts` baut `Map<dateStr, ZeremonieDateMatch[]>` einmal pro Render via `expandRecurrence()`. Mehrtägige Termine erscheinen unter jedem Tag im Bereich; Serien-Instanzen sind über `instance.total > 1` erkennbar (Symbol `◈` statt `◆`). `CalendarHeader.tsx` nutzt `useMemo` für Performance.
 - **Backup-Format-Version:** `BACKUP_FORMAT_VERSION` 1.5 → 1.6 (in `BackupRestoreSettings.tsx`). Akzeptiert `1.0`, `1.5`, `1.6` beim Import; ältere werden auto-migriert. `SavedProjectState.version` (App.tsx) auf `'1.6'`.
+
+#### UI-Reorganisation v2.0 (07.05.2026)
+- **Timeline-View:** `IterationEditor.tsx` zeigt Iterationen + Blocker-Wochen + Zeremonien chronologisch in EINER Tabelle. Drei Modals (Iter / Blocker / Zeremonie). `buildTimeline(pi)` baut `TimelineItem[]` mit Sortier-Schlüssel `<startDate>_<typeSuffix>` (Iter=`1`, Zeremonie=`3`, Blocker=`2`).
+- **`ZeremonienEditor.tsx`** ist nicht mehr aus PISettings importiert. Code-Logic (Form-State, Validierung, Modal) wurde in `IterationEditor.tsx` migriert. Datei bleibt im Repo als Legacy (kann später gelöscht werden).
+- **CSV-Import/Export entfernt** aus `PISettings.tsx`: `exportiereCsv`, `importiereCsv`, `teilePiInIterationen`, CSV-Buttons + `fileInputRef` weg. Excel-Workbook (`pi-xlsx.ts`) ist alleiniger Bulk-Pfad.
+- **«Alle PIs löschen»** verschoben aus `PISettings.tsx` (Toolbar-Button + Bestätigungs-Dialog) nach `AdminView.tsx` (neue Sektion zwischen «Alle Daten löschen» und «Admin-Code ändern»). `App.tsx` reicht `onClearAllPis={() => handlePisChange([])}` durch.
+- **Demo-Daten (`src/data/seed-demo.ts` NEU):** `DEMO_PIS` (PI26-2 mit 5 Iter, 2 Blocker, 3 Zeremonien inkl. wöchentlicher Serie) + `DEMO_FEIERTAGE` (5 CH-Feiertage 2026). `applyServerState` (App.tsx) erkennt komplett leeren State + `tenantId === 'default'` → setzt Demo-Daten lokal UND POSTet sie an `/api/tenants/default/state` (überlebt Browser-Refresh).
+- **`.gitignore`-Bugfix:** `safe-pi-capacity-planner/.gitignore` hatte `data/` (zu unspezifisch — ignorierte auch `src/data/`). Jetzt `/data/` (nur Wurzel-data/).
 
 #### Export/Import-Matrix für PI-Felder
 | Feld | JSON-Backup | CSV (PISettings) | Excel (.xlsx, Schema 1.6) | Notiz |
