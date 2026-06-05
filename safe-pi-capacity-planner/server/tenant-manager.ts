@@ -354,6 +354,19 @@ export function deleteTenant(tenantId: string): void {
   console.log(`[TenantManager] Tenant '${tenantId}' gelöscht.`);
 }
 
+export function resetTenantAdminCodeToDefault(tenantId: string): string {
+  const tenants = loadTenants();
+  const idx = tenants.findIndex(t => t.id === tenantId);
+  if (idx === -1) throw new Error(`Tenant '${tenantId}' nicht gefunden.`);
+  tenants[idx] = {
+    ...tenants[idx],
+    adminCodeHash: bcrypt.hashSync(DEFAULT_TENANT_ADMIN_CODE, 10),
+  };
+  saveTenants(tenants);
+  console.warn(`[TenantManager] RECOVERY: Admin-Code für Tenant '${tenantId}' auf DEFAULT_ADMIN_CODE zurückgesetzt.`);
+  return DEFAULT_TENANT_ADMIN_CODE;
+}
+
 export function updateTenant(tenantId: string, updates: { name?: string; newAdminCode?: string }): void {
   const tenants = loadTenants();
   const idx = tenants.findIndex(t => t.id === tenantId);

@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
+import { timingSafeEqual } from 'crypto';
 import {
   listTenants,
   getTenant,
@@ -11,6 +12,7 @@ import {
   applyTenantAllocationChange,
   applyTenantSettingsChange,
   resetTenantState,
+  resetTenantAdminCodeToDefault,
   updateTenant,
   deleteTenant,
 } from './server/tenant-manager';
@@ -218,6 +220,72 @@ app.patch('/api/tenants/:tenantId', (req, res) => {
   resetAttempts(tenantId);
   updateTenant(tenantId, { name, newAdminCode });
   res.json({ ok: true });
+});
+
+// --- Recovery-Endpoint ---
+// Setzt den Admin-Code eines Tenants auf DEFAULT_ADMIN_CODE zurück.
+// Nur aktiv wenn ADMIN_RECOVERY_TOKEN als Env-Var gesetzt ist (≥16 Zeichen).
+// Token sollte nach erfolgreichem Reset rotiert/entfernt werden.
+const recoveryAttempts = new Map<string, { count: number; lockedUntil?: number }>();
+
+function checkRecoveryRateLimit(ip: string): boolean {
+  const entry = recoveryAttempts.get(ip);
+  if (!entry) return true;
+  if (entry.lockedUntil && Date.now() < entry.lockedUntil) return false;
+  return true;
+}
+
+function recordRecoveryFail(ip: string): void {
+  const entry = recoveryAttempts.get(ip) ?? { count: 0 };
+  entry.count += 1;
+  if (entry.count >= 5) entry.lockedUntil = Date.now() + 300_000; // 5 Min
+  recoveryAttempts.set(ip, entry);
+}
+
+app.post('/api/recovery/reset-admin-code', (req, res) => {
+  const expected = process.env.ADMIN_RECOVERY_TOKEN;
+  if (!expected || expected.length < 16) {
+    res.status(404).json({ error: 'Recovery deaktiviert.' });
+    return;
+  }
+
+  const ip = (req.ip ?? req.socket.remoteAddress ?? 'unknown').toString();
+  if (!checkRecoveryRateLimit(ip)) {
+    res.status(429).json({ error: 'Zu viele Versuche. Bitte 5 Minuten warten.' });
+    return;
+  }
+
+  const { tenantId, recoveryToken } = req.body as { tenantId?: string; recoveryToken?: string };
+  if (!tenantId || !recoveryToken) {
+    res.status(400).json({ error: 'tenantId und recoveryToken sind erforderlich.' });
+    return;
+  }
+
+  // Timing-safe Token-Vergleich (gleiche Länge erzwingen)
+  const a = Buffer.from(recoveryToken);
+  const b = Buffer.from(expected);
+  const valid = a.length === b.length && timingSafeEqual(a, b);
+  if (!valid) {
+    recordRecoveryFail(ip);
+    console.warn(`[Recovery] Ungültiger Token von ${ip} für Tenant '${tenantId}'.`);
+    res.status(401).json({ error: 'Recovery-Token ungültig.' });
+    return;
+  }
+
+  if (!getTenant(tenantId)) {
+    res.status(404).json({ error: `Tenant '${tenantId}' nicht gefunden.` });
+    return;
+  }
+
+  try {
+    resetTenantAdminCodeToDefault(tenantId);
+    console.warn(`[Recovery] Admin-Code für Tenant '${tenantId}' zurückgesetzt (Token von ${ip}). Token jetzt rotieren!`);
+    recoveryAttempts.delete(ip);
+    res.json({ ok: true, note: 'Admin-Code auf DEFAULT_ADMIN_CODE zurückgesetzt. ADMIN_RECOVERY_TOKEN jetzt rotieren.' });
+  } catch (err) {
+    console.error('[Recovery] Reset fehlgeschlagen:', err);
+    res.status(500).json({ error: 'Reset fehlgeschlagen.' });
+  }
 });
 
 // --- Legacy-Endpoints (leiten auf Default-Tenant) ---

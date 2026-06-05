@@ -4,9 +4,10 @@
 
 ## Stand: 2026-06-05
 
-### Zuletzt erledigt (Session 05.06.2026 PM — Admin-Code auf 8 Ziffern)
+### Zuletzt erledigt (Session 05.06.2026 PM — Admin-Code auf 8 Ziffern + Recovery-Endpoint)
 - **Schema-Wechsel 6 → 8 Ziffern:** User wollte längeren Code. `AdminGate.tsx` jetzt 8 OTP-Felder (`CODE_LENGTH = 8`). `AdminView.tsx` Validierung und alle Inputs auf 8 Ziffern. `server/tenant-manager.ts` Default `00000815`.
 - **Lockout-Recovery 2:** PIN `08052026` (vor PM-Fix) hat erneut ausgesperrt. `data/tenants.json` gelöscht (Backup `.bak2`), Server-Restart, neuer Default `00000815` verifiziert via `PATCH /api/tenants/default` → HTTP 200.
+- **Recovery-Endpoint** `POST /api/recovery/reset-admin-code`: gated durch Env-Var `ADMIN_RECOVERY_TOKEN` (≥16 Zeichen), timing-safe Vergleich, Rate-Limit 5/5 Min/IP. Setzt Tenant-Hash auf bcrypt von `DEFAULT_ADMIN_CODE`. Löst Railway-Lockouts ohne Shell-Zugriff. 4 Tests grün (deaktiviert / falscher Token / fehlende Felder / Erfolg + nachträglicher Login).
 
 ### Zuletzt erledigt (Session 05.06.2026 — Admin-Code Hardening + Undo/Redo + Löschen-Konsolidierung)
 - **Lockout behoben:** Admin-PIN auf Demo-Train hatte 8 Ziffern (`08052026`), Login-Gate akzeptiert aber nur 6 → Aussperrung. `data/tenants.json` zurückgesetzt; Server hat Demo-Train neu mit `000815` initialisiert (`state_default.json` unverändert). Backup als `tenants.json.bak`.
