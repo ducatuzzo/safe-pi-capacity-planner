@@ -11,6 +11,8 @@ import {
 import type { DayMeta } from '../../utils/calendar-helpers';
 import CalendarHeader from './CalendarHeader';
 import CalendarCell from './CalendarCell';
+import { Undo2, Redo2 } from 'lucide-react';
+import type { PlanungUndoApi } from '../../hooks/usePlanungUndo';
 
 const BUCHUNGSTYPEN: AllocationType[] = [
   'FERIEN', 'ABWESEND', 'TEILZEIT', 'MILITAER', 'IPA', 'BETRIEB', 'BETRIEB_PIKETT', 'PIKETT',
@@ -29,11 +31,12 @@ interface CalendarGridProps {
   onClearAllocations: (employeeId?: string) => void;
   onRowLock?: (employeeId: string) => void;
   onRowUnlock?: (employeeId: string) => void;
+  undoApi?: PlanungUndoApi;
 }
 
 export default function CalendarGrid({
   employees, pis, feiertage, schulferien, blocker, filterState, farbConfig,
-  lockedRows, onAllocationChange, onClearAllocations, onRowLock, onRowUnlock,
+  lockedRows, onAllocationChange, onClearAllocations, onRowLock, onRowUnlock, undoApi,
 }: CalendarGridProps) {
 
   // Drag-Buchungs-State
@@ -73,6 +76,8 @@ export default function CalendarGrid({
   ) => {
     if (isNonWorkday(meta) && !isPikettType(selectedType)) return;
     if (lockedRows?.has(employeeId)) return; // Zeile durch anderen User gesperrt
+    // Snapshot vor jeder Drag-Aktion fuer Undo/Redo
+    undoApi?.pushSnapshot();
     isDragging.current = true;
     dragEmployeeId.current = employeeId;
     dragLastIndex.current = dayIndex;
@@ -175,6 +180,30 @@ export default function CalendarGrid({
         <span className="text-xs text-gray-400">
           {visibleDays.length} Tage · {visibleEmployees.length} Mitarbeiter
         </span>
+        {undoApi && (
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={undoApi.undo}
+              disabled={!undoApi.canUndo}
+              title="Rückgängig (Ctrl+Z) · max. 3 Schritte"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Undo2 size={14} />
+              Rückgängig
+            </button>
+            <button
+              type="button"
+              onClick={undoApi.redo}
+              disabled={!undoApi.canRedo}
+              title="Wiederherstellen (Ctrl+Y) · max. 3 Schritte"
+              className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Redo2 size={14} />
+              Wiederherstellen
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Kalender-Tabelle */}

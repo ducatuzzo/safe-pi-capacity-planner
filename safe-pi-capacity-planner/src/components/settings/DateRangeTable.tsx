@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Pencil, Trash2, Trash, Plus, Upload, Download } from 'lucide-react';
+import { Pencil, Trash2, Plus, Upload, Download } from 'lucide-react';
 import type { DateRangeDefinition } from '../../types';
 
 interface Props {
@@ -84,7 +84,6 @@ export default function DateRangeTable({ titel, eintraege, onChange, csvDateinam
   const [form, setForm] = useState<FormState>({ ...LEER });
   const [fehler, setFehler] = useState<string | null>(null);
   const [importFehler, setImportFehler] = useState<string | null>(null);
-  const [loescheAlleBestaetigung, setLoescheAlleBestaetigung] = useState(false);
   const [loescheIdBestaetigung, setLoescheIdBestaetigung] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -123,11 +122,6 @@ export default function DateRangeTable({ titel, eintraege, onChange, csvDateinam
   function loeschen(id: string) {
     onChange(eintraege.filter(e => e.id !== id));
     setLoescheIdBestaetigung(null);
-  }
-
-  function loescheAlle() {
-    onChange([]);
-    setLoescheAlleBestaetigung(false);
   }
 
   function exportiereCsv() {
@@ -212,15 +206,7 @@ export default function DateRangeTable({ titel, eintraege, onChange, csvDateinam
             CSV Import
           </button>
           <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={importiereCsv} />
-          {eintraege.length > 0 && (
-            <button
-              onClick={() => setLoescheAlleBestaetigung(true)}
-              className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-700 text-sm rounded hover:bg-red-100 transition-colors"
-            >
-              <Trash size={16} />
-              Alle löschen
-            </button>
-          )}
+          {/* «Alle löschen» wurde nach Admin → Gefährliche Aktionen verschoben */}
         </div>
       </div>
 
@@ -335,15 +321,6 @@ export default function DateRangeTable({ titel, eintraege, onChange, csvDateinam
         />
       )}
 
-      {/* Bestätigung: Alle löschen */}
-      {loescheAlleBestaetigung && (
-        <Bestaetigung
-          meldung={`Wirklich alle ${eintraege.length} Einträge löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
-          onBestaetigen={loescheAlle}
-          onAbbrechen={() => setLoescheAlleBestaetigung(false)}
-          gefaehrlich
-        />
-      )}
     </div>
   );
 }

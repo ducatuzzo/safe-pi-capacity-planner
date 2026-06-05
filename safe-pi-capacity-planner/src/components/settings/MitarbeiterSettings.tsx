@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { Pencil, Trash2, Trash, Plus, Upload, Download, Search, X, ChevronDown } from 'lucide-react';
+import { Pencil, Trash2, Plus, Upload, Download, Search, X, ChevronDown } from 'lucide-react';
 import type { Employee, EmployeeType } from '../../types';
 
 interface MitarbeiterFilter {
@@ -49,7 +49,6 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
   const [form, setForm] = useState<FormState>({ ...LEERER_MITARBEITER });
   const [fehler, setFehler] = useState<string | null>(null);
   const [importFehler, setImportFehler] = useState<string | null>(null);
-  const [loescheAlleBestaetigung, setLoescheAlleBestaetigung] = useState(false);
   const [loescheIdBestaetigung, setLoescheIdBestaetigung] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState<MitarbeiterFilter>(LEERER_FILTER);
@@ -155,11 +154,6 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
   function loeschen(id: string) {
     onChange(employees.filter(ma => ma.id !== id));
     setLoescheIdBestaetigung(null);
-  }
-
-  function loescheAlle() {
-    onChange([]);
-    setLoescheAlleBestaetigung(false);
   }
 
   function exportiereCsv() {
@@ -271,15 +265,7 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
             className="hidden"
             onChange={importiereCsv}
           />
-          {employees.length > 0 && (
-            <button
-              onClick={() => setLoescheAlleBestaetigung(true)}
-              className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-700 text-sm rounded hover:bg-red-100 transition-colors"
-            >
-              <Trash size={16} />
-              Alle löschen
-            </button>
-          )}
+          {/* «Alle löschen» wurde nach Admin → Gefährliche Aktionen verschoben */}
         </div>
       </div>
 
@@ -500,15 +486,6 @@ export default function MitarbeiterSettings({ employees, onChange }: Props) {
         />
       )}
 
-      {/* Bestätigung: Alle löschen */}
-      {loescheAlleBestaetigung && (
-        <Bestaetigung
-          meldung={`Wirklich alle ${employees.length} Mitarbeiter löschen? Diese Aktion kann nicht rückgängig gemacht werden.`}
-          onBestaetigen={loescheAlle}
-          onAbbrechen={() => setLoescheAlleBestaetigung(false)}
-          gefaehrlich
-        />
-      )}
     </div>
   );
 }

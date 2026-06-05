@@ -1,8 +1,15 @@
-# STATUS.md – Stand: 07.05.2026
+# STATUS.md – Stand: 05.06.2026
 
 > Feature-Nummerierung folgt PRD.md (verbindlich). Dieses Dokument trackt nur den Implementierungsstatus.
 
-## Stand: 2026-05-07
+## Stand: 2026-06-05
+
+### Zuletzt erledigt (Session 05.06.2026 — Admin-Code Hardening + Undo/Redo + Löschen-Konsolidierung)
+- **Lockout behoben:** Admin-PIN auf Demo-Train hatte 8 Ziffern (`08052026`), Login-Gate akzeptiert aber nur 6 → Aussperrung. `data/tenants.json` zurückgesetzt; Server hat Demo-Train neu mit `000815` initialisiert (`state_default.json` unverändert). Backup als `tenants.json.bak`.
+- **Bug-Fix Admin-Code-Wechsel:** `AdminView.tsx` validiert jetzt exakt 6 numerische Ziffern (statt «mindestens 6 Zeichen»). Inputs: `maxLength={6}`, `inputMode="numeric"`, `pattern="\d{6}"`, Input-Filter entfernt nicht-Ziffern. Gleicher Fix beim Anlegen neuer Trains. Aussperren physisch unmöglich.
+- **Undo/Redo in Planung (3 Schritte):** Neuer Hook `src/hooks/usePlanungUndo.ts`. Snapshot von `Employee[]` bei jedem Drag-MouseDown. Toolbar-Buttons «Rückgängig»/«Wiederherstellen» in `CalendarGrid.tsx`. Tastatur `Ctrl+Z`/`Ctrl+Y`/`Ctrl+Shift+Z`. Restore broadcastet via `emitSettingsChange('employees', …)`. Input-Felder werden ignoriert.
+- **«Alles löschen» konsolidiert:** Entfernt aus `MitarbeiterSettings.tsx` und `DateRangeTable.tsx` (Feiertage/Schulferien/Blocker). Globale Lösch-Aktionen nur noch im Admin → Gefährliche Aktionen. Verwaiste `Trash`-Imports bereinigt.
+- TypeScript-Check `tsc --noEmit` grün.
 
 ### Zuletzt erledigt (Session 07.05.2026 — UI-Reorganisation v2.0)
 - **PI-Planung Timeline-View:** Iterationen + Blocker + Zeremonien chronologisch in EINER Tabelle (statt zwei getrennten Bereichen). 3 Modals (Iter / Blocker / Zeremonie) im `IterationEditor.tsx` (komplett neu). `ZeremonienEditor.tsx` als Legacy nicht mehr von PISettings importiert.

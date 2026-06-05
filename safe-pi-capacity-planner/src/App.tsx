@@ -16,6 +16,7 @@ import { DEFAULT_FARB_CONFIG } from './constants';
 import { useSocket } from './hooks/useSocket';
 import type { SettingsChangeType } from './hooks/useSocket';
 import { useTenant } from './hooks/useTenant';
+import { usePlanungUndo } from './hooks/usePlanungUndo';
 import { migratePIs } from './utils/state-migration';
 
 const INITIAL_FILTER: FilterState = {
@@ -193,6 +194,19 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
       onLockChange: handleLockChange,
       onStateLoad: applyServerState,
     });
+
+  const employeesRef = useRef<Employee[]>(employees);
+  employeesRef.current = employees;
+
+  const applyEmployeesUndoRedo = useCallback((next: Employee[]) => {
+    setEmployees(next);
+    emitSettingsChange('employees', next);
+  }, [emitSettingsChange]);
+
+  const undoApi = usePlanungUndo({
+    getCurrent: () => employeesRef.current,
+    apply: applyEmployeesUndoRedo,
+  });
 
   const handleAllocationChange = useCallback(
     (employeeId: string, dateStr: string, type: AllocationType) => {
@@ -378,6 +392,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             onClearAllocations={handleClearAllocations}
             onRowLock={handleRowLock}
             onRowUnlock={handleRowUnlock}
+            undoApi={undoApi}
           />
         )}
         {activeTab === 'kapazitaet' && (

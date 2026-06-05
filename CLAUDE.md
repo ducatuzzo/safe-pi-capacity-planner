@@ -2,7 +2,7 @@
 
 > Dieses Dokument ist das primäre Referenz-Dokument für alle Claude Code Sessions in diesem Projekt.
 > Immer zuerst lesen. Ergänzend: AI.md (Architektur), STATUS.md (Stand), features/ (Specs).
-> Zuletzt synchronisiert: 07.05.2026 (UI-Reorganisation Timeline + Demo-Daten)
+> Zuletzt synchronisiert: 05.06.2026 (Lockout-Fix + Undo/Redo Planung + «Alles löschen» konsolidiert)
 
 ## Projekt-Kontext
 - **Name:** SAFe PI Capacity Planner (BIT)
@@ -105,6 +105,14 @@ npm run dev:server   # nur Express Backend
 - **«Alle PIs löschen»** wurde von `PISettings.tsx` zu `AdminView.tsx` verschoben (neue Sektion in «Gefährliche Aktionen»).
 - **Demo-Daten** für Demo-Train: `src/data/seed-demo.ts` (NEU) mit `DEMO_PIS` + `DEMO_FEIERTAGE`. `applyServerState` setzt Demo-Daten bei komplett leerem State des Demo-Trains UND pusht via POST `/api/tenants/default/state` an Server (überlebt Browser-Refresh).
 - **`.gitignore`-Bugfix:** `safe-pi-capacity-planner/.gitignore` `data/` → `/data/` (nicht src/data/ ignorieren).
+
+### Admin-Code Hardening + Undo/Redo + Löschen-Konsolidierung (05.06.2026)
+- **Admin-Code immer exakt 6 numerische Ziffern.** `AdminGate.tsx` ist OTP-Style mit 6 Feldern — wenn beim Code-Wechsel mehr als 6 Stellen erlaubt wären, sperrt sich der User aus. Daher:
+  - `AdminView.tsx` Code-Wechsel-Form: `maxLength={6}`, `inputMode="numeric"`, `pattern="\d{6}"`, Input-Filter `replace(/\D/g, '').slice(0, 6)`, Validierung `^\d{6}$`. Gleiche Regel beim Anlegen neuer Trains.
+  - Fehler-Text «Code muss genau 6 Ziffern haben» statt «mindestens 6 Zeichen».
+- **Lockout-Recovery:** `data/tenants.json` löschen → Server-Restart → `ensureDefaultTenant()` legt Demo-Train neu mit `DEFAULT_ADMIN_CODE` (Default `000815`) an. `state_default.json` bleibt erhalten (PIs/Mitarbeiter/Buchungen unverändert).
+- **Undo/Redo in Planung:** Hook `usePlanungUndo.ts` (NEU). Stack-Limit 3, Snapshot von `Employee[]` bei jedem Drag-MouseDown (vor Allocation-Change). Toolbar-Buttons «Rückgängig»/«Wiederherstellen» in `CalendarGrid.tsx` rechts. Tastatur: `Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`. Restore broadcastet via bestehendem `employees`-Settings-Event. Eingabefelder (input/textarea/contentEditable) werden ignoriert, damit Browser-Undo im Text erhalten bleibt.
+- **«Alles löschen» nur noch im Admin-Bereich.** Aus `MitarbeiterSettings.tsx` und `DateRangeTable.tsx` (Feiertage/Schulferien/Blocker) entfernt. Verwaiste `Trash`-Imports bereinigt. Einzeilige Lösch-Aktionen bleiben überall erhalten.
 
 ## Wichtige Konventionen
 - Sprache: Deutsch (UI + Kommentare), Englisch (Variablen/Typen)
