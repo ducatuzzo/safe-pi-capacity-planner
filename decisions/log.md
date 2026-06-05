@@ -242,3 +242,58 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 - Sofort-Push der Demo-Daten als Hintergrund-Effekt nach Mount (useEffect) — direkter POST in `applyServerState` ist atomarer
 - Eine Composite-Komponente `PiTimelineEditor` als komplett neue Datei — Refactor in `IterationEditor` ist weniger Disruption
 
+## 2026-06-05: Admin-Code 6 → 8 Ziffern + Recovery-Endpoint (in Prod verifiziert)
+**Entscheidung:** Admin-Code-Länge auf genau 8 Ziffern erhöht, Validierung an Gate-Länge gekoppelt, Lockout-Recovery-Endpoint gebaut und in Produktion zweimal genutzt (Demo-Train + PS-DCS).
+
+**Anlass:** User hat im Demo-Train einen 8-stelligen Code gesetzt, obwohl Gate + Validierung nur 6 Ziffern erlaubten — Backend speicherte den 8-stelligen Hash, Gate akzeptierte aber nur 6 Eingaben → vollständige Aussperrung. Im zweiten Schritt war der bestehende Train `PS-DCS` ebenfalls betroffen (alter 6-Ziffern-Hash, 8-stelliges Gate).
+
+**1. Schema-Wechsel 6 → 8 Ziffern (statt Constraint-Fix).**
+- `AdminGate.tsx` `CODE_LENGTH = 8`, 8 OTP-Felder (`w-9` statt `w-11`, damit 8 reinpassen)
+- `AdminView.tsx` Code-Wechsel- und Train-Anlege-Form: `maxLength={8}`, `pattern="\d{8}"`, Input-Filter `replace(/\D/g, '').slice(0, 8)`, Regex `/^\d{8}$/`, Fehler-Text «Code muss genau 8 Ziffern haben»
+- `server/tenant-manager.ts` `DEFAULT_TENANT_ADMIN_CODE = '00000815'` (war `'000815'`)
+- Begründung: User wollte ausdrücklich längeren Code — Constraint auf 6 wäre Sicherheits-Downgrade gegen den User-Wunsch
+- Lehre: Validierung MUSS an Gate-Länge gekoppelt werden, sonst entsteht der gleiche Aussperr-Bug bei jeder Längen-Änderung wieder
+
+**2. Recovery-Endpoint `POST /api/recovery/reset-admin-code`.**
+- Nur aktiv wenn Env-Var `ADMIN_RECOVERY_TOKEN` (≥16 Zeichen) gesetzt — sonst HTTP 404 «Recovery deaktiviert» (sicherer Default)
+- Body `{ tenantId, recoveryToken }` → setzt Admin-Code-Hash via bcrypt von `DEFAULT_ADMIN_CODE` (`00000815`) zurück
+- Timing-safe Token-Vergleich via `crypto.timingSafeEqual` mit gleicher Buffer-Länge
+- In-Memory Rate-Limit: 5 Versuche / 5 Min pro IP
+- Server-Log mahnt nach Erfolg explizit zur Token-Rotation
+- Begründung: Railway-Lockout lässt sich nicht via Code-Deploy lösen (persistenter Disk hält alten Hash). Lokal-Workflow «tenants.json löschen + Restart» geht in Prod nicht ohne Shell-Zugang.
+
+**3. Workflow Railway-Lockout (zweimal in Prod genutzt 05.06.2026):**
+1. Token generieren: `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` (48 Hex-Zeichen)
+2. Railway → Variables → `ADMIN_RECOVERY_TOKEN` setzen → Service redeployt automatisch
+3. Auf Health warten (`GET /api/health` → 200), Endpoint-Aktivität prüfen (POST mit `{}` → 400 «tenantId und recoveryToken sind erforderlich.» statt 404)
+4. `curl -X POST .../api/recovery/reset-admin-code -d '{"tenantId":"...","recoveryToken":"..."}'`
+5. Login mit `00000815` → sofort neuen 8-Ziffern-Code setzen
+6. **Railway → Variables: `ADMIN_RECOVERY_TOKEN` löschen** → redeployen → Verifikation: POST mit `{}` → 404 «Recovery deaktiviert»
+- Tatsächliche Railway-Backend-URL: `https://safe-pi-capacity-planner-production.up.railway.app` (verifiziert via Prod-JS-Bundle-Grep — alter Platzhalter `safe-pi-planner-backend.railway.app` aus AI.md/pflichtenheft/bug-04/.env.example entfernt)
+- Tenant-IDs sind lowercase (`default`, `ps-dcs`), abrufbar via `GET /api/tenants`
+
+**4. Undo/Redo in Planung + «Alles löschen» nur noch im Admin.**
+- `usePlanungUndo.ts` (NEU): Stack-Limit 3, Snapshot vor jedem Drag-MouseDown, Ctrl+Z/Y/Shift+Z, ignoriert input/textarea/contentEditable (Browser-Undo bleibt erhalten). Restore broadcastet via bestehendem `employees`-Settings-Event — keine neuen Events nötig.
+- «Alle löschen»-Buttons aus `MitarbeiterSettings.tsx` und `DateRangeTable.tsx` (Feiertage/Schulferien/Blocker) entfernt; Einzeilige Lösch-Aktionen bleiben. Verwaiste `Trash`-Imports bereinigt.
+
+**Geänderte Dateien:**
+- `safe-pi-capacity-planner/src/components/admin/AdminGate.tsx` (6 → 8 Felder)
+- `safe-pi-capacity-planner/src/components/admin/AdminView.tsx` (Validierung 6 → 8)
+- `safe-pi-capacity-planner/server.ts` (Recovery-Endpoint + Rate-Limit + timing-safe Vergleich)
+- `safe-pi-capacity-planner/server/tenant-manager.ts` (`DEFAULT_TENANT_ADMIN_CODE`, `resetTenantAdminCodeToDefault`)
+- `safe-pi-capacity-planner/src/hooks/usePlanungUndo.ts` (NEU)
+- `safe-pi-capacity-planner/src/App.tsx` (`employeesRef` + `applyEmployeesUndoRedo` + Wire-Up)
+- `safe-pi-capacity-planner/src/components/calendar/CalendarGrid.tsx` (Toolbar Undo/Redo + `pushSnapshot` in `handleCellMouseDown`)
+- `safe-pi-capacity-planner/src/components/settings/MitarbeiterSettings.tsx` (Bulk-Delete weg)
+- `safe-pi-capacity-planner/src/components/settings/DateRangeTable.tsx` (Bulk-Delete weg)
+- `AI.md`, `CLAUDE.md`, `docs/pflichtenheft_v1.0.md`, `features/bug-04-persistenter-state.md`, `.env.example` (Railway-URL + Default-Code-Update)
+
+**Alternativ geprüft & verworfen:**
+- Constraint auf 6 Ziffern statt Schema-Wechsel — gegen User-Wunsch
+- Recovery via Shell auf Railway — User hat keinen Shell-Zugang im Plan
+- Recovery via Web-UI ohne Token — zu offen für DoS / Admin-Übernahme
+- Recovery-Token in `tenants.json` statt Env-Var — Backup würde Token enthalten, persistenter Disk-Snapshot zu gefährlich
+- Rate-Limit persistent in Datei — In-Memory reicht (Restart löscht Counter, aber Token-Rotation passiert sowieso nach Use)
+- Undo/Redo via Redux/Zustand — bestehende `emitSettingsChange('employees', ...)` reicht, kein neuer State-Layer
+- Persistente Undo-History über Reload — Spec: nur 3 Schritte in der laufenden Session, keine Komplexität von Snapshots im Server-State
+
