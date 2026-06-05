@@ -16,7 +16,7 @@ Der **SAFe PI Capacity Planner** ist eine Fullstack-Webanwendung zur Kapazitäts
 |-------------|------|
 | Zielbenutzer | IT-Manager, Scrum Master, Chapter Leads (BIT) |
 | Frontend (Produktion) | https://safe-pi-capacity-planner.vercel.app |
-| Backend (Produktion) | https://safe-pi-planner-backend.railway.app |
+| Backend (Produktion) | https://safe-pi-capacity-planner-production.up.railway.app |
 | GitHub-Repo | https://github.com/ducatuzzo/safe-pi-capacity-planner |
 | Branch | `master` (Auto-Deploy auf Vercel) |
 
@@ -145,7 +145,7 @@ VITE_BACKEND_URL=
 
 | Variable | Wert | Beschreibung |
 |----------|------|-------------|
-| `VITE_BACKEND_URL` | `https://safe-pi-planner-backend.railway.app` | Railway-Backend-URL für direkten Socket.io-Connect |
+| `VITE_BACKEND_URL` | `https://safe-pi-capacity-planner-production.up.railway.app` | Railway-Backend-URL für direkten Socket.io-Connect |
 
 Setzen unter: Vercel → Projekt → Settings → Environment Variables
 

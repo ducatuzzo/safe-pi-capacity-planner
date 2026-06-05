@@ -1,6 +1,6 @@
 # AI.md – Technischer Kompass: SAFe PI Capacity Planner
 
-> Zuletzt synchronisiert: 07.05.2026 (UI-Reorganisation Timeline + Demo-Daten)
+> Zuletzt synchronisiert: 05.06.2026 (Recovery-Endpoint + tatsaechliche Railway-URL)
 > Führend für: Architektur, Datenmodell, Konventionen.
 > Feature-Liste: siehe PRD.md. Status: siehe STATUS.md.
 
@@ -9,7 +9,7 @@
 - **Beschreibung:** Fullstack-Webanwendung zur Kapazitätsplanung für SAFe PI Planning in der Bundesverwaltung. Berechnet verfügbare Story Points pro Team und Iteration, berücksichtigt Absenzen, Feiertage, Schulferien und Betriebsaufgaben. Corporate Design Bund.
 - **Zielbenutzer:** IT-Manager / Scrum Master / Chapter Leads bei BIT, Schweizer Bundesverwaltung
 - **Frontend:** https://safe-pi-capacity-planner.vercel.app (Vercel, Auto-Deploy via GitHub master)
-- **Backend:** https://safe-pi-planner-backend.railway.app (Railway, Node.js + Socket.io, Platzhalter — nach Railway-Setup ersetzen)
+- **Backend:** https://safe-pi-capacity-planner-production.up.railway.app (Railway, Node.js + Socket.io; verifiziert 05.06.2026 via Prod-Bundle)
 - **Vercel Root Directory:** `safe-pi-capacity-planner` (Unterordner! nicht `./` — kritisch für Build)
 - **Vercel Build Command:** `npx vite build` (vite in devDependencies, daher npx)
 - **Lokal:** `npm run dev` im Verzeichnis `safe-pi-capacity-planner/`

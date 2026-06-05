@@ -5,7 +5,7 @@
 
 ## Ergebnis
 - JSON-File-Persistenz in `server/state-manager.ts` implementiert
-- Railway-Deployment für Backend eingerichtet (Platzhalter-URL `https://safe-pi-planner-backend.railway.app` in AI.md)
+- Railway-Deployment für Backend eingerichtet (URL `https://safe-pi-capacity-planner-production.up.railway.app`, verifiziert 05.06.2026)
 - `VITE_BACKEND_URL` Environment Variable in Vercel gesetzt
 - `data/state.json` in `.gitignore` eingetragen
 - CORS erweitert für Vercel-Domain
