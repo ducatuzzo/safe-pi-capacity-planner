@@ -4,6 +4,10 @@
 
 ## Stand: 2026-06-05
 
+### Zuletzt erledigt (Session 05.06.2026 PM — Admin-Code auf 8 Ziffern)
+- **Schema-Wechsel 6 → 8 Ziffern:** User wollte längeren Code. `AdminGate.tsx` jetzt 8 OTP-Felder (`CODE_LENGTH = 8`). `AdminView.tsx` Validierung und alle Inputs auf 8 Ziffern. `server/tenant-manager.ts` Default `00000815`.
+- **Lockout-Recovery 2:** PIN `08052026` (vor PM-Fix) hat erneut ausgesperrt. `data/tenants.json` gelöscht (Backup `.bak2`), Server-Restart, neuer Default `00000815` verifiziert via `PATCH /api/tenants/default` → HTTP 200.
+
 ### Zuletzt erledigt (Session 05.06.2026 — Admin-Code Hardening + Undo/Redo + Löschen-Konsolidierung)
 - **Lockout behoben:** Admin-PIN auf Demo-Train hatte 8 Ziffern (`08052026`), Login-Gate akzeptiert aber nur 6 → Aussperrung. `data/tenants.json` zurückgesetzt; Server hat Demo-Train neu mit `000815` initialisiert (`state_default.json` unverändert). Backup als `tenants.json.bak`.
 - **Bug-Fix Admin-Code-Wechsel:** `AdminView.tsx` validiert jetzt exakt 6 numerische Ziffern (statt «mindestens 6 Zeichen»). Inputs: `maxLength={6}`, `inputMode="numeric"`, `pattern="\d{6}"`, Input-Filter entfernt nicht-Ziffern. Gleicher Fix beim Anlegen neuer Trains. Aussperren physisch unmöglich.

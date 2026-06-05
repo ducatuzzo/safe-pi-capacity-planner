@@ -2,7 +2,7 @@
 
 > Dieses Dokument ist das primäre Referenz-Dokument für alle Claude Code Sessions in diesem Projekt.
 > Immer zuerst lesen. Ergänzend: AI.md (Architektur), STATUS.md (Stand), features/ (Specs).
-> Zuletzt synchronisiert: 05.06.2026 (Lockout-Fix + Undo/Redo Planung + «Alles löschen» konsolidiert)
+> Zuletzt synchronisiert: 05.06.2026 (Admin-Code auf 8 Ziffern + Default `00000815`)
 
 ## Projekt-Kontext
 - **Name:** SAFe PI Capacity Planner (BIT)
@@ -31,7 +31,7 @@ Bei Widersprüchen gilt die höher nummerierte Quelle.
 | `VITE_BACKEND_URL` | Vercel → Environment Variables | Railway-Backend-URL (z.B. `https://xxx.railway.app`) |
 | `VITE_BACKEND_URL` | lokal `.env` | leer lassen (Vite-Proxy übernimmt) |
 | `PORT` | Railway → automatisch | wird von Railway gesetzt |
-| `DEFAULT_ADMIN_CODE` | Railway → Env-Var | Demo-Train Initial-Code `000815` |
+| `DEFAULT_ADMIN_CODE` | Railway → Env-Var | Demo-Train Initial-Code `00000815` (8 Ziffern) |
 
 - Lokal: `VITE_BACKEND_URL` nicht setzen → `window.location.origin` → Vite-Proxy → `localhost:3001`
 - Produktion: `VITE_BACKEND_URL=https://xxx.railway.app` in Vercel setzen → direkter Socket.io-Connect
@@ -107,10 +107,10 @@ npm run dev:server   # nur Express Backend
 - **`.gitignore`-Bugfix:** `safe-pi-capacity-planner/.gitignore` `data/` → `/data/` (nicht src/data/ ignorieren).
 
 ### Admin-Code Hardening + Undo/Redo + Löschen-Konsolidierung (05.06.2026)
-- **Admin-Code immer exakt 6 numerische Ziffern.** `AdminGate.tsx` ist OTP-Style mit 6 Feldern — wenn beim Code-Wechsel mehr als 6 Stellen erlaubt wären, sperrt sich der User aus. Daher:
-  - `AdminView.tsx` Code-Wechsel-Form: `maxLength={6}`, `inputMode="numeric"`, `pattern="\d{6}"`, Input-Filter `replace(/\D/g, '').slice(0, 6)`, Validierung `^\d{6}$`. Gleiche Regel beim Anlegen neuer Trains.
-  - Fehler-Text «Code muss genau 6 Ziffern haben» statt «mindestens 6 Zeichen».
-- **Lockout-Recovery:** `data/tenants.json` löschen → Server-Restart → `ensureDefaultTenant()` legt Demo-Train neu mit `DEFAULT_ADMIN_CODE` (Default `000815`) an. `state_default.json` bleibt erhalten (PIs/Mitarbeiter/Buchungen unverändert).
+- **Admin-Code immer exakt 8 numerische Ziffern** (Schema-Wechsel von 6 → 8 am 05.06.2026, Nachmittag). `AdminGate.tsx` ist OTP-Style mit 8 Feldern (`CODE_LENGTH = 8`). Begründung: 6 Ziffern war zu kurz, User wollte längeren Code; Validierung muss bei Code-Wechsel zwingend an Gate-Länge gekoppelt sein, sonst Aussperrung.
+  - `AdminView.tsx` Code-Wechsel-Form und Train-Anlegen: `maxLength={8}`, `inputMode="numeric"`, `pattern="\d{8}"`, Input-Filter `replace(/\D/g, '').slice(0, 8)`, Validierung `^\d{8}$`.
+  - Fehler-Text «Code muss genau 8 Ziffern haben».
+- **Lockout-Recovery (lokal):** `data/tenants.json` löschen → Server-Restart → `ensureDefaultTenant()` legt Demo-Train neu mit `DEFAULT_ADMIN_CODE` (Default jetzt `00000815`) an. `state_default.json` bleibt erhalten (PIs/Mitarbeiter/Buchungen unverändert). **Auf Railway:** zusätzlich `DEFAULT_ADMIN_CODE=00000815` als Env-Var setzen UND `/app/data/tenants.json` via Railway-Shell löschen, sonst greift der alte Hash weiter.
 - **Undo/Redo in Planung:** Hook `usePlanungUndo.ts` (NEU). Stack-Limit 3, Snapshot von `Employee[]` bei jedem Drag-MouseDown (vor Allocation-Change). Toolbar-Buttons «Rückgängig»/«Wiederherstellen» in `CalendarGrid.tsx` rechts. Tastatur: `Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`. Restore broadcastet via bestehendem `employees`-Settings-Event. Eingabefelder (input/textarea/contentEditable) werden ignoriert, damit Browser-Undo im Text erhalten bleibt.
 - **«Alles löschen» nur noch im Admin-Bereich.** Aus `MitarbeiterSettings.tsx` und `DateRangeTable.tsx` (Feiertage/Schulferien/Blocker) entfernt. Verwaiste `Trash`-Imports bereinigt. Einzeilige Lösch-Aktionen bleiben überall erhalten.
 

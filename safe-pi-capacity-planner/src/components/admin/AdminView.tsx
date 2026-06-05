@@ -199,7 +199,7 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid, o
     if (newCode1 !== newCode2) { setCodeChangeError('Die neuen Codes stimmen nicht überein.'); return; }
     // Login-UI (AdminGate) erlaubt genau 6 numerische Stellen — neue Codes daran binden,
     // sonst sperrt sich der Nutzer aus.
-    if (!/^\d{6}$/.test(newCode1)) { setCodeChangeError('Code muss genau 6 Ziffern haben.'); return; }
+    if (!/^\d{8}$/.test(newCode1)) { setCodeChangeError('Code muss genau 8 Ziffern haben.'); return; }
     setPendingNewCode(newCode1);
     setShowCodeChangeGate(true);
   }
@@ -255,7 +255,7 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid, o
     if (!createId.trim() || !createName.trim() || !createAdminCode.trim()) {
       setCreateError('Alle Felder sind erforderlich.'); return;
     }
-    if (!/^\d{6}$/.test(createAdminCode)) { setCreateError('Admin-Code muss genau 6 Ziffern haben.'); return; }
+    if (!/^\d{8}$/.test(createAdminCode)) { setCreateError('Admin-Code muss genau 8 Ziffern haben.'); return; }
     setCreating(true);
     try {
       const res = await fetch(`${backendUrl}/api/tenants`, {
@@ -367,11 +367,11 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid, o
             <input
               type="password"
               inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
-              placeholder="Admin-Code (6 Ziffern)"
+              pattern="\d{8}"
+              maxLength={8}
+              placeholder="Admin-Code (8 Ziffern)"
               value={createAdminCode}
-              onChange={e => setCreateAdminCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={e => setCreateAdminCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
               className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bund-blau"
             />
             {createError && <p className="text-red-600 text-xs">{createError}</p>}
@@ -598,21 +598,21 @@ function AdminViewContent({ tenantId, tenantName, verifiedCode, onCodeInvalid, o
               <input
                 type="password"
                 inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                placeholder="Neuer Code (6 Ziffern)"
+                pattern="\d{8}"
+                maxLength={8}
+                placeholder="Neuer Code (8 Ziffern)"
                 value={newCode1}
-                onChange={e => setNewCode1(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={e => setNewCode1(e.target.value.replace(/\D/g, '').slice(0, 8))}
                 className="border border-red-300 rounded px-3 py-1.5 text-sm w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
               />
               <input
                 type="password"
                 inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
+                pattern="\d{8}"
+                maxLength={8}
                 placeholder="Neuen Code bestätigen"
                 value={newCode2}
-                onChange={e => setNewCode2(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={e => setNewCode2(e.target.value.replace(/\D/g, '').slice(0, 8))}
                 className="border border-red-300 rounded px-3 py-1.5 text-sm w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
               />
               {codeChangeError && <p className="text-red-700 text-xs">{codeChangeError}</p>}

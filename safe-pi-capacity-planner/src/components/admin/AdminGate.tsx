@@ -1,4 +1,4 @@
-// AdminGate: OTP-Style Modal für Admin-Code-Eingabe (6 Felder)
+// AdminGate: OTP-Style Modal für Admin-Code-Eingabe (8 Felder)
 // Merkt sich den Code für 15 Minuten in sessionStorage
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -17,8 +17,11 @@ interface AdminGateProps {
   embedded?: boolean; // true = kein Modal-Overlay, inline rendern
 }
 
+const CODE_LENGTH = 8;
+const EMPTY_DIGITS = Array<string>(CODE_LENGTH).fill('');
+
 export default function AdminGate({ onSubmit, onCancel, embedded = false }: AdminGateProps) {
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [digits, setDigits] = useState<string[]>(EMPTY_DIGITS);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -44,7 +47,7 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
         storeAdminCode(code);
       } else {
         setError(result.error ?? 'Falscher Code.');
-        setDigits(['', '', '', '', '', '']);
+        setDigits([...EMPTY_DIGITS]);
         setTimeout(() => inputRefs.current[0]?.focus(), 50);
       }
     } finally {
@@ -58,7 +61,7 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
     newDigits[index] = char;
     setDigits(newDigits);
 
-    if (char && index < 5) {
+    if (char && index < CODE_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   }
@@ -77,7 +80,7 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
       }
     } else if (e.key === 'Enter') {
       const code = digits.join('');
-      if (code.length === 6) void handleSubmitCode(code);
+      if (code.length === CODE_LENGTH) void handleSubmitCode(code);
     } else if (e.key === 'Escape') {
       onCancel();
     }
@@ -85,19 +88,19 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
 
   function handlePaste(e: React.ClipboardEvent) {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').slice(0, 6);
+    const pasted = e.clipboardData.getData('text').slice(0, CODE_LENGTH);
     const newDigits = [...digits];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < CODE_LENGTH; i++) {
       newDigits[i] = pasted[i] ?? '';
     }
     setDigits(newDigits);
-    const lastFilled = Math.min(pasted.length, 5);
+    const lastFilled = Math.min(pasted.length, CODE_LENGTH - 1);
     inputRefs.current[lastFilled]?.focus();
   }
 
   function handleConfirm() {
     const code = digits.join('');
-    if (code.length === 6) void handleSubmitCode(code);
+    if (code.length === CODE_LENGTH) void handleSubmitCode(code);
   }
 
   const code = digits.join('');
@@ -105,11 +108,11 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
   const content = (
     <>
       <p className="text-sm text-gray-600 mb-5">
-        6-stelligen Admin-Code eingeben
+        8-stelligen Admin-Code eingeben
       </p>
 
-      {/* 6 OTP-Felder */}
-      <div className="flex gap-2 justify-center mb-4" onPaste={handlePaste}>
+      {/* 8 OTP-Felder */}
+      <div className="flex gap-1.5 justify-center mb-4" onPaste={handlePaste}>
         {digits.map((digit, i) => (
           <input
             key={i}
@@ -121,7 +124,7 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
             onKeyDown={e => handleKeyDown(i, e)}
             disabled={submitting}
             className={[
-              'w-11 h-12 text-center text-lg font-bold border-2 rounded-md',
+              'w-9 h-12 text-center text-lg font-bold border-2 rounded-md',
               'focus:outline-none focus:ring-2 focus:ring-bund-blau focus:border-bund-blau',
               'disabled:opacity-50',
               digit ? 'border-bund-blau' : 'border-gray-300',
@@ -146,7 +149,7 @@ export default function AdminGate({ onSubmit, onCancel, embedded = false }: Admi
         </button>
         <button
           onClick={handleConfirm}
-          disabled={submitting || code.length < 6}
+          disabled={submitting || code.length < CODE_LENGTH}
           className="flex-1 bg-bund-blau text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-bund-blau/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? 'Prüfen...' : 'Bestätigen'}

@@ -17,7 +17,8 @@ const DATA_DIR = IS_RAILWAY
 console.log(`[TenantManager] DATA_DIR: ${DATA_DIR} (Railway: ${IS_RAILWAY})`);
 
 // Initial-Passwort für Demo-Train (konfigurierbar via Env-Var DEFAULT_ADMIN_CODE)
-const DEFAULT_TENANT_ADMIN_CODE = process.env.DEFAULT_ADMIN_CODE ?? '000815';
+// Schema: 8 numerische Ziffern (siehe AdminGate.tsx)
+const DEFAULT_TENANT_ADMIN_CODE = process.env.DEFAULT_ADMIN_CODE ?? '00000815';
 
 // Tenant-ID-Validierung
 const TENANT_ID_REGEX = /^[a-z0-9-]{2,20}$/;
