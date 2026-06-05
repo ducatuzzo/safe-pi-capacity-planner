@@ -4,6 +4,14 @@
 
 ## Stand: 2026-06-05
 
+### Zuletzt erledigt (Session 05.06.2026 Abend — Prod-Recovery Demo-Train + PS-DCS, Doku-Sync)
+- **Recovery-Workflow zweimal in Prod genutzt** (Railway): Demo-Train (Initial-Lockout) und PS-DCS (existierender 6-Ziffern-Hash gegen 8-Ziffern-Gate). Beide Resets erfolgreich via `POST /api/recovery/reset-admin-code`, neuer Code danach manuell gesetzt.
+- **PS-DCS-Train anschliessend gelöscht** durch User (nicht mehr benötigt). Tenants jetzt: nur noch `default`.
+- **Token-Hygiene verifiziert:** `ADMIN_RECOVERY_TOKEN` nach beiden Resets aus Railway entfernt + Service redeployed. Endpoint zurück auf HTTP 404 «Recovery deaktiviert». Beide verwendeten Tokens damit wertlos.
+- **Railway-URL korrigiert:** tatsächliche Backend-URL ist `https://safe-pi-capacity-planner-production.up.railway.app` (verifiziert via Prod-JS-Bundle-Grep). Alter Platzhalter `safe-pi-planner-backend.railway.app` aus 4 Files entfernt: `AI.md`, `docs/pflichtenheft_v1.0.md`, `features/bug-04-persistenter-state.md`, `.env.example`. `.env.example` zeigt jetzt auch Default `00000815` statt `000815`.
+- **Decisions-Log aktualisiert:** neuer Eintrag «2026-06-05: Admin-Code 6 → 8 Ziffern + Recovery-Endpoint (in Prod verifiziert)» mit Workflow-Doku, Tenant-IDs (lowercase: `default`, `ps-dcs`), Health-Check-Vorgehen.
+- Commits gepushed: `519d022` (Doku-URL-Sync) + `abbcd37` (Decisions-Log).
+
 ### Zuletzt erledigt (Session 05.06.2026 PM — Admin-Code auf 8 Ziffern + Recovery-Endpoint)
 - **Schema-Wechsel 6 → 8 Ziffern:** User wollte längeren Code. `AdminGate.tsx` jetzt 8 OTP-Felder (`CODE_LENGTH = 8`). `AdminView.tsx` Validierung und alle Inputs auf 8 Ziffern. `server/tenant-manager.ts` Default `00000815`.
 - **Lockout-Recovery 2:** PIN `08052026` (vor PM-Fix) hat erneut ausgesperrt. `data/tenants.json` gelöscht (Backup `.bak2`), Server-Restart, neuer Default `00000815` verifiziert via `PATCH /api/tenants/default` → HTTP 200.
@@ -56,7 +64,7 @@
 ## Projektstatus
 ✅ Features 01–21 abgeschlossen, Build grün, **auf Vercel deployed** (Commit `1ee0095`).
 ✅ Feature 23 (Swiss DS CSS Alignment / BIT Skin) implementiert, Build grün, ⏳ deploy ausstehend.
-- Mandatenfähigkeit aktiv (Demo-Train, Admin-Code 000815).
+- Mandatenfähigkeit aktiv (Demo-Train, Admin-Code-Default `00000815`, 8 Ziffern).
 
 ## Abgeschlossene Features
 
