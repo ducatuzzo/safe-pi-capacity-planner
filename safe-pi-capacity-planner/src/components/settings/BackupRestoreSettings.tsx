@@ -4,9 +4,9 @@ import type { BackupFile, FullAppState } from '../../types';
 import { migrateStateToSchema16 } from '../../utils/state-migration';
 
 const APP_VERSION = '1.0.0';
-const BACKUP_FORMAT_VERSION = '1.6';
-// Akzeptierte Versionen beim Restore (alle werden auf 1.6 migriert)
-const SUPPORTED_BACKUP_VERSIONS = new Set(['1.0', '1.5', '1.6']);
+const BACKUP_FORMAT_VERSION = '1.7';
+// Akzeptierte Versionen beim Restore (alle werden auf 1.7 migriert)
+const SUPPORTED_BACKUP_VERSIONS = new Set(['1.0', '1.5', '1.6', '1.7']);
 
 interface Props {
   appState: FullAppState;
@@ -207,6 +207,9 @@ function validiereDatei(parsed: unknown): string | null {
   }
   if (data.piTeamTargets !== undefined && !Array.isArray(data.piTeamTargets)) {
     return 'Das Backup enthält ein ungültiges piTeamTargets-Feld.';
+  }
+  if (data.customAllocationTypes !== undefined && !Array.isArray(data.customAllocationTypes)) {
+    return 'Das Backup enthält ein ungültiges customAllocationTypes-Feld.';
   }
 
   return null;

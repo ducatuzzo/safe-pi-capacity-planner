@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, unlin
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
-import type { SavedProjectState, Employee, AllocationType, AppData } from '../src/types';
+import type { SavedProjectState, Employee, AppData } from '../src/types';
 import { SEED_EMPLOYEES, SEED_PIS, SEED_FEIERTAGE, SEED_SCHULFERIEN, SEED_BLOCKER } from '../src/data/seed';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -114,6 +114,7 @@ function loadStateFromFile(tenantId: string): SavedProjectState {
     parsed.appData.teamConfigs ??= [];
     parsed.appData.piTeamTargets ??= [];
     parsed.appData.teamZielwerte ??= [];
+    parsed.appData.customAllocationTypes ??= [];
 
     // Migration: alte teamZielwerte → teamConfigs (einmalig)
     if (parsed.appData.teamConfigs.length === 0 && parsed.appData.teamZielwerte.length > 0) {
@@ -267,7 +268,7 @@ export function applyTenantAllocationChange(
   tenantId: string,
   employeeId: string,
   dateStr: string,
-  type: AllocationType,
+  type: string,
 ): void {
   const current = getTenantState(tenantId);
   const updated: SavedProjectState = {
@@ -316,6 +317,9 @@ export function applyTenantSettingsChange(tenantId: string, changeType: string, 
       break;
     case 'piTeamTargets':
       appData.piTeamTargets = data as AppData['piTeamTargets'];
+      break;
+    case 'customAllocationTypes':
+      appData.customAllocationTypes = data as AppData['customAllocationTypes'];
       break;
     case 'teamZielwerte':
       // deprecated – wird ignoriert

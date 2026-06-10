@@ -1,7 +1,7 @@
 // Hauptkomponente: Horizontaler Kalender-Grid mit Mitarbeitern als Zeilen
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, AppData, AllocationType, FilterState, FarbConfig } from '../../types';
+import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, AppData, FilterState, FarbConfig, CustomAllocationType } from '../../types';
 import { BUCHUNGSTYP_LABEL } from '../../constants';
 import {
   getDaysInRange,
@@ -9,12 +9,16 @@ import {
   toDateStr,
 } from '../../utils/calendar-helpers';
 import type { DayMeta } from '../../utils/calendar-helpers';
+import { isPikettType as isPikettTypeHelper } from '../../utils/allocation-helpers';
+import { parseClipboardTSV } from '../../utils/clipboard-parser';
+import type { ClipboardParseResult } from '../../utils/clipboard-parser';
+import type { GlobalUndoApi } from '../../hooks/useGlobalUndo';
 import CalendarHeader from './CalendarHeader';
 import CalendarCell from './CalendarCell';
+import ClipboardImportDialog from './ClipboardImportDialog';
 import { Undo2, Redo2 } from 'lucide-react';
-import type { PlanungUndoApi } from '../../hooks/usePlanungUndo';
 
-const BUCHUNGSTYPEN: AllocationType[] = [
+const BUILTIN_BUCHUNGSTYPEN: string[] = [
   'FERIEN', 'ABWESEND', 'TEILZEIT', 'MILITAER', 'IPA', 'BETRIEB', 'BETRIEB_PIKETT', 'PIKETT',
 ];
 
@@ -26,25 +30,29 @@ interface CalendarGridProps {
   blocker: Blocker[];
   filterState: FilterState;
   farbConfig: FarbConfig;
-  lockedRows?: Map<string, string>; // employeeId → lockerName (gesperrt durch anderen User)
-  onAllocationChange: (employeeId: string, dateStr: string, type: AllocationType) => void;
+  customTypes: CustomAllocationType[];
+  lockedRows?: Map<string, string>;
+  onAllocationChange: (employeeId: string, dateStr: string, type: string) => void;
   onClearAllocations: (employeeId?: string) => void;
+  onBulkAllocationChange?: (changes: { employeeId: string; dateStr: string; type: string }[]) => void;
   onRowLock?: (employeeId: string) => void;
   onRowUnlock?: (employeeId: string) => void;
-  undoApi?: PlanungUndoApi;
+  undoApi?: GlobalUndoApi;
 }
 
 export default function CalendarGrid({
-  employees, pis, feiertage, schulferien, blocker, filterState, farbConfig,
-  lockedRows, onAllocationChange, onClearAllocations, onRowLock, onRowUnlock, undoApi,
+  employees, pis, feiertage, schulferien, blocker, filterState, farbConfig, customTypes,
+  lockedRows, onAllocationChange, onClearAllocations, onBulkAllocationChange, onRowLock, onRowUnlock, undoApi,
 }: CalendarGridProps) {
 
   // Drag-Buchungs-State
-  const [selectedType, setSelectedType] = useState<AllocationType>('FERIEN');
+  const [selectedType, setSelectedType] = useState<string>('FERIEN');
+  const [clipboardResult, setClipboardResult] = useState<ClipboardParseResult | null>(null);
+  const [pasteOrigin, setPasteOrigin] = useState<{ empIdx: number; dayIdx: number } | null>(null);
   const isDragging = useRef(false);
   const dragEmployeeId = useRef<string | null>(null);
-  const dragIsDeleting = useRef(false); // true = Drag löscht Buchungen
-  const dragLastIndex = useRef<number>(-1); // letzter verarbeiteter Tages-Index (für Range-Interpolation)
+  const dragIsDeleting = useRef(false);
+  const dragLastIndex = useRef<number>(-1);
   const onRowUnlockRef = useRef(onRowUnlock);
   useEffect(() => { onRowUnlockRef.current = onRowUnlock; });
 
@@ -61,35 +69,41 @@ export default function CalendarGrid({
     return () => document.removeEventListener('mouseup', handleMouseUp);
   }, []);
 
+  const handleClipboardConfirm = () => {
+    if (!clipboardResult || !onBulkAllocationChange) return;
+    onBulkAllocationChange(clipboardResult.bookings.map(b => ({
+      employeeId: b.employeeId,
+      dateStr: b.dateStr,
+      type: b.allocationType,
+    })));
+    setClipboardResult(null);
+    setPasteOrigin(null);
+  };
+
   const isNonWorkday = (meta: DayMeta) =>
     meta.type === 'wochenende' || meta.type === 'feiertag';
-  const isPikettType = (type: AllocationType) =>
-    type === 'PIKETT' || type === 'BETRIEB_PIKETT';
 
   // Maus gedrückt: Drag starten, erste Zelle buchen oder löschen (Toggle)
   const handleCellMouseDown = (
     employeeId: string,
     dateStr: string,
     meta: DayMeta,
-    currentAllocation: AllocationType,
+    currentAllocation: string,
     dayIndex: number,
   ) => {
-    if (isNonWorkday(meta) && !isPikettType(selectedType)) return;
-    if (lockedRows?.has(employeeId)) return; // Zeile durch anderen User gesperrt
-    // Snapshot vor jeder Drag-Aktion fuer Undo/Redo
+    if (isNonWorkday(meta) && !isPikettTypeHelper(selectedType, customTypes)) return;
+    if (lockedRows?.has(employeeId)) return;
     undoApi?.pushSnapshot();
     isDragging.current = true;
     dragEmployeeId.current = employeeId;
     dragLastIndex.current = dayIndex;
     onRowLock?.(employeeId);
-    // Toggle: gleicher Typ bereits gesetzt → löschen; sonst setzen
     const newType = currentAllocation === selectedType ? 'NONE' : selectedType;
     dragIsDeleting.current = newType === 'NONE';
     onAllocationChange(employeeId, dateStr, newType);
   };
 
-  // Maus betritt Zelle während Drag: Range-Interpolation — alle Zellen zwischen
-  // letztem und aktuellem Index setzen (verhindert übersprungene Zellen bei schneller Mausbewegung)
+  // Maus betritt Zelle während Drag: Range-Interpolation
   const handleCellMouseEnter = (
     employeeId: string,
     _dateStr: string,
@@ -102,7 +116,7 @@ export default function CalendarGrid({
     const end = Math.max(dragLastIndex.current, dayIndex);
     for (let i = start; i <= end; i++) {
       const cellMeta = dayMetas[i];
-      if (isNonWorkday(cellMeta) && !isPikettType(selectedType)) continue;
+      if (isNonWorkday(cellMeta) && !isPikettTypeHelper(selectedType, customTypes)) continue;
       onAllocationChange(employeeId, toDateStr(visibleDays[i]), type);
     }
     dragLastIndex.current = dayIndex;
@@ -117,10 +131,10 @@ export default function CalendarGrid({
     globalConfig: { spPerDay: 1, hoursPerYear: 1600 },
     teamConfigs: [],
     piTeamTargets: [],
-  }), [feiertage, schulferien, pis, blocker]);
+    customAllocationTypes: customTypes,
+  }), [feiertage, schulferien, pis, blocker, customTypes]);
 
   const visibleDays = useMemo((): Date[] => {
-    // Zeitraum hat Vorrang vor allen anderen Filtern
     if (filterState.dateFrom && filterState.dateTo) {
       return getDaysInRange(filterState.dateFrom, filterState.dateTo);
     }
@@ -165,6 +179,34 @@ export default function CalendarGrid({
     [visibleDays, todayStr]
   );
 
+  const doPasteFromText = (text: string, origin: { empIdx: number; dayIdx: number } | null) => {
+    if (!text.includes('\t')) return;
+    const allDateStrs = visibleDays.map(d => toDateStr(d));
+    const empSlice = origin ? visibleEmployees.slice(origin.empIdx) : visibleEmployees;
+    const dateSlice = origin ? allDateStrs.slice(origin.dayIdx) : allDateStrs;
+    const result = parseClipboardTSV(text, employees, customTypes, empSlice, dateSlice);
+    if (result.bookings.length > 0 || result.unmatchedEmployees.length > 0 || result.unknownKuerzel.length > 0) {
+      setClipboardResult(result);
+    }
+  };
+
+  // Clipboard-Paste: Excel TSV-Daten erkennen und Import-Dialog zeigen
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      if (target?.isContentEditable) return;
+
+      const text = e.clipboardData?.getData('text/plain');
+      if (!text) return;
+
+      e.preventDefault();
+      doPasteFromText(text, pasteOrigin);
+    }
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [employees, customTypes, visibleEmployees, visibleDays, pasteOrigin]);
+
   if (pis.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-400">
@@ -180,13 +222,26 @@ export default function CalendarGrid({
         <span className="text-xs text-gray-400">
           {visibleDays.length} Tage · {visibleEmployees.length} Mitarbeiter
         </span>
+        {pasteOrigin && (
+          <span className="text-xs text-blue-600 flex items-center gap-1">
+            Einfügepunkt: {visibleEmployees[pasteOrigin.empIdx]?.vorname} {visibleEmployees[pasteOrigin.empIdx]?.name}, {toDateStr(visibleDays[pasteOrigin.dayIdx])}
+            <button
+              type="button"
+              onClick={() => setPasteOrigin(null)}
+              className="text-blue-400 hover:text-blue-700 ml-0.5"
+              title="Einfügepunkt aufheben"
+            >
+              ✕
+            </button>
+          </span>
+        )}
         {undoApi && (
           <div className="flex items-center gap-1 ml-auto">
             <button
               type="button"
               onClick={undoApi.undo}
               disabled={!undoApi.canUndo}
-              title="Rückgängig (Ctrl+Z) · max. 3 Schritte"
+              title="Rückgängig (Ctrl+Z) · max. 5 Schritte"
               className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Undo2 size={14} />
@@ -196,7 +251,7 @@ export default function CalendarGrid({
               type="button"
               onClick={undoApi.redo}
               disabled={!undoApi.canRedo}
-              title="Wiederherstellen (Ctrl+Y) · max. 3 Schritte"
+              title="Wiederherstellen (Ctrl+Y) · max. 5 Schritte"
               className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Redo2 size={14} />
@@ -223,12 +278,11 @@ export default function CalendarGrid({
                 </td>
               </tr>
             ) : (
-              visibleEmployees.map(emp => {
+              visibleEmployees.map((emp, empIdx) => {
                 const lockerName = lockedRows?.get(emp.id);
                 const isLocked = !!lockerName;
                 return (
                 <tr key={emp.id} className={`group${isLocked ? ' opacity-50' : ''}`}>
-                  {/* Mitarbeiter-Name mit Löschen-Button (erscheint bei Hover) */}
                   <td className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 border border-gray-200 px-2 h-7 whitespace-nowrap min-w-[160px] w-[160px] align-middle">
                     <div className="flex items-center justify-between gap-1">
                       <span>
@@ -262,8 +316,11 @@ export default function CalendarGrid({
                       selectedType={selectedType}
                       dayIndex={i}
                       farbConfig={farbConfig}
+                      customTypes={customTypes}
+                      isPasteOrigin={pasteOrigin?.empIdx === empIdx && pasteOrigin?.dayIdx === i}
                       onMouseDown={handleCellMouseDown}
                       onMouseEnter={handleCellMouseEnter}
+                      onContextMenu={(dayIdx) => setPasteOrigin({ empIdx, dayIdx })}
                     />
                   ))}
                 </tr>
@@ -278,8 +335,8 @@ export default function CalendarGrid({
       <div className="flex flex-wrap gap-x-3 gap-y-2 p-3 bg-white border border-gray-200 rounded text-xs text-gray-700">
         <span className="font-medium text-gray-600 self-center">Buchungstyp:</span>
 
-        {/* Klickbare Buchungstypen */}
-        {BUCHUNGSTYPEN.map(type => (
+        {/* Built-in Buchungstypen */}
+        {BUILTIN_BUCHUNGSTYPEN.map(type => (
           <button
             key={type}
             onClick={() => setSelectedType(type)}
@@ -297,14 +354,42 @@ export default function CalendarGrid({
           >
             <span
               className="inline-block w-4 h-4 rounded-sm flex-shrink-0"
-              style={{ backgroundColor: farbConfig.buchungstypen[type].bg }}
+              style={{ backgroundColor: farbConfig.buchungstypen[type as keyof typeof farbConfig.buchungstypen]?.bg ?? '#ccc' }}
             />
-            {BUCHUNGSTYP_LABEL[type]}
+            {BUCHUNGSTYP_LABEL[type as keyof typeof BUCHUNGSTYP_LABEL] ?? type}
             {(type === 'PIKETT' || type === 'BETRIEB_PIKETT') && (
               <span className="text-gray-400 ml-0.5">7×24</span>
             )}
           </button>
         ))}
+
+        {/* Custom Buchungstypen */}
+        {customTypes.length > 0 && (
+          <>
+            <span className="border-l border-gray-200 mx-1 self-stretch" />
+            <span className="font-medium text-gray-600 self-center">Benutzerdefiniert:</span>
+            {customTypes.map(ct => (
+              <button
+                key={ct.id}
+                onClick={() => setSelectedType(ct.id)}
+                className={[
+                  'flex items-center gap-1 px-2 py-0.5 rounded border transition-all',
+                  selectedType === ct.id
+                    ? 'border-bund-blau ring-2 ring-bund-blau font-bold scale-105'
+                    : 'border-transparent hover:border-gray-300',
+                ].join(' ')}
+                title={ct.label}
+              >
+                <span
+                  className="inline-block w-4 h-4 rounded-sm flex-shrink-0"
+                  style={{ backgroundColor: ct.bg }}
+                />
+                {ct.label}
+                <span className="text-gray-400 ml-0.5">({ct.kuerzel})</span>
+              </button>
+            ))}
+          </>
+        )}
 
         {/* Trennlinie */}
         <span className="border-l border-gray-200 mx-1 self-stretch" />
@@ -361,6 +446,15 @@ export default function CalendarGrid({
           </span>
         </span>
       </div>
+
+      {/* Clipboard-Import-Dialog */}
+      {clipboardResult && (
+        <ClipboardImportDialog
+          result={clipboardResult}
+          onConfirm={handleClipboardConfirm}
+          onCancel={() => setClipboardResult(null)}
+        />
+      )}
     </div>
   );
 }

@@ -64,6 +64,7 @@ export function migrateStateToSchema16(state: FullAppState): FullAppState {
   return {
     ...state,
     pis: migratePIs(state.pis),
+    customAllocationTypes: state.customAllocationTypes ?? [],
   };
 }
 

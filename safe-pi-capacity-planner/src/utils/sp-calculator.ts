@@ -3,7 +3,7 @@
 import type {
   Employee,
   AppData,
-  AllocationType,
+  CustomAllocationType,
   PIPlanning,
   Iteration,
   EmployeeSPResult,
@@ -12,12 +12,7 @@ import type {
   TeamConfig,
 } from '../types';
 import { getDaysInRange, toDateStr } from './calendar-helpers';
-
-// ─── Konstanten ───────────────────────────────────────────────────────────────
-
-const ABSENCE_TYPES = new Set<AllocationType>(['FERIEN', 'ABWESEND', 'MILITAER', 'IPA']);
-const BETRIEB_TYPES = new Set<AllocationType>(['BETRIEB', 'BETRIEB_PIKETT']);
-const PIKETT_TYPES = new Set<AllocationType>(['PIKETT', 'BETRIEB_PIKETT']);
+import { isAbsenceType, isBetriebType, isPikettType } from './allocation-helpers';
 
 // ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
@@ -30,9 +25,14 @@ function isHoliday(dateStr: string, appData: AppData): boolean {
   return appData.feiertage.some(f => dateStr >= f.startStr && dateStr <= f.endStr);
 }
 
-function getSpRaw(allocation: AllocationType, spPerDay: number): number {
-  if (allocation === 'NONE') return spPerDay;
+function getSpRaw(allocation: string, spPerDay: number, customTypes: CustomAllocationType[]): number {
+  if (allocation === 'NONE' || !allocation) return spPerDay;
   if (allocation === 'TEILZEIT') return spPerDay * 0.5;
+  if (isAbsenceType(allocation, customTypes)) return 0;
+  if (isBetriebType(allocation, customTypes)) return 0;
+  if (isPikettType(allocation, customTypes)) return 0;
+  const custom = customTypes.find(ct => ct.id === allocation);
+  if (custom) return 0;
   return 0;
 }
 
@@ -61,6 +61,7 @@ export function calculateSPForEmployee(
   endStr: string,
   appData: AppData,
 ): EmployeeSPResult {
+  const customTypes = appData.customAllocationTypes ?? [];
   const days = getDaysInRange(startStr, endStr);
   let totalSP = 0;
   let workDays = 0;
@@ -74,14 +75,14 @@ export function calculateSPForEmployee(
     if (isWeekend(ds) || isHoliday(ds, appData)) continue;
     workDays++;
 
-    const allocation: AllocationType = employee.allocations[ds] ?? 'NONE';
+    const allocation: string = employee.allocations[ds] ?? 'NONE';
 
-    if (ABSENCE_TYPES.has(allocation)) absenceDays++;
-    if (BETRIEB_TYPES.has(allocation)) betriebDays++;
-    if (PIKETT_TYPES.has(allocation)) pikettDays++;
+    if (isAbsenceType(allocation, customTypes)) absenceDays++;
+    if (isBetriebType(allocation, customTypes)) betriebDays++;
+    if (isPikettType(allocation, customTypes)) pikettDays++;
     if (allocation === 'TEILZEIT') teilzeitDays++;
 
-    const spRaw = getSpRaw(allocation, employee.storyPointsPerDay);
+    const spRaw = getSpRaw(allocation, employee.storyPointsPerDay, customTypes);
     const spNetto =
       spRaw *
       employee.fte *
@@ -111,6 +112,7 @@ export function calculateSPForTeam(
   appData: AppData,
   teamName: string,
 ): TeamSPResult {
+  const customTypes = appData.customAllocationTypes ?? [];
   const teamEmployees = employees.filter(e => e.team === teamName);
   const employeeResults = teamEmployees.map(emp =>
     calculateSPForEmployee(emp, startStr, endStr, appData),
@@ -131,14 +133,14 @@ export function calculateSPForTeam(
 
     if (pikettMin > 0) {
       const pikettCount = teamEmployees.filter(emp =>
-        PIKETT_TYPES.has(emp.allocations[ds] ?? 'NONE'),
+        isPikettType(emp.allocations[ds] ?? 'NONE', customTypes),
       ).length;
       if (pikettCount < pikettMin) pikettGaps.push(ds);
     }
 
     if (isWorkday && betriebMin > 0) {
       const betriebCount = teamEmployees.filter(emp =>
-        BETRIEB_TYPES.has(emp.allocations[ds] ?? 'NONE'),
+        isBetriebType(emp.allocations[ds] ?? 'NONE', customTypes),
       ).length;
       if (betriebCount < betriebMin) betriebGaps.push(ds);
     }

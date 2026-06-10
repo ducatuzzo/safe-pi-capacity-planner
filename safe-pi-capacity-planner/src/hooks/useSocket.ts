@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import type { AllocationType, SavedProjectState } from '../types';
+import type { SavedProjectState } from '../types';
 
 export type SettingsChangeType =
   | 'employees'
@@ -12,11 +12,12 @@ export type SettingsChangeType =
   | 'blocker'
   | 'globalConfig'
   | 'teamConfigs'
-  | 'piTeamTargets';
+  | 'piTeamTargets'
+  | 'customAllocationTypes';
 
 interface UseSocketOptions {
   tenantId: string;
-  onAllocationChange: (employeeId: string, dateStr: string, type: AllocationType) => void;
+  onAllocationChange: (employeeId: string, dateStr: string, type: string) => void;
   onSettingsChange: (type: SettingsChangeType, data: unknown) => void;
   onLockChange: (employeeId: string, locked: boolean, userName?: string) => void;
   onStateLoad: (state: SavedProjectState) => void;
@@ -74,7 +75,7 @@ export function useSocket({
     socket.on('allocation:change', (payload: {
       employeeId: string;
       dateStr: string;
-      allocationType: AllocationType;
+      allocationType: string;
     }) => {
       onAllocationChangeRef.current(payload.employeeId, payload.dateStr, payload.allocationType);
     });
@@ -97,7 +98,7 @@ export function useSocket({
   }, [tenantId]);
 
   const emitAllocationChange = useCallback(
-    (employeeId: string, dateStr: string, allocationType: AllocationType) => {
+    (employeeId: string, dateStr: string, allocationType: string) => {
       socketRef.current?.emit('allocation:change', { employeeId, dateStr, allocationType });
     },
     [],

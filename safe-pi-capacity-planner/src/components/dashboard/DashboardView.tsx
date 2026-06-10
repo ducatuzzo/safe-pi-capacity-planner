@@ -1,9 +1,10 @@
 // Dashboard: Kapazitäts-Übersicht mit KPIs, Diagramm, Absenz-Tabelle, Lücken-Erkennung
 import { useMemo, useState } from 'react';
 import { Download, FileImage } from 'lucide-react';
-import type { Employee, AppData, PIPlanning, FilterState, Iteration, IterationSPResult } from '../../types';
+import type { Employee, AppData, PIPlanning, FilterState, Iteration, IterationSPResult, CustomAllocationType } from '../../types';
 import { calculateSPForIteration, calculateSPForTeam } from '../../utils/sp-calculator';
 import { getDaysInRange, toDateStr } from '../../utils/calendar-helpers';
+import { isAbsenceType, isBetriebType, isPikettType } from '../../utils/allocation-helpers';
 import { exportToPDF, exportToPNG } from '../../utils/export-utils';
 import bundeslogo from '../../assets/bundeslogo.png';
 import KPICards from './KPICards';
@@ -77,6 +78,7 @@ function computeAbsenzRows(
   appData: AppData
 ): AbsenzRow[] {
   const feiertage = appData.feiertage;
+  const customTypes: CustomAllocationType[] = appData.customAllocationTypes ?? [];
   return employees.map(emp => {
     let ferienDays = 0;
     let abwesendDays = 0;
@@ -102,6 +104,11 @@ function computeAbsenzRows(
         case 'BETRIEB':        betriebDays++;  break;
         case 'BETRIEB_PIKETT': betriebDays++; pikettDays++; break;
         case 'PIKETT':         pikettDays++;   break;
+        default:
+          if (isAbsenceType(alloc, customTypes)) abwesendDays++;
+          if (isBetriebType(alloc, customTypes)) betriebDays++;
+          if (isPikettType(alloc, customTypes)) pikettDays++;
+          break;
       }
     }
 

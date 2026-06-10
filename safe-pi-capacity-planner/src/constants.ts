@@ -1,4 +1,4 @@
-import type { AllocationType, FarbConfig } from './types';
+import type { AllocationType, AllocationCategory, FarbConfig } from './types';
 
 // Corporate Design Bund
 export const FARBEN = {
@@ -79,6 +79,18 @@ export const KALENDER_FARBEN = {
 
 // Schneeflocke für Change-Freeze
 export const CHANGE_FREEZE_SYMBOL = '❄️';
+
+// Feature 22: Kategorie-Labels für Custom Allocation Types
+export const ALLOCATION_CATEGORY_LABEL: Record<AllocationCategory, string> = {
+  ABSENCE: 'Abwesenheit (SP = 0)',
+  BETRIEB: 'Betrieb (SP = 0, Lücken-Check)',
+  PIKETT: 'Pikett (SP = 0, Lücken-Check)',
+  BETRIEB_PIKETT: 'Betrieb + Pikett',
+  NEUTRAL: 'Neutral (SP = 0, keine Lücken)',
+};
+
+// Built-in Kürzel — Kollisionsprüfung für Custom Types
+export const BUILTIN_KUERZEL = new Set<string>(['F', 'A', 'T', 'M', 'I', 'B', 'BP', 'P']);
 
 // API-Basispfad
 export const API_BASE = '/api';

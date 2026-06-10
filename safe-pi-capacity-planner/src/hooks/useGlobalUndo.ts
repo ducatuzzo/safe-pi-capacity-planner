@@ -1,14 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Employee } from '../types';
+import type {
+  Employee, PIPlanning, Feiertag, Schulferien, Blocker,
+  FarbConfig, GlobalCapacityConfig, TeamConfig, PITeamTarget, CustomAllocationType,
+} from '../types';
 
-const STACK_LIMIT = 3;
+const STACK_LIMIT = 5;
 
-interface UsePlanungUndoArgs {
-  getCurrent: () => Employee[];
-  apply: (next: Employee[]) => void;
+export interface AppSnapshot {
+  employees: Employee[];
+  pis: PIPlanning[];
+  feiertage: Feiertag[];
+  schulferien: Schulferien[];
+  blocker: Blocker[];
+  globalConfig: GlobalCapacityConfig;
+  teamConfigs: TeamConfig[];
+  piTeamTargets: PITeamTarget[];
+  farbConfig: FarbConfig;
+  customAllocationTypes: CustomAllocationType[];
 }
 
-export interface PlanungUndoApi {
+export interface GlobalUndoApi {
   pushSnapshot: () => void;
   undo: () => void;
   redo: () => void;
@@ -16,9 +27,14 @@ export interface PlanungUndoApi {
   canRedo: boolean;
 }
 
-export function usePlanungUndo({ getCurrent, apply }: UsePlanungUndoArgs): PlanungUndoApi {
-  const undoStack = useRef<Employee[][]>([]);
-  const redoStack = useRef<Employee[][]>([]);
+interface UseGlobalUndoArgs {
+  getCurrent: () => AppSnapshot;
+  apply: (snapshot: AppSnapshot) => void;
+}
+
+export function useGlobalUndo({ getCurrent, apply }: UseGlobalUndoArgs): GlobalUndoApi {
+  const undoStack = useRef<AppSnapshot[]>([]);
+  const redoStack = useRef<AppSnapshot[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 

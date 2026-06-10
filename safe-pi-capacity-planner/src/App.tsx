@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import type { ActiveTab, AllocationType, AppData, Employee, FarbConfig, FilterState, PIPlanning, Feiertag, Schulferien, Blocker, FullAppState, SavedProjectState, GlobalCapacityConfig, TeamConfig, PITeamTarget } from './types';
+import type { ActiveTab, AppData, Employee, FarbConfig, FilterState, PIPlanning, Feiertag, Schulferien, Blocker, FullAppState, SavedProjectState, GlobalCapacityConfig, TeamConfig, PITeamTarget, CustomAllocationType } from './types';
 import Header from './components/layout/Header';
 import TabNav from './components/layout/TabNav';
 import FilterBar from './components/layout/FilterBar';
@@ -16,7 +16,8 @@ import { DEFAULT_FARB_CONFIG } from './constants';
 import { useSocket } from './hooks/useSocket';
 import type { SettingsChangeType } from './hooks/useSocket';
 import { useTenant } from './hooks/useTenant';
-import { usePlanungUndo } from './hooks/usePlanungUndo';
+import { useGlobalUndo } from './hooks/useGlobalUndo';
+import type { AppSnapshot } from './hooks/useGlobalUndo';
 import { migratePIs } from './utils/state-migration';
 
 const INITIAL_FILTER: FilterState = {
@@ -41,7 +42,7 @@ function applyAllocationToList(
   prev: Employee[],
   employeeId: string,
   dateStr: string,
-  type: AllocationType,
+  type: string,
 ): Employee[] {
   return prev.map(emp => {
     if (emp.id !== employeeId) return emp;
@@ -82,6 +83,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
   const [piTeamTargets, setPiTeamTargets] = useState<PITeamTarget[]>([]);
   const [farbConfig, setFarbConfig] = useState<FarbConfig>(DEFAULT_FARB_CONFIG);
   const [filterState, setFilterState] = useState<FilterState>(INITIAL_FILTER);
+  const [customAllocationTypes, setCustomAllocationTypes] = useState<CustomAllocationType[]>([]);
   const [lockedRows, setLockedRows] = useState<Map<string, string>>(new Map());
 
   const userName = useRef(getSessionUserName());
@@ -113,7 +115,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
 
       // Demo-Daten an Server pushen, damit sie persistent sind (überlebt Browser-Refresh)
       const demoState: SavedProjectState = {
-        version: '1.6',
+        version: '1.7',
         timestamp: new Date().toISOString(),
         year: new Date().getFullYear(),
         employees: [],
@@ -126,6 +128,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
           globalConfig: SEED_GLOBAL_CONFIG,
           teamConfigs: SEED_TEAM_CONFIGS,
           piTeamTargets: [],
+          customAllocationTypes: [],
         },
       };
       const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
@@ -146,10 +149,11 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
     setGlobalConfig(state.appData.globalConfig ?? SEED_GLOBAL_CONFIG);
     setTeamConfigs(state.appData.teamConfigs ?? SEED_TEAM_CONFIGS);
     setPiTeamTargets(state.appData.piTeamTargets ?? []);
+    setCustomAllocationTypes(state.appData.customAllocationTypes ?? []);
   }, [tenantId]);
 
   const handleRemoteAllocationChange = useCallback(
-    (employeeId: string, dateStr: string, type: AllocationType) => {
+    (employeeId: string, dateStr: string, type: string) => {
       setEmployees(prev => applyAllocationToList(prev, employeeId, dateStr, type));
     },
     [],
@@ -166,6 +170,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
         case 'globalConfig':  setGlobalConfig(data as GlobalCapacityConfig); break;
         case 'teamConfigs':   setTeamConfigs(data as TeamConfig[]); break;
         case 'piTeamTargets': setPiTeamTargets(data as PITeamTarget[]); break;
+        case 'customAllocationTypes': setCustomAllocationTypes(data as CustomAllocationType[]); break;
       }
     },
     [],
@@ -195,28 +200,70 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
       onStateLoad: applyServerState,
     });
 
-  const employeesRef = useRef<Employee[]>(employees);
-  employeesRef.current = employees;
+  const stateRef = useRef<AppSnapshot>({
+    employees, pis, feiertage, schulferien, blocker,
+    globalConfig, teamConfigs, piTeamTargets, farbConfig, customAllocationTypes,
+  });
+  stateRef.current = {
+    employees, pis, feiertage, schulferien, blocker,
+    globalConfig, teamConfigs, piTeamTargets, farbConfig, customAllocationTypes,
+  };
 
-  const applyEmployeesUndoRedo = useCallback((next: Employee[]) => {
-    setEmployees(next);
-    emitSettingsChange('employees', next);
+  const applySnapshot = useCallback((snap: AppSnapshot) => {
+    setEmployees(snap.employees);
+    setPis(snap.pis);
+    setFeiertage(snap.feiertage);
+    setSchulferien(snap.schulferien);
+    setBlocker(snap.blocker);
+    setGlobalConfig(snap.globalConfig);
+    setTeamConfigs(snap.teamConfigs);
+    setPiTeamTargets(snap.piTeamTargets);
+    setFarbConfig(snap.farbConfig);
+    setCustomAllocationTypes(snap.customAllocationTypes);
+    emitSettingsChange('employees', snap.employees);
+    emitSettingsChange('pis', snap.pis);
+    emitSettingsChange('feiertage', snap.feiertage);
+    emitSettingsChange('schulferien', snap.schulferien);
+    emitSettingsChange('blocker', snap.blocker);
+    emitSettingsChange('globalConfig', snap.globalConfig);
+    emitSettingsChange('teamConfigs', snap.teamConfigs);
+    emitSettingsChange('piTeamTargets', snap.piTeamTargets);
+    emitSettingsChange('customAllocationTypes', snap.customAllocationTypes);
   }, [emitSettingsChange]);
 
-  const undoApi = usePlanungUndo({
-    getCurrent: () => employeesRef.current,
-    apply: applyEmployeesUndoRedo,
+  const undoApi = useGlobalUndo({
+    getCurrent: () => stateRef.current,
+    apply: applySnapshot,
   });
 
   const handleAllocationChange = useCallback(
-    (employeeId: string, dateStr: string, type: AllocationType) => {
+    (employeeId: string, dateStr: string, type: string) => {
       setEmployees(prev => applyAllocationToList(prev, employeeId, dateStr, type));
       emitAllocationChange(employeeId, dateStr, type);
     },
     [emitAllocationChange],
   );
 
+  const pushSnapshotRef = useRef(undoApi.pushSnapshot);
+  pushSnapshotRef.current = undoApi.pushSnapshot;
+
+  const handleBulkAllocationChange = useCallback(
+    (changes: { employeeId: string; dateStr: string; type: string }[]) => {
+      pushSnapshotRef.current();
+      setEmployees(prev => {
+        let updated = prev;
+        for (const change of changes) {
+          updated = applyAllocationToList(updated, change.employeeId, change.dateStr, change.type);
+        }
+        emitSettingsChange('employees', updated);
+        return updated;
+      });
+    },
+    [emitSettingsChange],
+  );
+
   const handleClearAllocations = useCallback((employeeId?: string) => {
+    pushSnapshotRef.current();
     setEmployees(prev => {
       const updated = prev.map(emp => {
         if (employeeId !== undefined && emp.id !== employeeId) return emp;
@@ -228,6 +275,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
   }, [emitSettingsChange]);
 
   const handleEmployeesChange = useCallback((data: Employee[]) => {
+    pushSnapshotRef.current();
     setEmployees(data);
     emitSettingsChange('employees', data);
     setTeamConfigs(prev => {
@@ -251,43 +299,57 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
   }, [emitSettingsChange]);
 
   const handlePisChange = useCallback((data: PIPlanning[]) => {
+    pushSnapshotRef.current();
     setPis(data);
     emitSettingsChange('pis', data);
   }, [emitSettingsChange]);
 
   const handleFeiertageChange = useCallback((data: Feiertag[]) => {
+    pushSnapshotRef.current();
     setFeiertage(data);
     emitSettingsChange('feiertage', data);
   }, [emitSettingsChange]);
 
   const handleSchulferienChange = useCallback((data: Schulferien[]) => {
+    pushSnapshotRef.current();
     setSchulferien(data);
     emitSettingsChange('schulferien', data);
   }, [emitSettingsChange]);
 
   const handleBlockerChange = useCallback((data: Blocker[]) => {
+    pushSnapshotRef.current();
     setBlocker(data);
     emitSettingsChange('blocker', data);
   }, [emitSettingsChange]);
 
   const handleGlobalConfigChange = useCallback((data: GlobalCapacityConfig) => {
+    pushSnapshotRef.current();
     setGlobalConfig(data);
     emitSettingsChange('globalConfig', data);
   }, [emitSettingsChange]);
 
   const handleTeamConfigsChange = useCallback((data: TeamConfig[]) => {
+    pushSnapshotRef.current();
     setTeamConfigs(data);
     emitSettingsChange('teamConfigs', data);
   }, [emitSettingsChange]);
 
   const handlePiTeamTargetsChange = useCallback((data: PITeamTarget[]) => {
+    pushSnapshotRef.current();
     setPiTeamTargets(data);
     emitSettingsChange('piTeamTargets', data);
   }, [emitSettingsChange]);
 
   const handleFarbConfigChange = useCallback((data: FarbConfig) => {
+    pushSnapshotRef.current();
     setFarbConfig(data);
   }, []);
+
+  const handleCustomAllocationTypesChange = useCallback((data: CustomAllocationType[]) => {
+    pushSnapshotRef.current();
+    setCustomAllocationTypes(data);
+    emitSettingsChange('customAllocationTypes', data);
+  }, [emitSettingsChange]);
 
   const handleRestore = useCallback((state: FullAppState) => {
     setEmployees(state.employees);
@@ -299,6 +361,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
 
     const restoredGlobalConfig = state.globalConfig ?? SEED_GLOBAL_CONFIG;
     const restoredPiTeamTargets = state.piTeamTargets ?? [];
+    const restoredCustomAllocationTypes = state.customAllocationTypes ?? [];
 
     // Migration: alte teamZielwerte → neue teamConfigs falls nötig
     let restoredTeamConfigs = state.teamConfigs ?? [];
@@ -315,9 +378,10 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
     setGlobalConfig(restoredGlobalConfig);
     setTeamConfigs(restoredTeamConfigs);
     setPiTeamTargets(restoredPiTeamTargets);
+    setCustomAllocationTypes(restoredCustomAllocationTypes);
 
     const fullState: SavedProjectState = {
-      version: '1.6',
+      version: '1.7',
       timestamp: new Date().toISOString(),
       year: new Date().getFullYear(),
       employees: state.employees,
@@ -330,6 +394,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
         globalConfig: restoredGlobalConfig,
         teamConfigs: restoredTeamConfigs,
         piTeamTargets: restoredPiTeamTargets,
+        customAllocationTypes: restoredCustomAllocationTypes,
       },
     };
     const backendUrl = import.meta.env.VITE_BACKEND_URL ?? '';
@@ -357,6 +422,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
     globalConfig,
     teamConfigs,
     piTeamTargets,
+    customAllocationTypes,
   };
 
   const showFilterBar =
@@ -387,9 +453,11 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             blocker={blocker}
             filterState={filterState}
             farbConfig={farbConfig}
+            customTypes={customAllocationTypes}
             lockedRows={lockedRows}
             onAllocationChange={handleAllocationChange}
             onClearAllocations={handleClearAllocations}
+            onBulkAllocationChange={handleBulkAllocationChange}
             onRowLock={handleRowLock}
             onRowUnlock={handleRowUnlock}
             undoApi={undoApi}
@@ -447,6 +515,8 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             piTeamTargets={piTeamTargets}
             farbConfig={farbConfig}
             onFarbConfigChange={handleFarbConfigChange}
+            customAllocationTypes={customAllocationTypes}
+            onCustomAllocationTypesChange={handleCustomAllocationTypesChange}
             onRestore={handleRestore}
           />
         )}

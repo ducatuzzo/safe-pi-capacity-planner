@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Users, Calendar, Sun, GraduationCap, ShieldAlert, Download, Palette, Settings, SlidersHorizontal, BookOpen } from 'lucide-react';
-import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, FarbConfig, SettingsView, FullAppState, GlobalCapacityConfig, TeamConfig, PITeamTarget } from '../../types';
+import { Users, Calendar, Sun, GraduationCap, ShieldAlert, Download, Palette, Settings, SlidersHorizontal, BookOpen, Layers } from 'lucide-react';
+import type { Employee, PIPlanning, Feiertag, Schulferien, Blocker, FarbConfig, SettingsView, FullAppState, GlobalCapacityConfig, TeamConfig, PITeamTarget, CustomAllocationType } from '../../types';
 import MitarbeiterSettings from './MitarbeiterSettings';
 import PISettings from './PISettings';
 import KalenderDatenSettings from './KalenderDatenSettings';
@@ -9,6 +9,7 @@ import FarbeinstellungenSettings from './FarbeinstellungenSettings';
 import TeamConfigSettings from './TeamConfigSettings';
 import GlobalConfigSettings from './GlobalConfigSettings';
 import DokumentationSettings from './DokumentationSettings';
+import CustomAllocationSettings from './CustomAllocationSettings';
 
 interface Props {
   employees: Employee[];
@@ -28,6 +29,8 @@ interface Props {
   piTeamTargets: PITeamTarget[];
   farbConfig: FarbConfig;
   onFarbConfigChange: (config: FarbConfig) => void;
+  customAllocationTypes: CustomAllocationType[];
+  onCustomAllocationTypesChange: (types: CustomAllocationType[]) => void;
   onRestore: (state: FullAppState) => void;
 }
 
@@ -40,6 +43,7 @@ const NAV_EINTRAEGE: { view: SettingsView; label: string; icon: React.ReactNode 
   { view: 'team-konfiguration', label: 'Team-Konfiguration',  icon: <Settings size={16} /> },
   { view: 'globale-parameter',  label: 'Globale Parameter',   icon: <SlidersHorizontal size={16} /> },
   { view: 'farben',             label: 'Farbeinstellungen',   icon: <Palette size={16} /> },
+  { view: 'buchungstypen',      label: 'Buchungstypen',       icon: <Layers size={16} /> },
   { view: 'backup',             label: 'Backup / Restore',    icon: <Download size={16} /> },
   { view: 'dokumentation',      label: 'Dokumentation',       icon: <BookOpen size={16} /> },
 ];
@@ -62,6 +66,8 @@ export default function SettingsPage({
   piTeamTargets,
   farbConfig,
   onFarbConfigChange,
+  customAllocationTypes,
+  onCustomAllocationTypesChange,
   onRestore,
 }: Props) {
   const [aktiveView, setAktiveView] = useState<SettingsView>('mitarbeiter');
@@ -69,7 +75,6 @@ export default function SettingsPage({
   const isKalenderView =
     aktiveView === 'feiertage' || aktiveView === 'schulferien' || aktiveView === 'blocker';
 
-  // Vollständiger App-State für Backup-Export – alle Felder müssen enthalten sein
   const appState: FullAppState = {
     employees,
     pis,
@@ -80,6 +85,7 @@ export default function SettingsPage({
     globalConfig,
     teamConfigs,
     piTeamTargets,
+    customAllocationTypes,
   };
 
   return (
@@ -136,7 +142,10 @@ export default function SettingsPage({
           <GlobalConfigSettings config={globalConfig} onChange={onGlobalConfigChange} />
         )}
         {aktiveView === 'farben' && (
-          <FarbeinstellungenSettings farbConfig={farbConfig} onChange={onFarbConfigChange} />
+          <FarbeinstellungenSettings farbConfig={farbConfig} onChange={onFarbConfigChange} customTypes={customAllocationTypes} />
+        )}
+        {aktiveView === 'buchungstypen' && (
+          <CustomAllocationSettings customTypes={customAllocationTypes} onChange={onCustomAllocationTypesChange} />
         )}
         {aktiveView === 'backup' && (
           <BackupRestoreSettings appState={appState} onRestore={onRestore} />

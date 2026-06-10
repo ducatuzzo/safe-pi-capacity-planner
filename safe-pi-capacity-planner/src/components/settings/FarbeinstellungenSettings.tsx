@@ -2,12 +2,13 @@
 
 import { useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
-import type { AllocationType, FarbConfig } from '../../types';
+import type { AllocationType, FarbConfig, CustomAllocationType } from '../../types';
 import { DEFAULT_FARB_CONFIG, BUCHUNGSTYP_LABEL } from '../../constants';
 
 interface Props {
   farbConfig: FarbConfig;
   onChange: (config: FarbConfig) => void;
+  customTypes: CustomAllocationType[];
 }
 
 // Buchungstypen ohne NONE (nicht buchbar, keine Farbe konfigurierbar)
@@ -131,7 +132,7 @@ function parseCsv(raw: string): FarbConfig | string {
 
 // ── Komponente ────────────────────────────────────────────────────────────────
 
-export default function FarbeinstellungenSettings({ farbConfig, onChange }: Props) {
+export default function FarbeinstellungenSettings({ farbConfig, onChange, customTypes }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleResetAll = () => {
@@ -277,6 +278,27 @@ export default function FarbeinstellungenSettings({ farbConfig, onChange }: Prop
           </tbody>
         </table>
       </section>
+
+      {/* ── Benutzerdefinierte Buchungstypen (read-only) ── */}
+      {customTypes.length > 0 && (
+        <section className="mb-8">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Benutzerdefinierte Buchungstypen</h3>
+          <p className="text-xs text-gray-400 mb-2">Farben werden unter «Buchungstypen» konfiguriert.</p>
+          <div className="flex flex-wrap gap-3">
+            {customTypes.map(ct => (
+              <div key={ct.id} className="flex items-center gap-2 border border-gray-200 rounded px-3 py-1.5">
+                <span
+                  className="inline-flex items-center justify-center w-7 h-6 rounded text-[10px] font-bold"
+                  style={{ backgroundColor: ct.bg, color: ct.text }}
+                >
+                  {ct.kuerzel}
+                </span>
+                <span className="text-sm text-gray-600">{ct.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Kalenderfarben ── */}
       <section>

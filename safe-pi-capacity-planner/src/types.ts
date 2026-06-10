@@ -12,6 +12,20 @@ export type AllocationType =
   | 'BETRIEB_PIKETT'
   | 'PIKETT';
 
+// Feature 22: Berechnungskategorie für benutzerdefinierte Buchungstypen
+export type AllocationCategory = 'ABSENCE' | 'BETRIEB' | 'PIKETT' | 'BETRIEB_PIKETT' | 'NEUTRAL';
+
+// Feature 22: Benutzerdefinierter Buchungstyp (pro Train)
+export interface CustomAllocationType {
+  id: string;
+  kuerzel: string;
+  label: string;
+  bg: string;
+  text: string;
+  category: AllocationCategory;
+  team?: string;
+}
+
 // Mitarbeitertyp: interner oder externer Mitarbeiter
 export type EmployeeType = 'iMA' | 'eMA';
 
@@ -27,7 +41,7 @@ export interface Employee {
   betriebPercent: number;     // Betriebsanteil in % (z.B. 20)
   pauschalPercent: number;    // Pauschale in % (z.B. 5)
   storyPointsPerDay: number;  // Standard: 1
-  allocations: Record<string, AllocationType>; // Key: YYYY-MM-DD
+  allocations: Record<string, string>; // Key: YYYY-MM-DD, Value: AllocationType | CustomAllocationType.id
 }
 
 // Datumsbereich (für PI, Iteration, Feiertag, etc.)
@@ -166,6 +180,7 @@ export interface AppData {
   globalConfig: GlobalCapacityConfig;
   teamConfigs: TeamConfig[];
   piTeamTargets: PITeamTarget[];
+  customAllocationTypes?: CustomAllocationType[];
 }
 
 // Vollständiger gespeicherter Projektzustand (Backup/Restore)
@@ -238,6 +253,7 @@ export type SettingsView =
   | 'team-konfiguration'
   | 'globale-parameter'
   | 'farben'
+  | 'buchungstypen'
   | 'backup'
   | 'dokumentation';
 
@@ -271,6 +287,7 @@ export interface FullAppState {
   globalConfig?: GlobalCapacityConfig;
   teamConfigs?: TeamConfig[];
   piTeamTargets?: PITeamTarget[];
+  customAllocationTypes?: CustomAllocationType[];
 }
 
 // Backup-Datei-Format (JSON-Export)
