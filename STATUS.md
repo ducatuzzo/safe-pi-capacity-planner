@@ -1,8 +1,42 @@
-# STATUS.md – Stand: 05.06.2026
+# STATUS.md – Stand: 10.06.2026
 
 > Feature-Nummerierung folgt PRD.md (verbindlich). Dieses Dokument trackt nur den Implementierungsstatus.
 
-## Stand: 2026-06-05
+## Stand: 2026-06-10
+
+### Zuletzt erledigt (Session 10.06.2026 — F22 Custom Types + Global Undo/Redo + Excel Clipboard Import)
+- **Feature 22: Custom Allocation Types** ✅ implementiert + deployed (Commit `ac0af87`)
+  - Breaking Change: `Employee.allocations` von `Record<string, AllocationType>` zu `Record<string, string>`
+  - Neues Interface `CustomAllocationType` mit `kuerzel`, `label`, `bg`, `text`, `category`, `team?`
+  - `AllocationCategory`: `ABSENCE | BETRIEB | PIKETT | BETRIEB_PIKETT | NEUTRAL`
+  - Zentrale Lookup-Funktionen in `src/utils/allocation-helpers.ts` (ersetzt alle hardcoded Type-Checks)
+  - Settings → Buchungstypen: CRUD-UI mit Kürzel-Kollisionsprüfung gegen Built-in-Types
+  - SP-Berechnung, Kalender, Dashboard, Backup/Restore alle auf Helper-basiert umgestellt
+  - Backup-Schema-Version 1.7, Server-Migration für `customAllocationTypes`
+  - Socket.io: `'customAllocationTypes'` als neuer `SettingsChangeType`
+- **Global Undo/Redo** ✅ implementiert + deployed
+  - `useGlobalUndo.ts` (NEU) ersetzt `usePlanungUndo.ts` (GELÖSCHT)
+  - `AppSnapshot` deckt alle 10 State-Pieces ab, Stack-Limit 5
+  - Ctrl+Z/Y für ALLE Settings-Änderungen, nicht nur Kalender-Drags
+- **Excel Clipboard Import** ✅ implementiert + deployed
+  - Ctrl+V oder Browser-Kontextmenü "Einfügen" für TSV-Daten aus Excel
+  - Auto-Erkennung: Structured Mode (Datums-Header) vs. Raw Mode (nur Kürzel)
+  - Rechtsklick auf Zelle setzt Einfügepunkt (blauer Rand) für gezieltes Paste
+  - Vorschau-Dialog mit Buchungsanzahl, Warnungen, Raw-Modus-Info
+  - `src/utils/clipboard-parser.ts` (NEU), `src/components/calendar/ClipboardImportDialog.tsx` (NEU)
+- **Neue Dateien (5):** `allocation-helpers.ts`, `clipboard-parser.ts`, `ClipboardImportDialog.tsx`, `CustomAllocationSettings.tsx`, `useGlobalUndo.ts`
+- **Gelöschte Dateien (1):** `usePlanungUndo.ts`
+- **Geänderte Dateien (16):** types.ts, constants.ts, sp-calculator.ts, state-migration.ts, App.tsx, useSocket.ts, tenant-manager.ts, CalendarCell.tsx, CalendarGrid.tsx, DashboardView.tsx, BackupRestoreSettings.tsx, FarbeinstellungenSettings.tsx, SettingsPage.tsx, package.json, package-lock.json
+- TypeScript-Check + Vite-Build grün, Vercel Auto-Deploy via GitHub master
+
+### Zuletzt erledigt (Session 10.06.2026 — Feature 27: Mobile Read-Only Responsive Design)
+- **Feature 27: Mobile-Optimierung (Responsive Read-Only)** ✅ implementiert + deployed (Commit `a59cbc3`)
+- **Scope:** Read-Only auf Mobile (< 768px), volle Interaktion auf Desktop. Keine neuen npm-Pakete.
+- **Neue Dateien:** `src/hooks/useMediaQuery.ts` (Breakpoint-Hook), `src/components/layout/MobileReadOnlyBanner.tsx` (Nur-Lese-Hinweis)
+- **Neue Feature-Spec:** `features/feature-27-mobile-optimierung.md`
+- **Geänderte Dateien (10):** App.tsx (mobileActiveTab-Fallback, responsive Padding), Header.tsx (Logo/Titel/Tenant kompakter), TabNav.tsx (Bottom-Tab-Bar mit 4 Icons, Settings/Admin ausgeblendet), FilterBar.tsx (kollabierbar mit Badge), CalendarGrid.tsx (Drag-Handler deaktiviert, Undo-Toolbar/Paste-Origin/Clear-Button ausgeblendet, MobileReadOnlyBanner), DashboardView.tsx (Export-Buttons hidden), PIDashboardView.tsx (Export-Buttons hidden, Legende kompakter), KapazitaetView.tsx (min-w-[600px] für Horizontal-Scroll), TenantGate.tsx (max-w-[90vw] responsive), index.css (safe-area-bottom Utility)
+- **Verifiziert:** 375px (Mobile) und 1280px (Desktop) im Browser — alle 4 Mobile-Tabs funktional, kein horizontaler Body-Overflow, keine Desktop-Regression
+- TypeScript-Check + Build grün, Vercel Auto-Deploy via GitHub master
 
 ### Zuletzt erledigt (Session 05.06.2026 Abend — Prod-Recovery Demo-Train + PS-DCS, Doku-Sync)
 - **Recovery-Workflow zweimal in Prod genutzt** (Railway): Demo-Train (Initial-Lockout) und PS-DCS (existierender 6-Ziffern-Hash gegen 8-Ziffern-Gate). Beide Resets erfolgreich via `POST /api/recovery/reset-admin-code`, neuer Code danach manuell gesetzt.
@@ -55,7 +89,7 @@
 - ICS: floating local time (kein TZ-Suffix) → Empfänger-Kalender interpretiert als lokal
 
 ### Bekannte Abhängigkeiten
-- Feature 22 (Custom Allocation Types) muss deployed sein vor F29-Deploy
+- ✅ Feature 22 (Custom Allocation Types) deployed — F29-Abhängigkeit erfüllt
 - Blocker/Freeze (Change-Management) bleibt vollständig unberührt
 - Demo-Daten PI26-2: Migrations-Skript greift automatisch beim ersten State-Load nach Deploy
 
@@ -63,7 +97,9 @@
 
 ## Projektstatus
 ✅ Features 01–21 abgeschlossen, Build grün, **auf Vercel deployed** (Commit `1ee0095`).
+✅ Feature 22 (Custom Allocation Types) + Global Undo/Redo + Excel Clipboard Import deployed (Commit `ac0af87`).
 ✅ Feature 23 (Swiss DS CSS Alignment / BIT Skin) implementiert, Build grün, ⏳ deploy ausstehend.
+✅ Feature 27 (Mobile Read-Only Responsive Design) implementiert + deployed (Commit `a59cbc3`).
 - Mandatenfähigkeit aktiv (Demo-Train, Admin-Code-Default `00000815`, 8 Ziffern).
 
 ## Abgeschlossene Features
@@ -154,21 +190,31 @@
 - Veraltete Referenzen (localStorage für piTeamTargets) korrigiert
 - phase-2-planung.md archiviert
 
+### Phase 6 — Mobile & UX
+| Nr. | Feature | Status |
+|-----|---------|--------|
+| 27 | Mobile-Optimierung (Responsive Read-Only) | ✅ deployed (Commit `a59cbc3`, 10.06.2026) |
+
+### Phase 5 — Custom Types + Productivity
+| Nr. | Feature | Status |
+|-----|---------|--------|
+| 22 | Custom Allocation Types | ✅ deployed (Commit `ac0af87`, 10.06.2026) |
+| — | Global Undo/Redo (alle Settings, Stack 5) | ✅ deployed (Commit `ac0af87`, 10.06.2026) |
+| — | Excel Clipboard Import (Raw + Structured) | ✅ deployed (Commit `ac0af87`, 10.06.2026) |
+
 ## Aktuell in Arbeit
-- Feature 22: Custom Allocation Types — Datenmodell-Review ausstehend
+- Keine offenen Features
 
 ## Abgebrochene Sessions
 - **Paket 7 IMPL am 2026-04-24 abgebrochen – Architektur-Spec fehlt.** Kein Dokument mit dem Bezeichner "Paket 7" in features/, prompts/ oder anderen Verzeichnissen gefunden. Projekt nutzt Feature-basierte Nummerierung (01–23), kein Paket-Schema. Vor Implementierung muss eine Architektur-Spec erstellt werden (features/paket-7-settings.md oder äquivalent).
 
 ## Nächste Schritte (priorisiert)
-1. Feature 29: Deploy zusammen mit F22 + F23 nach Vercel
-2. Feature 22: Custom Allocation Types — Datenmodell-Review vor Implementierung
-3. Recovery-Protokoll für Feature 22 schreiben (Breaking Change: allocations-Typ)
+1. Feature 29 + F23: Vercel-Deploy verifizieren (sollten mit `ac0af87` deployed sein)
+2. Benutzerdokumentation aktualisieren (Custom Types, Undo/Redo, Clipboard Import)
 
 ## Bekannte Risiken
 - **JSON-Persistenz ohne Locking:** Bei gleichzeitigen Schreibzugriffen via Socket.io kann ein Race Condition auftreten. Für aktuelle Nutzerzahl (< 10 gleichzeitig) akzeptiert.
-- **Kein Unit-Test-Coverage:** SP-Berechnungsfunktionen (pure functions) sind ungetestet. Vor Feature 22 kritisch.
-- **Backup-Schema nicht versioniert:** Datenmodell-Erweiterung (Custom Types) erfordert Schema-Migration für bestehende Backups.
+- **Kein Unit-Test-Coverage:** SP-Berechnungsfunktionen (pure functions) sind ungetestet.
 
 ## Vercel Deployment
 - Status: ✅ Live (Stand: 18.04.2026, Features 01–21, Commit `1ee0095`)

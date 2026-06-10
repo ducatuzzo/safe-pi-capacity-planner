@@ -291,9 +291,73 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 **Alternativ geprüft & verworfen:**
 - Constraint auf 6 Ziffern statt Schema-Wechsel — gegen User-Wunsch
 - Recovery via Shell auf Railway — User hat keinen Shell-Zugang im Plan
+
+## 2026-06-10: Feature 22 Custom Allocation Types + Global Undo/Redo + Excel Clipboard Import
+**Entscheidung:** Drei Features in einem Commit deployed (`ac0af87`), da sie interdependent sind (Custom Types benötigen Global Undo, Clipboard Import braucht beide).
+
+**1. Custom Allocation Types (Feature 22) — Breaking Change.**
+- `Employee.allocations` geändert von `Record<string, AllocationType>` zu `Record<string, string>`
+- Alle hardcoded Type-Checks (`ABSENCE_TYPES.has(...)`, Switch-Blöcke) durch zentrale Helper-Funktionen in `allocation-helpers.ts` ersetzt
+- `AllocationCategory`: 5 Kategorien (`ABSENCE`, `BETRIEB`, `PIKETT`, `BETRIEB_PIKETT`, `NEUTRAL`) bestimmen SP-Impact und Lücken-Relevanz
+- Settings → Buchungstypen: CRUD-UI mit Kürzel-Kollisionsprüfung gegen Built-in-Kürzel (F, A, T, M, I, B, BP, P)
+- Auto-generierte ID: `CUSTOM_{KUERZEL}_{timestamp}`
+- Backup-Schema 1.6 → 1.7, Server-Migration `customAllocationTypes ??= []`
+- Begründung: Teams (z.B. PAF) benötigen eigene Buchungstypen wie "R" (Portöffnungen) mit expliziter Kategorie-Zuordnung
+
+**2. Global Undo/Redo — Ersetzt `usePlanungUndo.ts`.**
+- Vorher: Undo nur für Kalender-Drag (Stack 3, nur `Employee[]`)
+- Nachher: `useGlobalUndo.ts` mit `AppSnapshot` (alle 10 State-Pieces), Stack-Limit 5
+- `pushSnapshotRef` Pattern in App.tsx für stabile Ref-Zugriffe in useCallback-Handlern
+- `applySnapshot` setzt alle 10 States + emittet jedes Piece via Socket.io
+- Begründung: Settings-Änderungen (Feiertage, PIs, Team-Konfiguration) waren nicht rückgängig machbar
+
+**3. Excel Clipboard Import — Raw + Structured Mode.**
+- `clipboard-parser.ts` (NEU): Auto-Erkennung via `hasDateHeaders()` — ≥2 parseable Datumsköpfe → Structured, sonst Raw
+- Structured: 1. Zeile = Datumsköpfe, 1. Spalte = MA-Namen, Zellen = Kürzel
+- Raw: Nur Kürzel (Tab-getrennt), Spalten → sichtbare Kalendertage, Zeilen → sichtbare Mitarbeiter
+- Einfügepunkt wählbar: Rechtsklick auf Zelle setzt `pasteOrigin` (blauer Rand), Browser-Kontextmenü "Einfügen" löst paste-Event aus
+- `ClipboardImportDialog.tsx` (NEU): Vorschau mit Buchungsanzahl, Warnungen, Raw-Modus-Info
+- Begründung: User kopiert Legacy-Excel-Kapazitätsplanung (nur Kürzel ohne Header) und muss gezielt an bestimmten Zellen einfügen können
+
+**Alternativ geprüft & verworfen:**
+- Custom Context Menu statt Browser-nativem Kontextmenü — Browser blockiert Custom-Kontextmenü-Events, nativer Ansatz zuverlässiger
+- `navigator.clipboard.readText()` direkt — erfordert Permissions-Prompt, paste-Event ist transparent
+- Separater State `ClipboardImportMode` statt Auto-Detection — unnötige Komplexität, Heuristik funktioniert zuverlässig
 - Recovery via Web-UI ohne Token — zu offen für DoS / Admin-Übernahme
 - Recovery-Token in `tenants.json` statt Env-Var — Backup würde Token enthalten, persistenter Disk-Snapshot zu gefährlich
 - Rate-Limit persistent in Datei — In-Memory reicht (Restart löscht Counter, aber Token-Rotation passiert sowieso nach Use)
 - Undo/Redo via Redux/Zustand — bestehende `emitSettingsChange('employees', ...)` reicht, kein neuer State-Layer
 - Persistente Undo-History über Reload — Spec: nur 3 Schritte in der laufenden Session, keine Komplexität von Snapshots im Server-State
+
+## 2026-06-10: Feature 27 – Mobile-Optimierung als Read-Only Responsive Design
+**Entscheidung:** Mobile-Nutzer (< 768px Viewport) erhalten eine reine Lese-Ansicht der App. Bearbeitung (Drag-Buchung, Settings, Admin) bleibt Desktop-only.
+
+**Begründung:**
+- Full-Responsive mit Bearbeitungsfunktionen (Drag & Drop, Settings-Formulare, Admin) hätte ~36h Aufwand bedeutet. Read-Only reduziert auf ~16h bei gleichem User-Nutzen: Mobile-Nutzer wollen typischerweise den Stand checken (Kapazität, Lücken, Auslastung), nicht Buchungen am Handy machen.
+- Kein Touch-basiertes Drag & Drop nötig → kein `CalendarMobileView`, keine Touch-Event-Behandlung
+- Settings/Admin werden komplett ausgeblendet (nicht nur disabled) → kein Aufwand für responsive Formulare
+
+**Technischer Ansatz:**
+- Breakpoint: Tailwind `md:` (768px). Unter 768px = Mobile, darüber = Desktop (wie bisher)
+- Device-Erkennung: `useMediaQuery(768)` Custom Hook via `window.matchMedia` (kein User-Agent-Sniffing)
+- Navigation: Desktop-Tabs (`hidden md:block`) + Mobile-Bottom-Bar (`md:hidden fixed bottom-0`) mit 4 Icons (Planung, Kapazität, Dashboard, PI Dashboard)
+- Settings/Admin: Tabs in Mobile-Navigation nicht enthalten; `mobileActiveTab`-Fallback in App.tsx leitet auf `'planung'` um
+- Drag-Handler: `handleCellMouseDown` in CalendarGrid.tsx hat `if (!isDesktop) return` Guard
+- Filter: kollabierbar auf Mobile mit Badge für aktive Filteranzahl
+- Read-Only-Banner: `MobileReadOnlyBanner.tsx` zeigt "Nur-Lese-Ansicht — Bearbeitung am Desktop"
+- iOS Safe-Area: `safe-area-bottom` Utility-Klasse in index.css für Bottom-Bar
+
+**Keine neuen npm-Pakete.** Alle verwendeten Funktionalitäten (Tailwind-Breakpoints, Lucide-Icons, matchMedia API) waren bereits im Projekt vorhanden.
+
+**Geänderte Dateien (12):**
+- `src/hooks/useMediaQuery.ts` (NEU)
+- `src/components/layout/MobileReadOnlyBanner.tsx` (NEU)
+- `src/App.tsx`, `src/components/layout/Header.tsx`, `src/components/layout/TabNav.tsx`, `src/components/layout/FilterBar.tsx`, `src/components/calendar/CalendarGrid.tsx`, `src/components/dashboard/DashboardView.tsx`, `src/components/pidashboard/PIDashboardView.tsx`, `src/components/capacity/KapazitaetView.tsx`, `src/components/tenant/TenantGate.tsx`, `src/index.css`
+
+**Alternativ geprüft & verworfen:**
+- Full-Responsive mit Bearbeitungsfunktionen (~36h) — Aufwand-Nutzen-Verhältnis zu schlecht für den Mobile-Use-Case
+- Separate Mobile-App (React Native / Capacitor) — Deployment-Komplexität, zweite Codebasis
+- PWA mit Offline-Fähigkeit — Service Worker + IndexedDB-Sync-Logik wäre eigenes Feature, User hat es nicht gefordert
+- User-Agent-Sniffing statt CSS-Breakpoints — fragil, nicht zukunftssicher, Tailwind-Breakpoints sind Standard
+- Responsive Settings-Formulare (nur-lesen) — kein User-Nutzen, Settings-Daten sind im Dashboard/Kapazitäts-Tab bereits sichtbar
 

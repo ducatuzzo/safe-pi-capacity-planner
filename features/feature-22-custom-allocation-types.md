@@ -168,18 +168,18 @@ function isPikettType(value: string, customTypes: CustomAllocationType[]): boole
 - Custom-Types mit Gruppierung: Built-in | Custom
 
 ## Akzeptanzkriterien
-- [ ] Custom-Buchungstypen in Einstellungen → Buchungstypen verwalten (CRUD)
-- [ ] Kürzel (max 3 Zeichen), Label, Hintergrundfarbe, Schriftfarbe, Kategorie-Dropdown
-- [ ] Keine Kürzel-Kollision mit Built-in-Types (F, A, T, M, I, B, BP, P)
-- [ ] Custom-Types erscheinen im Kalender-Buchungs-Dropdown
-- [ ] Custom-Types werden im Kalender mit Kürzel + Farbe korrekt dargestellt
-- [ ] Legende zeigt Custom-Types
-- [ ] SP-Berechnung berücksichtigt Custom-Type-Kategorie korrekt
-- [ ] Dashboard: Lücken-Erkennung berücksichtigt Custom-Betrieb/Pikett-Types
-- [ ] Backup/Restore enthält Custom-Types + Migration für alte Backups
-- [ ] Socket.io synchronisiert Custom-Types
-- [ ] CSV Export/Import für Custom-Types
-- [ ] Rückwärtskompatibilität: Backups ohne Custom-Types laden fehlerfrei
+- [x] Custom-Buchungstypen in Einstellungen → Buchungstypen verwalten (CRUD)
+- [x] Kürzel (max 3 Zeichen), Label, Hintergrundfarbe, Schriftfarbe, Kategorie-Dropdown
+- [x] Keine Kürzel-Kollision mit Built-in-Types (F, A, T, M, I, B, BP, P)
+- [x] Custom-Types erscheinen im Kalender-Buchungs-Dropdown
+- [x] Custom-Types werden im Kalender mit Kürzel + Farbe korrekt dargestellt
+- [x] Legende zeigt Custom-Types
+- [x] SP-Berechnung berücksichtigt Custom-Type-Kategorie korrekt
+- [x] Dashboard: Lücken-Erkennung berücksichtigt Custom-Betrieb/Pikett-Types
+- [x] Backup/Restore enthält Custom-Types + Migration für alte Backups
+- [x] Socket.io synchronisiert Custom-Types
+- [ ] CSV Export/Import für Custom-Types (nicht implementiert — CRUD-UI deckt Anwendungsfall ab)
+- [x] Rückwärtskompatibilität: Backups ohne Custom-Types laden fehlerfrei
 
 ## Reihenfolge der Implementierung (empfohlen)
 1. types.ts + allocation-helpers.ts (Fundament)

@@ -55,11 +55,13 @@ Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren St
 |-----|---------|--------|---------------|
 | 23 | Swiss Design System CSS Alignment (BIT Skin: NotoSans, CSS-Vars, primary/secondary) | ✅ impl / ⏳ deploy | feature-23-swiss-ds-css-alignment.md |
 
-### Phase 5 — Custom Types (geplant)
+### Phase 5 — Custom Types + Productivity (abgeschlossen)
 
 | Nr. | Feature | Status | Feature-Datei |
 |-----|---------|--------|---------------|
-| 22 | Custom Allocation Types (individuelle Buchungstypen pro Team, Kategorie-Zuordnung) | 🔲 geplant | feature-22-custom-allocation-types.md |
+| 22 | Custom Allocation Types (individuelle Buchungstypen pro Team, Kategorie-Zuordnung) | ✅ deployed | feature-22-custom-allocation-types.md |
+| — | Global Undo/Redo (alle Settings-Änderungen, Stack 5, Ctrl+Z/Y) | ✅ deployed | — |
+| — | Excel Clipboard Import (Ctrl+V / Rechtsklick, Raw + Structured Mode) | ✅ deployed | — |
 
 ### Phase 5b — PI-Planung Vertiefung
 
@@ -74,7 +76,7 @@ Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren St
 | 24 | TOTP 2FA (Google/MS Authenticator) | 🔲 Roadmap | — |
 | 25 | aGov OIDC-Integration | 🔲 Roadmap | — |
 | 26 | Jira REST API Integration (ersetzt manuelle SP-Eingabe) | 🔲 Roadmap | — |
-| 27 | Mobile-Optimierung | 🔲 Roadmap | — |
+| 27 | Mobile-Optimierung (Responsive Read-Only) | ✅ deployed | features/feature-27-mobile-optimierung.md |
 | 28 | Audit-Log (Admin-Aktionen) | 🔲 Roadmap | — |
 | 30 | Rollen (Admin, Planer, Read-Only) | 🔲 Roadmap | — |
 
