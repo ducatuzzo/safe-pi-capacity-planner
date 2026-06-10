@@ -84,7 +84,7 @@ export default function TenantGate() {
 
   return (
     <div className="min-h-screen bg-bund-bg flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-[90vw] md:max-w-md p-5 md:p-8">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
           <div className="bg-bund-blau rounded-lg p-3 mb-4 w-full flex justify-center">

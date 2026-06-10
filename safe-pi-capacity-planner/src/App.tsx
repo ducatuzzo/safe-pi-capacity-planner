@@ -19,6 +19,7 @@ import { useTenant } from './hooks/useTenant';
 import { useGlobalUndo } from './hooks/useGlobalUndo';
 import type { AppSnapshot } from './hooks/useGlobalUndo';
 import { migratePIs } from './utils/state-migration';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 const INITIAL_FILTER: FilterState = {
   teams: [],
@@ -72,6 +73,7 @@ interface AppInnerProps {
 }
 
 function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
+  const isDesktop = useMediaQuery(768);
   const [activeTab, setActiveTab] = useState<ActiveTab>('planung');
   const [employees, setEmployees] = useState<Employee[]>(SEED_EMPLOYEES);
   const [pis, setPis] = useState<PIPlanning[]>(SEED_PIS);
@@ -425,16 +427,20 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
     customAllocationTypes,
   };
 
+  const mobileActiveTab = (!isDesktop && (activeTab === 'settings' || activeTab === 'admin'))
+    ? 'planung'
+    : activeTab;
+
   const showFilterBar =
-    activeTab === 'planung' ||
-    activeTab === 'kapazitaet' ||
-    activeTab === 'dashboard' ||
-    activeTab === 'pidashboard';
+    mobileActiveTab === 'planung' ||
+    mobileActiveTab === 'kapazitaet' ||
+    mobileActiveTab === 'dashboard' ||
+    mobileActiveTab === 'pidashboard';
 
   return (
     <div className="min-h-screen flex flex-col bg-bund-bg">
       <Header isConnected={isConnected} tenantName={tenantName} onSwitchTenant={clearTenant} />
-      <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNav activeTab={mobileActiveTab} onTabChange={setActiveTab} />
       {showFilterBar && (
         <FilterBar
           employees={employees}
@@ -443,8 +449,8 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
           onFilterChange={setFilterState}
         />
       )}
-      <main className="flex-1 p-6">
-        {activeTab === 'planung' && (
+      <main className="flex-1 p-3 md:p-6 pb-20 md:pb-6">
+        {mobileActiveTab === 'planung' && (
           <CalendarGrid
             employees={employees}
             pis={pis}
@@ -463,7 +469,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             undoApi={undoApi}
           />
         )}
-        {activeTab === 'kapazitaet' && (
+        {mobileActiveTab === 'kapazitaet' && (
           <KapazitaetView
             employees={employees}
             pis={pis}
@@ -471,7 +477,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             filterState={filterState}
           />
         )}
-        {activeTab === 'dashboard' && (
+        {mobileActiveTab === 'dashboard' && (
           <DashboardView
             employees={employees}
             pis={pis}
@@ -479,7 +485,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             filterState={filterState}
           />
         )}
-        {activeTab === 'pidashboard' && (
+        {mobileActiveTab === 'pidashboard' && (
           <PIDashboardView
             employees={employees}
             pis={pis}
@@ -488,7 +494,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             onPiTeamTargetsChange={handlePiTeamTargetsChange}
           />
         )}
-        {activeTab === 'admin' && (
+        {mobileActiveTab === 'admin' && (
           <AdminView
             tenantId={tenantId}
             tenantName={tenantName}
@@ -496,7 +502,7 @@ function AppInner({ tenantId, tenantName, clearTenant }: AppInnerProps) {
             onClearAllPis={() => handlePisChange([])}
           />
         )}
-        {activeTab === 'settings' && (
+        {mobileActiveTab === 'settings' && (
           <SettingsPage
             employees={employees}
             onEmployeesChange={handleEmployeesChange}

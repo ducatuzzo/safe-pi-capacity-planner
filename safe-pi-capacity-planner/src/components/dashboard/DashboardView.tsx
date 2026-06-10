@@ -253,8 +253,8 @@ export default function DashboardView({ employees, pis, appData, filterState }: 
 
   return (
     <div className="space-y-4">
-      {/* Export-Buttons */}
-      <div className="flex items-center justify-end gap-2">
+      {/* Export-Buttons (Desktop only) */}
+      <div className="hidden md:flex items-center justify-end gap-2">
         {exportError && (
           <span className="text-xs text-red-600 mr-2">{exportError}</span>
         )}
@@ -277,7 +277,7 @@ export default function DashboardView({ employees, pis, appData, filterState }: 
       </div>
 
       {/* Export-Container: dieser Bereich wird als PDF/PNG exportiert */}
-      <div id="export-container" className="space-y-6 bg-white p-4 rounded-lg">
+      <div id="export-container" className="space-y-4 md:space-y-6 bg-white p-3 md:p-4 rounded-lg">
         {/* Export-Kopfzeile: Logo + Filter-Info */}
         <div className="flex items-center justify-between border-b border-gray-200 pb-3">
           <img src={bundeslogo} alt="Schweizerische Eidgenossenschaft" className="h-10" />

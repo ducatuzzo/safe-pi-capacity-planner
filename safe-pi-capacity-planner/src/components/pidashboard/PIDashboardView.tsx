@@ -117,8 +117,8 @@ export default function PIDashboardView({
 
   return (
     <div className="space-y-4">
-      {/* Export-Buttons */}
-      <div className="flex items-center justify-end gap-2">
+      {/* Export-Buttons (Desktop only) */}
+      <div className="hidden md:flex items-center justify-end gap-2">
         {exportError && (
           <span className="text-xs text-red-600 mr-2">{exportError}</span>
         )}
@@ -141,7 +141,7 @@ export default function PIDashboardView({
       </div>
 
       {/* Export-Container: dieser Bereich wird als PDF/PNG exportiert */}
-      <div id="pi-export-container" className="space-y-10 bg-white p-4 rounded-lg">
+      <div id="pi-export-container" className="space-y-6 md:space-y-10 bg-white p-3 md:p-4 rounded-lg">
         {/* Export-Kopfzeile: Logo + Filter-Info */}
         <div className="flex items-center justify-between border-b border-gray-200 pb-3">
           <img src={bundeslogo} alt="Schweizerische Eidgenossenschaft" className="h-10" />
@@ -152,26 +152,26 @@ export default function PIDashboardView({
         </div>
 
         {/* Legende */}
-        <div className="flex flex-wrap gap-4 text-xs text-gray-500 border border-gray-200 rounded-lg px-4 py-3 bg-white">
+        <div className="flex flex-wrap gap-2 md:gap-4 text-xs text-gray-500 border border-gray-200 rounded-lg px-3 md:px-4 py-2 md:py-3 bg-white">
           <span className="font-semibold text-gray-600">Auslastung:</span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-green-400" />
-            {'< 85 % – gut'}
+            {'< 85 %'}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-orange-400" />
-            {'85–100 % – Achtung'}
+            {'85–100 %'}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-            {'> 100 % – Überlastet'}
+            {'> 100 %'}
           </span>
-          <span className="flex items-center gap-3 ml-2 pl-2 border-l border-gray-200">
+          <span className="hidden md:flex items-center gap-3 ml-2 pl-2 border-l border-gray-200">
             <span>✅ Delta &gt; 0 – Puffer</span>
             <span>ℹ️ Delta = 0 – Exakt</span>
             <span>⚠️ Delta &lt; 0 – Überbucht</span>
           </span>
-          <span className="ml-auto italic text-gray-400">
+          <span className="hidden md:inline ml-auto italic text-gray-400">
             «SP in Jira» – Klicken zum Bearbeiten, Wert wird synchronisiert.
           </span>
         </div>

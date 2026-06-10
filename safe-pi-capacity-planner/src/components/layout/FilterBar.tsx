@@ -1,6 +1,7 @@
 // Globale Filterleiste – wirkt in allen Tabs gleichzeitig (Planung, Kapazität, Dashboard)
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import type { Employee, FilterState, PIPlanning } from '../../types';
 
 interface FilterBarProps {
@@ -60,6 +61,8 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
     });
   };
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const hasActiveFilter =
     filter.teams.length > 0 ||
     filter.piId !== null ||
@@ -68,13 +71,19 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
     filter.dateFrom !== null ||
     filter.dateTo !== null;
 
-  return (
-    <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+  const activeCount =
+    (filter.teams.length > 0 ? 1 : 0) +
+    (filter.piId ? 1 : 0) +
+    (filter.iterationId ? 1 : 0) +
+    (filter.year ? 1 : 0) +
+    (filter.dateFrom ? 1 : 0);
 
+  const filterContent = (
+    <>
       {/* Team – Toggle-Buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Team:</span>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {teams.map(team => (
             <button
               key={team}
@@ -98,7 +107,7 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
         <select
           value={filter.piId ?? ''}
           onChange={e => handlePiChange(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau"
+          className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau flex-1 md:flex-none"
         >
           <option value="">Alle PIs</option>
           {pis.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -112,7 +121,7 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
           value={filter.iterationId ?? ''}
           onChange={e => handleIterationChange(e.target.value)}
           disabled={!filter.piId}
-          className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau disabled:opacity-40 disabled:cursor-not-allowed"
+          className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau disabled:opacity-40 disabled:cursor-not-allowed flex-1 md:flex-none"
         >
           <option value="">Alle Iterationen</option>
           {availableIterations.map(i => (
@@ -127,7 +136,7 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
         <select
           value={filter.year ?? ''}
           onChange={e => handleYearChange(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau"
+          className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-bund-blau flex-1 md:flex-none"
         >
           <option value="">Alle Jahre</option>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
@@ -135,7 +144,7 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
       </div>
 
       {/* Zeitraum – überschreibt PI/Iteration wenn gesetzt */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Zeitraum:</label>
         <input
           type="date"
@@ -156,11 +165,44 @@ export default function FilterBar({ employees, pis, filter, onFilterChange }: Fi
       {hasActiveFilter && (
         <button
           onClick={handleReset}
-          className="ml-auto text-xs text-gray-500 hover:text-bund-rot border border-gray-300 hover:border-bund-rot rounded px-2 py-1 transition-colors whitespace-nowrap"
+          className="md:ml-auto text-xs text-gray-500 hover:text-bund-rot border border-gray-300 hover:border-bund-rot rounded px-2 py-1 transition-colors whitespace-nowrap"
         >
           Filter zurücksetzen
         </button>
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: inline filter bar */}
+      <div className="hidden md:flex bg-white border-b border-gray-200 px-6 py-2.5 flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+        {filterContent}
+      </div>
+
+      {/* Mobile: collapsible filter */}
+      <div className="md:hidden bg-white border-b border-gray-200">
+        <button
+          onClick={() => setMobileOpen(v => !v)}
+          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-600"
+        >
+          <span className="flex items-center gap-1.5">
+            <SlidersHorizontal size={14} />
+            Filter
+            {activeCount > 0 && (
+              <span className="bg-bund-blau text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                {activeCount}
+              </span>
+            )}
+          </span>
+          <span className="text-xs text-gray-400">{mobileOpen ? '▲' : '▼'}</span>
+        </button>
+        {mobileOpen && (
+          <div className="px-3 pb-3 flex flex-col gap-2.5 text-sm">
+            {filterContent}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

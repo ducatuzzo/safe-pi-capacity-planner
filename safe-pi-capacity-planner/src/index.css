@@ -85,3 +85,10 @@
     );
   }
 }
+
+/* Feature 27: iOS safe-area padding for fixed bottom tab bar */
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

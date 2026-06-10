@@ -80,12 +80,12 @@ export default function KapazitaetView({ employees, pis, appData, filterState }:
 
       {/* Ergebnistabelle */}
       {result && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto -webkit-overflow-scrolling-touch">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="bg-bund-blau text-white text-left">
-                <th className="px-4 py-2.5 font-medium">Mitarbeiter</th>
-                <th className="px-4 py-2.5 font-medium">Team</th>
+                <th className="px-2 md:px-4 py-2.5 font-medium">Mitarbeiter</th>
+                <th className="px-2 md:px-4 py-2.5 font-medium">Team</th>
                 <th className="text-right px-4 py-2.5 font-medium">Arbeitstage</th>
                 <th className="text-right px-4 py-2.5 font-medium">Absenzen</th>
                 <th className="text-right px-4 py-2.5 font-medium">Teilzeit</th>

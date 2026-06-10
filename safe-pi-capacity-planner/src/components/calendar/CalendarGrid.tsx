@@ -16,6 +16,8 @@ import type { GlobalUndoApi } from '../../hooks/useGlobalUndo';
 import CalendarHeader from './CalendarHeader';
 import CalendarCell from './CalendarCell';
 import ClipboardImportDialog from './ClipboardImportDialog';
+import MobileReadOnlyBanner from '../layout/MobileReadOnlyBanner';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { Undo2, Redo2 } from 'lucide-react';
 
 const BUILTIN_BUCHUNGSTYPEN: string[] = [
@@ -44,6 +46,8 @@ export default function CalendarGrid({
   employees, pis, feiertage, schulferien, blocker, filterState, farbConfig, customTypes,
   lockedRows, onAllocationChange, onClearAllocations, onBulkAllocationChange, onRowLock, onRowUnlock, undoApi,
 }: CalendarGridProps) {
+
+  const isDesktop = useMediaQuery(768);
 
   // Drag-Buchungs-State
   const [selectedType, setSelectedType] = useState<string>('FERIEN');
@@ -91,6 +95,7 @@ export default function CalendarGrid({
     currentAllocation: string,
     dayIndex: number,
   ) => {
+    if (!isDesktop) return;
     if (isNonWorkday(meta) && !isPikettTypeHelper(selectedType, customTypes)) return;
     if (lockedRows?.has(employeeId)) return;
     undoApi?.pushSnapshot();
@@ -216,13 +221,15 @@ export default function CalendarGrid({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Toolbar: Statistik + Aktionen */}
+    <div className="flex flex-col gap-3 md:gap-4">
+      <MobileReadOnlyBanner />
+
+      {/* Toolbar: Statistik + Aktionen (Desktop only for interactive parts) */}
       <div className="flex items-center gap-4">
         <span className="text-xs text-gray-400">
           {visibleDays.length} Tage · {visibleEmployees.length} Mitarbeiter
         </span>
-        {pasteOrigin && (
+        {isDesktop && pasteOrigin && (
           <span className="text-xs text-blue-600 flex items-center gap-1">
             Einfügepunkt: {visibleEmployees[pasteOrigin.empIdx]?.vorname} {visibleEmployees[pasteOrigin.empIdx]?.name}, {toDateStr(visibleDays[pasteOrigin.dayIdx])}
             <button
@@ -235,7 +242,7 @@ export default function CalendarGrid({
             </button>
           </span>
         )}
-        {undoApi && (
+        {isDesktop && undoApi && (
           <div className="flex items-center gap-1 ml-auto">
             <button
               type="button"
@@ -297,13 +304,15 @@ export default function CalendarGrid({
                           </span>
                         )}
                       </span>
-                      <button
-                        onClick={() => onClearAllocations(emp.id)}
-                        title="Alle Buchungen dieses Mitarbeiters löschen"
-                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 text-[10px] leading-none transition-opacity flex-shrink-0"
-                      >
-                        ✕
-                      </button>
+                      {isDesktop && (
+                        <button
+                          onClick={() => onClearAllocations(emp.id)}
+                          title="Alle Buchungen dieses Mitarbeiters löschen"
+                          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 text-[10px] leading-none transition-opacity flex-shrink-0"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                   </td>
                   {visibleDays.map((day, i) => (
@@ -331,8 +340,8 @@ export default function CalendarGrid({
         </table>
       </div>
 
-      {/* Legende mit klickbaren Buchungstypen */}
-      <div className="flex flex-wrap gap-x-3 gap-y-2 p-3 bg-white border border-gray-200 rounded text-xs text-gray-700">
+      {/* Legende — auf Desktop klickbar zur Typ-Auswahl, auf Mobile reine Farblegende */}
+      <div className="flex flex-wrap gap-x-3 gap-y-2 p-2 md:p-3 bg-white border border-gray-200 rounded text-xs text-gray-700">
         <span className="font-medium text-gray-600 self-center">Buchungstyp:</span>
 
         {/* Built-in Buchungstypen */}
