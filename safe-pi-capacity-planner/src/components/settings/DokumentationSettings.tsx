@@ -11,10 +11,10 @@ interface DokumentEintrag {
 
 const DOKUMENTE: DokumentEintrag[] = [
   {
-    dateiname: 'benutzerdokumentation_v2.0.docx',
+    dateiname: 'benutzerdokumentation_v2.1.docx',
     titel: 'Benutzerdokumentation',
-    beschreibung: 'Bedienung aller Tabs inkl. PI-Planung mit vereinter Timeline-Tabelle (Iterationen + Blocker + Zeremonien chronologisch), Outlook-Style Terminserien (.ics mit RRULE), Excel-Workbook Export/Import, Demo-Daten Demo-Train, Admin → Alle PIs löschen, PI Dashboard, FAQ',
-    version: 'v2.0',
+    beschreibung: 'Bedienung aller Tabs inkl. Custom Allocation Types (eigene Buchungstypen), Global Undo/Redo, Excel-Clipboard-Import, Mobile Read-Only Ansicht, PI-Planung Timeline, Outlook-Serien (.ics RRULE), Excel-Workbook, Demo-Daten Demo-Train, Admin, PI Dashboard, FAQ',
+    version: 'v2.1',
   },
   {
     dateiname: 'installationshandbuch_v1.0.docx',

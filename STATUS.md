@@ -4,6 +4,19 @@
 
 ## Stand: 2026-06-10
 
+### Zuletzt erledigt (Session 10.06.2026 — Benutzerdokumentation v2.1 + AI.md/CLAUDE.md Sync)
+- **Benutzerdokumentation v2.1** (NEU + .docx, 31.9 KB, 320 Blocks) erstellt:
+  - F22 Custom Allocation Types (eigene Buchungstypen, Kategorien ABSENCE/OPERATIONAL/NONE, Color-Picker, Drag-Legende mit ★)
+  - F27 Mobile Read-Only Responsive Design (Bottom-Tab-Bar, Schreib-Aktionen hidden, Banner)
+  - Global Undo/Redo (Stack 5, Ctrl+Z/Y, Toolbar-Buttons ⟲/⟳)
+  - Excel-Clipboard-Import (Structured/Raw, Vorschau-Dialog, Überschreiben vs. Nur-leere-füllen)
+  - Versionshistorie-Eintrag v2.1 vom 10.06.2026
+- **AI.md** synchronisiert (Stand 10.06.2026): AppData erweitert um `customAllocationTypes`, Schema-Version 1.6, vier neue Sektionen (F22, F27, Global Undo, Clipboard Import) mit Code-Pfaden, Hooks und Helper-Funktionen
+- **CLAUDE.md** synchronisiert (Stand 10.06.2026): kompakte Quick-Reference für F22/F27/Undo/Clipboard mit Tastatur-Shortcuts und Datei-Pfaden
+- **DokumentationSettings.tsx**: Download-Link v2.0 → v2.1 mit erweiterter Beschreibung
+- v2.1.docx via `scripts/md-to-docx.js` regeneriert + nach `safe-pi-capacity-planner/public/docs/` kopiert für Vercel-Auslieferung
+- TypeScript-Check grün
+
 ### Zuletzt erledigt (Session 10.06.2026 — F22 Custom Types + Global Undo/Redo + Excel Clipboard Import)
 - **Feature 22: Custom Allocation Types** ✅ implementiert + deployed (Commit `ac0af87`)
   - Breaking Change: `Employee.allocations` von `Record<string, AllocationType>` zu `Record<string, string>`
@@ -170,7 +183,7 @@
 | Dokument | Datei | Stand |
 |----------|-------|-------|
 | Installationshandbuch | docs/installationshandbuch_v1.0.md | ✅ |
-| Benutzerdokumentation | docs/benutzerdokumentation_v1.7.md | ✅ 14.04.2026 |
+| Benutzerdokumentation | docs/benutzerdokumentation_v2.1.md | ✅ 10.06.2026 (F22 + F27 + Undo/Redo + Clipboard) |
 | Deployment-Handbuch | docs/deployment_handbuch_v1.0.md | ✅ |
 | CLAUDE.md | CLAUDE.md | ✅ 16.04.2026 |
 
@@ -210,7 +223,7 @@
 
 ## Nächste Schritte (priorisiert)
 1. Feature 29 + F23: Vercel-Deploy verifizieren (sollten mit `ac0af87` deployed sein)
-2. Benutzerdokumentation aktualisieren (Custom Types, Undo/Redo, Clipboard Import)
+2. ~~Benutzerdokumentation aktualisieren (Custom Types, Undo/Redo, Clipboard Import)~~ ✅ erledigt (v2.1)
 
 ## Bekannte Risiken
 - **JSON-Persistenz ohne Locking:** Bei gleichzeitigen Schreibzugriffen via Socket.io kann ein Race Condition auftreten. Für aktuelle Nutzerzahl (< 10 gleichzeitig) akzeptiert.

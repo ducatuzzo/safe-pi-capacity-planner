@@ -2,7 +2,7 @@
 
 > Dieses Dokument ist das primäre Referenz-Dokument für alle Claude Code Sessions in diesem Projekt.
 > Immer zuerst lesen. Ergänzend: AI.md (Architektur), STATUS.md (Stand), features/ (Specs).
-> Zuletzt synchronisiert: 05.06.2026 (Admin-Code auf 8 Ziffern + Default `00000815`)
+> Zuletzt synchronisiert: 10.06.2026 (F22 Custom Types + F27 Mobile + Global Undo/Redo + Excel Clipboard Import)
 
 ## Projekt-Kontext
 - **Name:** SAFe PI Capacity Planner (BIT)
@@ -115,6 +115,42 @@ npm run dev:server   # nur Express Backend
 - **Recovery-Endpoint (Railway-tauglich):** `POST /api/recovery/reset-admin-code` mit `{ tenantId, recoveryToken }`. Nur aktiv wenn Env-Var `ADMIN_RECOVERY_TOKEN` (≥16 Zeichen) gesetzt ist; sonst HTTP 404 «Recovery deaktiviert». Timing-safe Token-Vergleich via `crypto.timingSafeEqual`. Rate-Limit 5 Versuche / 5 Min pro IP. Bei Erfolg: Admin-Code-Hash des Tenants auf bcrypt von `DEFAULT_ADMIN_CODE` zurückgesetzt; Log mahnt zur Token-Rotation. **Workflow Railway-Lockout:** 1) Env-Var `ADMIN_RECOVERY_TOKEN` setzen → 2) Service-Redeploy → 3) curl gegen Endpoint → 4) Login mit `00000815` → 5) Env-Var sofort entfernen und neuen Code setzen.
 - **Undo/Redo in Planung:** Hook `usePlanungUndo.ts` (NEU). Stack-Limit 3, Snapshot von `Employee[]` bei jedem Drag-MouseDown (vor Allocation-Change). Toolbar-Buttons «Rückgängig»/«Wiederherstellen» in `CalendarGrid.tsx` rechts. Tastatur: `Ctrl+Z`, `Ctrl+Y`, `Ctrl+Shift+Z`. Restore broadcastet via bestehendem `employees`-Settings-Event. Eingabefelder (input/textarea/contentEditable) werden ignoriert, damit Browser-Undo im Text erhalten bleibt.
 - **«Alles löschen» nur noch im Admin-Bereich.** Aus `MitarbeiterSettings.tsx` und `DateRangeTable.tsx` (Feiertage/Schulferien/Blocker) entfernt. Verwaiste `Trash`-Imports bereinigt. Einzeilige Lösch-Aktionen bleiben überall erhalten.
+
+## Feature 22 + 27 + Global Undo + Clipboard Import (Stand 10.06.2026)
+
+### Feature 22 — Custom Allocation Types (deployed)
+- **Datenmodell:** `CustomAllocationType { id, code, label, category: 'ABSENCE'|'OPERATIONAL'|'NONE', bgColor, textColor }` in `types.ts`. `AppData.customAllocationTypes: CustomAllocationType[]` (Limit 20).
+- **SP-Wirkung:** `getEffectiveAllocationCategory(code, customTypes)` in `src/utils/allocation-helpers.ts` mappt Custom-Code zur Kategorie für SP-Berechnung.
+- **Component:** `src/components/settings/CustomAllocationSettings.tsx` (CRUD + Color-Picker).
+- **Drag-Legende:** `CalendarGrid` zeigt Custom-Types mit `★`-Symbol rechts neben Standards.
+- **Excel-Clipboard-Import:** akzeptiert Custom-Codes.
+- **Migration:** `migrateStateToSchema16` setzt `customAllocationTypes: state.customAllocationTypes ?? []` für 1.5-Backups.
+
+### Feature 27 — Mobile Read-Only Responsive Design (deployed)
+- **Trigger:** `useMediaQuery('(max-width: 768px)')` → `isMobile` Flag.
+- **UI-Anpassungen:**
+  - `TabNav`: Bottom-Tab-Bar mit 4 Icons (Settings/Admin hidden)
+  - `Header`: Logo/Titel/Tenant kompakt
+  - `FilterBar`: kollabierbar mit aktive-Filter-Badge
+  - `CalendarGrid`: Drag-Handler `noop`, MobileReadOnlyBanner oben, Undo-Toolbar/Paste-Origin/Clear-Buttons hidden
+  - Dashboard / PI-Dashboard: Export-Buttons hidden
+  - Kapazität: `min-w-[600px]` Horizontal-Scroll
+  - `safe-area-bottom` Utility für iOS-Notch
+- **Read-Only ist client-side** — Server-API bleibt unverändert.
+
+### Global Undo/Redo (deployed)
+- **Hook:** `src/hooks/useGlobalUndo.ts` (ersetzt `usePlanungUndo.ts` GELÖSCHT).
+- **Stack-Tiefe 5.** Snapshot deckt: `employees`, `pis`, `feiertage`, `schulferien`, `blocker`, `teamConfigs`, `globalConfig`, `piTeamTargets`, `customAllocationTypes`.
+- **Capture-Trigger:** Drag-MouseDown + Settings-handleX-Wrapper.
+- **Tastatur:** `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z`, ignoriert in input/textarea/contentEditable.
+- **Sync:** Restore ruft `emitSettingsChange` für jedes Feld auf.
+
+### Excel-Clipboard-Import (deployed)
+- **Parser:** `src/utils/clipboard-parser.ts` — Tab-getrennte Daten.
+- **Modi:** Structured (Datums-Header) / Raw (ab Paste-Origin).
+- **Werte:** Standard-Codes, volle Namen, Custom-Codes, leer.
+- **UI:** `ClipboardImportDialog.tsx` Vorschau + Konflikt-Markierung + «Überschreiben» / «Nur leere füllen».
+- **Paste-Origin:** Klick auf Zelle (orangener Rand) → `Ctrl+V` öffnet Dialog.
 
 ## Wichtige Konventionen
 - Sprache: Deutsch (UI + Kommentare), Englisch (Variablen/Typen)

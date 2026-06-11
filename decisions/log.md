@@ -361,3 +361,24 @@ SP-Berechnung: Blocker-Tage zählen als normale Arbeitstage (kein SP-Abzug).
 - User-Agent-Sniffing statt CSS-Breakpoints — fragil, nicht zukunftssicher, Tailwind-Breakpoints sind Standard
 - Responsive Settings-Formulare (nur-lesen) — kein User-Nutzen, Settings-Daten sind im Dashboard/Kapazitäts-Tab bereits sichtbar
 
+## 2026-06-10: Benutzerdokumentation v2.1 + AI.md/CLAUDE.md Sync
+**Entscheidung:** Doku-Trio (Benutzerdokumentation, AI.md, CLAUDE.md) auf F22/F27/Global-Undo/Excel-Clipboard-Import nachgeführt — kein Schema-Bump, daher nur Punkt-Version 2.0 → 2.1.
+
+**Begründung:**
+- Letzter Doku-Stand war v2.0 (07.05.2026, F29 v2 UI-Reorganisation). Vier neue Features deployed (`ac0af87`, `a59cbc3`) waren in STATUS.md/PRD.md/decisions/log.md dokumentiert, aber NICHT in Benutzerdokumentation, AI.md oder CLAUDE.md → Lücke gemäss Dokumentationspflicht (AI.md Sektion „Dokumentationspflicht").
+- Versionierung-Schema: Major-Version (`2.x`) für UI-Paradigmen, Minor-Version für additive Features ohne UI-Bruch. F22/F27/Undo/Clipboard sind additiv → v2.1 statt v3.0.
+
+**Geänderte Dateien:**
+- `docs/benutzerdokumentation_v2.1.md` (NEU, basierend auf v2.0): Navigations-Tabs-Hinweis auf Mobile-Ansicht; neue Sektion „Rückgängig / Wiederherstellen"; neue Sektion „Excel-Clipboard-Import" mit Structured/Raw-Modi und Vorschau-Dialog; neue Sektion „Custom Allocation Types (Feature 22)" unter Einstellungen mit Kategorie-Tabelle (ABSENCE/OPERATIONAL/NONE); Versionshistorie-Eintrag v2.1.
+- `docs/benutzerdokumentation_v2.1.docx` (NEU): regeneriert via `scripts/md-to-docx.js` (31.9 KB, 320 Blocks); nach `safe-pi-capacity-planner/public/docs/` kopiert.
+- `safe-pi-capacity-planner/src/components/settings/DokumentationSettings.tsx`: Download-Eintrag v2.0 → v2.1 mit erweiterter Beschreibung.
+- `AI.md` (Stand 10.06.2026): `AppData.customAllocationTypes: CustomAllocationType[]` (war ehemals Kommentar „Feature 22 geplant"); Schema-Version-Hinweis 1.5 → 1.6; vier neue Sektionen für F22 / F27 / Global Undo / Excel-Clipboard-Import mit Code-Pfaden, Hooks und Helper-Funktionen.
+- `CLAUDE.md` (Stand 10.06.2026): kompakter Quick-Reference-Block „Feature 22 + 27 + Global Undo + Clipboard Import" mit Tastatur-Shortcuts (`Ctrl+Z`/`Y`/`Shift+Z`), Capture-Triggern und Dateipfaden.
+- `STATUS.md`: Dokumentations-Tabelle Benutzerdokumentation auf v2.1; Nächste-Schritte-Punkt 2 als erledigt markiert; neue Session-Notiz „Benutzerdokumentation v2.1 + AI.md/CLAUDE.md Sync".
+
+**Alternativ geprüft & verworfen:**
+- v2.0 inline patchen (kein neuer File) — verstösst gegen Versionierungs-Konvention der Doku-Reihe (jeder Feature-Sweep eigene Version). Verworfen.
+- v3.0 als nächste Major-Version — wäre nur bei UI-Paradigmen-Wechsel angebracht. F22/F27/Undo/Clipboard sind additiv. Verworfen.
+- Inline-FAQ-Erweiterung statt eigene Sektionen — würde Auffindbarkeit verschlechtern (User scrollt nicht in FAQ für neue Features). Verworfen.
+- Separater „Mobile-Guide" als eigenes Dokument — schafft Doku-Fragmentierung. Stattdessen Mobile-Hinweis in Navigations-Tabelle (oberste Sichtbarkeit, niedrige Pflege-Kosten).
+

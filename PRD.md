@@ -113,9 +113,11 @@ Eine Fullstack-Webanwendung, die Teams bei BIT ermöglicht, ihre verfügbaren St
 - [x] Mehrere Trains (Tenants) isoliert verwaltbar (Feature 18)
 - [x] Admin-Bereich mit Code-Schutz (Feature 19)
 
-### Phase 5 — offen
-- [ ] Custom Allocation Types mit Kategorie-Zuordnung (Feature 22)
-- [ ] SP-Berechnung berücksichtigt Custom-Type-Kategorien korrekt
+### Phase 5 — alle erfüllt ✅
+- [x] Custom Allocation Types mit Kategorie-Zuordnung (Feature 22, deployed 10.06.2026)
+- [x] SP-Berechnung berücksichtigt Custom-Type-Kategorien korrekt (`allocation-helpers.ts`)
+- [x] Global Undo/Redo über alle Settings (Stack 5, `Ctrl+Z`/`Y`)
+- [x] Excel-Clipboard-Import via `Ctrl+V` (Structured + Raw)
 
 ## Quelldateien
 | Datei | Inhalt |

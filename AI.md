@@ -1,6 +1,6 @@
 # AI.md – Technischer Kompass: SAFe PI Capacity Planner
 
-> Zuletzt synchronisiert: 05.06.2026 (Recovery-Endpoint + tatsaechliche Railway-URL)
+> Zuletzt synchronisiert: 10.06.2026 (F22 Custom Types + F27 Mobile + Global Undo/Redo + Excel Clipboard Import)
 > Führend für: Architektur, Datenmodell, Konventionen.
 > Feature-Liste: siehe PRD.md. Status: siehe STATUS.md.
 
@@ -145,23 +145,64 @@ Format: `vorname;name;team;typ;fte;kapazitaetProzent;betriebProzent;pauschalProz
 - Rate-Limiting: 3 Fehlversuche → 60s Sperre (server-seitig)
 - Admin-Funktionen: Tenant-Reset, Tenant-CRUD, Code-Änderung
 
-### AppData (vollständig, Stand 06.05.2026)
+### AppData (vollständig, Stand 10.06.2026)
 ```typescript
 interface AppData {
   feiertage: Feiertag[];
   schulferien: Schulferien[];
-  pis: PIPlanning[];          // PIPlanning erweitert um optionale F29-Felder (s.o.)
-  blocker: Blocker[];          // = Change-Freeze (UNABHÄNGIG von PIBlockerWeek!)
+  pis: PIPlanning[];                              // PIPlanning erweitert um optionale F29-Felder (s.o.)
+  blocker: Blocker[];                              // = Change-Freeze (UNABHÄNGIG von PIBlockerWeek!)
   teamTargets: TeamTarget[];
   globalConfig: GlobalCapacityConfig;
   teamConfigs: TeamConfig[];
   piTeamTargets: PITeamTarget[];
-  // Feature 22 (geplant):
-  // customAllocationTypes?: CustomAllocationType[];
+  customAllocationTypes: CustomAllocationType[];   // Feature 22 (deployed 10.06.2026)
 }
 ```
 
-**Schema-Version Backup/State:** `1.5` (Feature 29). Migration von 1.0/1.4 ist additiv — bestehende Daten bleiben unverändert, neue Felder werden mit `[]` defaultet.
+**Schema-Version Backup/State:** `1.6` (Feature 29 v2). Migration von 1.0/1.4/1.5 ist additiv — bestehende Daten bleiben unverändert, neue Felder werden mit `[]` defaultet. `customAllocationTypes` wird im Backup/Restore vollständig persistiert.
+
+### Feature 22 – Custom Allocation Types (Schema 10.06.2026)
+- **CustomAllocationType:** `{ id, code, label, category: 'ABSENCE'|'OPERATIONAL'|'NONE', bgColor, textColor }`. Limit 20 pro Train.
+- **SP-Wirkung pro Kategorie:**
+  - `ABSENCE` → 0 SP (wie FERIEN/ABWESEND/MILITAER/IPA)
+  - `OPERATIONAL` → Betrieb-Lücken-Check (wie BETRIEB)
+  - `NONE` → neutral (keine SP-Auswirkung, kein Lücken-Check)
+- **Code-Generator-Helper** `allocation-helpers.ts`: erweitert `AllocationType` zur Laufzeit um Custom-Codes; `getEffectiveAllocationCategory(code, customTypes)` liefert die SP-Kategorie für die Berechnung.
+- **UI:** `src/components/settings/CustomAllocationSettings.tsx` (CRUD-Tabelle mit Color-Pickern). Drag-Legende in `CalendarGrid` zeigt Custom-Types rechts neben Standard-Typen mit `★`-Symbol.
+- **Excel-Clipboard-Import:** akzeptiert Custom-Type-Codes; Validierung gegen aktuelle `customAllocationTypes`-Liste.
+
+### Feature 27 – Mobile Read-Only Responsive Design (10.06.2026)
+- **Erkennung:** `window.matchMedia('(max-width: 768px)')` via `useMediaQuery`-Hook → `isMobile` Flag.
+- **UI-Anpassungen:**
+  - `TabNav.tsx`: Bottom-Tab-Bar mit 4 Icons (Planung/Kapazität/Dashboard/PI-Dashboard); Settings/Admin ausgeblendet
+  - `Header.tsx`: Logo/Titel/Tenant-Name kompakt
+  - `FilterBar.tsx`: kollabierbar mit Badge für aktive Filter-Anzahl
+  - `CalendarGrid.tsx`: Drag-Handler `noop` wenn `isMobile`, `MobileReadOnlyBanner` oben, Undo-Toolbar + Paste-Origin + Clear-Buttons hidden
+  - `DashboardView` / `PIDashboardView`: Export-Buttons hidden
+  - `KapazitaetView`: `min-w-[600px]` für Horizontal-Scroll
+  - `TenantGate.tsx`: `max-w-[90vw]` responsive
+  - `index.css`: `safe-area-bottom` Utility für iOS-Notch
+- **Read-Only ist client-side enforced** — Server-API bleibt write-fähig (kein Backend-Schutz nötig).
+
+### Global Undo/Redo (10.06.2026)
+- **Hook:** `src/hooks/useGlobalUndo.ts` (ersetzt früheres `usePlanungUndo.ts`).
+- **Stack-Tiefe:** 5 (Älteste fällt raus). Pro Eintrag: `{ employees, pis, feiertage, schulferien, blocker, teamConfigs, globalConfig, piTeamTargets, customAllocationTypes }` Snapshot.
+- **Capture-Trigger:**
+  - Drag-Buchung: Snapshot bei MouseDown (eine Drag-Aktion = 1 Undo-Schritt)
+  - Settings-Änderung: Snapshot in `handleX`-Wrappern vor State-Update
+- **Tastatur:** `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` global, ignoriert wenn `<input>`/`<textarea>`/`contenteditable` Fokus hat (Browser-Undo bleibt erhalten).
+- **Toolbar-Buttons:** ⟲ / ⟳ rechts in `CalendarGrid` (Planung-Tab).
+- **Sync:** Beim Restore wird `emitSettingsChange` für jedes betroffene Feld aufgerufen → andere Sessions sehen Änderung.
+
+### Excel-Clipboard-Import (10.06.2026)
+- **Parser:** `src/utils/clipboard-parser.ts`. Akzeptiert Tab-getrennte Daten (Standard Excel-Copy-Format).
+- **Modi:**
+  - **Structured:** erste Zeile = Datums-Header (YYYY-MM-DD, DD.MM.YYYY, MM/DD/YYYY) → spaltenweise Datum-zu-Wert-Mapping
+  - **Raw:** keine erkennbare Header → Werte werden ab Einfüge-Origin-Zelle horizontal eingefügt
+- **Akzeptierte Werte:** Standard-AllocationType-Codes, volle Namen, Custom-Type-Codes, leer (= keine Buchung).
+- **UI:** `ClipboardImportDialog.tsx` zeigt Vorschau mit Konflikt-Markierung; Optionen «Überschreiben» / «Nur leere Zellen füllen» / «Abbrechen».
+- **Paste-Origin:** Klick auf eine Mitarbeiter-Zelle markiert sie als Origin (orangener Rand). `Ctrl+V` öffnet den Dialog.
 
 ## Story Point Berechnung
 - 1 Arbeitstag = `globalConfig.spPerDay` SP (konfigurierbar, default 1)
